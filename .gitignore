@@ -1,0 +1,24 @@
+# IntelliJ IDEA project files
+*.iml
+.idea/
+
+# Documentation
+/public/
+
+# Gradle cache
+.gradle/
+
+# Compilation output
+bin/
+target/
+build/
+out/
+
+# macOS directory metadata
+.DS_Store
+
+# Virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+.attach_pid*
+*.hprof
