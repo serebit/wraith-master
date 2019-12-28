@@ -9,16 +9,11 @@
 .gradle/
 
 # Compilation output
-bin/
-target/
 build/
 out/
 
 # macOS directory metadata
 .DS_Store
 
-# Virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-
+# IntelliJ process attachment files
 .attach_pid*
-*.hprof
