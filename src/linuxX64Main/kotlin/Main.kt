@@ -1,3 +1,5 @@
+@file:Suppress("EXPERIMENTAL_UNSIGNED_LITERALS", "EXPERIMENTAL_API_USAGE")
+
 package com.serebit.wraith
 
 import cnames.structs.libusb_device
@@ -5,82 +7,35 @@ import cnames.structs.libusb_device_handle
 import kotlinx.cinterop.*
 import libusb.*
 
+const val COOLER_MASTER_VENDOR_ID: UShort = 0x2516u
+const val WRAITH_PRISM_PRODUCT_ID: UShort = 0x51u
+
 fun main() = memScoped {
     val init = libusb_init(null)
-    check(init == 0) { "Failed to initialize libusb" }
+    check(init == 0) { "Failed to initialize libusb." }
 
-    val data = listOf(
-        0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-    ).map { it.toUByte() }.toUByteArray().toCValues()
+    val device = findWraithPrismDevice()?.open() ?: error("Failed to find Wraith Prism USB device.")
 
-    val data2 = listOf(
-        0x12, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-    ).map { it.toUByte() }.toUByteArray().toCValues()
+    device.claimInterfaces()
 
-    val devices = getDeviceInfo()
-
-    val coolerMasterDevices = devices.filter { it.second.idVendor.toInt() == 0x2516 }
-        .also { println("Found ${it.size} Cooler Master devices.") }
-
-    val wraithPrism = coolerMasterDevices.find { it.second.idProduct.toInt() == 0x51 }
-
-    val handle = wraithPrism?.let { getHandle(it.first) }
-    println("Obtained device handle for Wraith Prism")
-
-    for (i in 0..2) {
-        if (libusb_kernel_driver_active(handle, i) == 1) {
-            val err = libusb_detach_kernel_driver(handle, i)
-            check(err == 0) { "Failed to detach kernel driver from interface $i with error code $err"}
-            val err3 = libusb_claim_interface(handle, i)
-            check(err3 == 0) { "Failed to claim interface $i with error $err3" }
-        }
-    }
-
-    println("Claimed interfaces for Wraith Prism")
-
-    val transferred = allocArray<IntVar>(64)
-
-    val err4 = libusb_interrupt_transfer(
-        handle,
-        0x04,
-        data,
-        64,
-        transferred,
-        1000
-    )
-
-    val transferred2 = allocArray<IntVar>(64)
-
-    val err5 = libusb_interrupt_transfer(
-        handle,
-        0x04,
-        data2,
-        64,
-        transferred2,
-        1000
-    )
-
+    device.close()
     libusb_exit(null)
 }
 
-fun MemScope.getDeviceInfo(): List<Pair<CPointer<libusb_device>, libusb_device_descriptor>> {
-    val devices = loadUsbDevices()
-    val descriptors = getUsbDeviceDescriptors(devices)
-    return devices.zip(descriptors)
+fun findWraithPrismDevice(): UsbDevice? = memScoped {
+    val cDevices = loadUsbDevices()
+    val descriptors = getUsbDeviceDescriptors(cDevices.map { it.ptr })
+    val devices = descriptors.zip(cDevices).map { UsbDevice(it.first, it.second) }
+
+    return devices.find(UsbDevice::isWraithPrism)
 }
 
-fun MemScope.loadUsbDevices(): List<CPointer<libusb_device>> {
+fun loadUsbDevices(): List<libusb_device> = memScoped {
     val devicesPtr = allocPointerTo<CArrayPointerVar<libusb_device>>().ptr
     val len = libusb_get_device_list(null, devicesPtr)
-    println("Found $len USB devices.")
+
     val devicesArray = devicesPtr.pointed.value!!
-    return (0 until len).map { devicesArray[it]!! }.also { libusb_free_device_list(devicesArray, 1) }
+    return (0 until len).map { devicesArray[it]!!.pointed }.also { libusb_free_device_list(devicesArray, 1) }
 }
 
 fun MemScope.getUsbDeviceDescriptors(devices: List<CPointer<libusb_device>>) = devices.map {
@@ -90,10 +45,36 @@ fun MemScope.getUsbDeviceDescriptors(devices: List<CPointer<libusb_device>>) = d
     descriptor
 }
 
-fun MemScope.getHandle(device: CPointer<libusb_device>): CPointer<libusb_device_handle> {
-    val handle = allocPointerTo<libusb_device_handle>()
-    val err = libusb_open(device, handle.ptr)
+class UsbDevice(private val descriptor: libusb_device_descriptor, private val device: libusb_device) {
+    val isWraithPrism
+        get() = descriptor.idVendor == COOLER_MASTER_VENDOR_ID && descriptor.idProduct == WRAITH_PRISM_PRODUCT_ID
 
-    check(err == 0) { "Failed to open Cooler Master device with error code $err" }
-    return handle.value!!
+    fun open() = OpenedUsbDevice(device)
+}
+
+class OpenedUsbDevice(device: libusb_device) {
+    private val activeConfig = memScoped {
+        val configPtr = allocPointerTo<libusb_config_descriptor>()
+        val err = libusb_get_active_config_descriptor(device.ptr, configPtr.ptr)
+
+        check(err == 0) { "Failed to fetch active configuration for USB device with error code $err" }
+        configPtr.value!!.pointed
+    }
+    val handle = memScoped {
+        val handlePtr = allocPointerTo<libusb_device_handle>()
+        val err = libusb_open(device.ptr, handlePtr.ptr)
+
+        check(err == 0) { "Failed to open Cooler Master device with error code $err" }
+        handlePtr.value!!.pointed
+    }
+
+    fun claimInterfaces() = memScoped {
+        libusb_set_auto_detach_kernel_driver(handle.ptr, 1)
+        for (i in 0 until activeConfig.bNumInterfaces.toInt()) {
+            val err3 = libusb_claim_interface(handle.ptr, i)
+            check(err3 == 0) { "Failed to claim interface $i with error $err3." }
+        }
+    }
+
+    fun close() = libusb_close(handle.ptr)
 }
