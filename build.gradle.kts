@@ -1,5 +1,5 @@
 plugins {
-    kotlin("multiplatform") version "1.3.50"
+    kotlin("multiplatform") version "1.3.61"
 }
 
 group = "com.serebit.wraith"
@@ -12,11 +12,15 @@ repositories {
 kotlin {
     linuxX64 {
         compilations["main"].cinterops.create("libusb") {
-            if (preset == presets["linuxX64"]) includeDirs.headerFilterOnly("/usr/include")
+            includeDirs.headerFilterOnly("/usr/include")
         }
 
         binaries.executable {
             entryPoint = "com.serebit.wraith.main"
         }
+    }
+
+    sourceSets.all {
+        languageSettings.useExperimentalAnnotation("kotlin.Experimental")
     }
 }
