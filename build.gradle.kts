@@ -11,10 +11,9 @@ repositories {
 
 kotlin {
     linuxX64 {
-        compilations["main"].cinterops.create("libusb") {
-            includeDirs.headerFilterOnly("/usr/include")
+        compilations["main"].cinterops {
+            create("libusb") { includeDirs("/usr/include") }
         }
-
         binaries.executable {
             entryPoint = "com.serebit.wraith.main"
         }

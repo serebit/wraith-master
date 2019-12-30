@@ -1,1 +1,1 @@
-rootProject.name = "wraith"
+rootProject.name = "wraith-master"

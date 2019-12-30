@@ -3,7 +3,6 @@
 package com.serebit.wraith
 
 import cnames.structs.libusb_device
-import cnames.structs.libusb_device_handle
 import kotlinx.cinterop.*
 import libusb.*
 
@@ -18,56 +17,33 @@ fun main() = memScoped {
     check(init == 0) { "Failed to initialize libusb." }
 
     print("Finding and opening Wraith Prism USB device... ")
-    val device = findWraithPrismDevice()?.open() ?: error("Failed to find Wraith Prism USB device.")
+    val device = findWraithPrism() ?: error("Failed to find Wraith Prism USB device.")
     println("Done.")
 
-    print("Resetting device... ")
-    libusb_reset_device(device.handle.ptr)
-    println("Done.")
+    device.initialize()
 
-    print("Claiming interfaces... ")
-    device.claimInterfaces()
-    println("Done.")
+    device.setChannel(0x06u, 0x3Cu, 0x20u, 0x01u, 0xFFu, 0xFFu, 0x98u, 0x00u)
 
-    val outData = UByteArray(64)
+    device.setChannel(0x05u, 0x3Cu, 0x20u, 0x01u, 0xFFu, 0xFFu, 0x98u, 0x00u)
 
-    ubyteArrayOf(0x41u, 0x80u).copyInto(outData)
-    device.transferOut(outData)
-    device.transferIn(64)
+    UByteArray(64).let { outData ->
+        ubyteArrayOf(0x51u, 0xa0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, 0x05u, 0x06u).copyInto(outData)
+        UByteArray(3) { 0xFEu }.copyInto(outData, destinationOffset = 10)
+        device.sendBytes(outData)
+    }
 
-    ubyteArrayOf(0x51u, 0x96u).copyInto(outData)
-    device.transferOut(outData)
-    device.transferIn(64)
-
-    ubyteArrayOf(0x51u, 0x28u, 0u, 0u, 0xe0u).copyInto(outData)
-    device.transferOut(outData)
-    device.transferIn(64)
-
-    outData.fill(0xffu)
-    ubyteArrayOf(0x51u, 0x2cu, 0x01u, 0u, 0x06u, 0xffu, 0u, 0x01u, 0xffu, 0xffu, 0xffu, 0xffu, 0xffu, 0u, 0u, 0u)
-        .copyInto(outData)
-    device.transferOut(outData)
-    device.transferIn(64)
-
-    device.transferOut(outData)
-    device.transferIn(64)
-
-    outData.fill(0u)
-    ubyteArrayOf(0x51u, 0xa0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, 0x05u, 0x06u).copyInto(outData)
-    UByteArray(14) { 0xfeu }.copyInto(outData, destinationOffset = 10)
-    device.transferOut(outData)
-    device.transferIn(64)
+    device.apply()
 
     device.close()
     libusb_exit(null)
 }
 
-fun findWraithPrismDevice(): UsbDevice? = memScoped {
+fun findWraithPrism(): WraithPrism? = memScoped {
     val cDevices = loadUsbDevices()
     val descriptors = getUsbDeviceDescriptors(cDevices.map { it.ptr })
     val devices = descriptors.zip(cDevices).map { UsbDevice(it.first, it.second) }
 
-    return devices.find(UsbDevice::isWraithPrism)
+    return devices.mapNotNull { it.open() }.singleOrNull()
 }
 
 fun loadUsbDevices(): List<libusb_device> = memScoped {
@@ -86,47 +62,8 @@ fun MemScope.getUsbDeviceDescriptors(devices: List<CPointer<libusb_device>>) = d
 }
 
 class UsbDevice(private val descriptor: libusb_device_descriptor, private val device: libusb_device) {
-    val isWraithPrism
+    private val isWraithPrism
         get() = descriptor.idVendor == COOLER_MASTER_VENDOR_ID && descriptor.idProduct == WRAITH_PRISM_PRODUCT_ID
 
-    fun open() = OpenedUsbDevice(device)
-}
-
-class OpenedUsbDevice(device: libusb_device) {
-    private val activeConfig = memScoped {
-        val configPtr = allocPointerTo<libusb_config_descriptor>()
-        val err = libusb_get_active_config_descriptor(device.ptr, configPtr.ptr)
-
-        check(err == 0) { "Failed to fetch active configuration for USB device with error code $err" }
-        configPtr.value!!.pointed
-    }
-    val handle = memScoped {
-        val handlePtr = allocPointerTo<libusb_device_handle>()
-        val err = libusb_open(device.ptr, handlePtr.ptr)
-
-        check(err == 0) { "Failed to open Cooler Master device with error code $err" }
-        handlePtr.value!!.pointed
-    }
-
-    fun claimInterfaces() = memScoped {
-        libusb_set_auto_detach_kernel_driver(handle.ptr, 1)
-        for (i in 0 until activeConfig.bNumInterfaces.toInt()) {
-            val err3 = libusb_claim_interface(handle.ptr, i)
-            check(err3 == 0) { "Failed to claim interface $i with error $err3." }
-        }
-    }
-
-    fun close() = libusb_close(handle.ptr)
-}
-
-fun OpenedUsbDevice.transferIn(numBytes: Int): UByteArray = memScoped {
-    val bytes = UByteArray(numBytes)
-    val err = libusb_interrupt_transfer(handle.ptr, ENDPOINT_IN, bytes.toCValues().ptr, bytes.size, null, 1000u)
-    check(err == 0) { "Failed to transfer bytes to device OUT endpoint." }
-    bytes
-}
-
-fun OpenedUsbDevice.transferOut(bytes: UByteArray) = memScoped {
-    val err = libusb_interrupt_transfer(handle.ptr, ENDPOINT_OUT, bytes.toCValues().ptr, bytes.size, null, 1000u)
-    check(err == 0) { "Failed to transfer bytes to device OUT endpoint." }
+    fun open(): WraithPrism? = if (isWraithPrism) WraithPrism(device) else null
 }
