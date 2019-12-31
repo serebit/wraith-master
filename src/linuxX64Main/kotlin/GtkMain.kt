@@ -23,12 +23,6 @@ val GdkRGBA.b get() = (blue * 256 - 1).toInt().toUByte()
 fun activate(app: CPointer<GtkApplication>?, user_data: gpointer?) {
     val provider = gtk_css_provider_new()
 
-    val error = memScoped {
-        val error = allocPointerTo<GError>()
-        gtk_css_provider_load_from_path(provider, "style.css", error.ptr)
-        error
-    }
-
     val windowWidget = gtk_application_window_new(app)!!
 
     val window = windowWidget.reinterpret<GtkWindow>()
@@ -37,43 +31,69 @@ fun activate(app: CPointer<GtkApplication>?, user_data: gpointer?) {
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)
     gtk_container_add(window.reinterpret(), box)
 
-    val settings = gtk_grid_new()
-    gtk_container_add(box?.reinterpret(), settings)
-    gtk_grid_set_column_spacing(settings?.reinterpret(), 64)
-    gtk_grid_set_row_spacing(settings?.reinterpret(), 8)
-
-    val style = gtk_widget_get_style_context(settings)
-    gtk_style_context_add_class(style, "main-grid")
-    gtk_style_context_add_provider(style, provider?.reinterpret(), GTK_STYLE_PROVIDER_PRIORITY_USER)
+    val settingsGrid = gtk_grid_new()
+    gtk_container_add(box?.reinterpret(), settingsGrid)
+    gtk_grid_set_column_spacing(settingsGrid?.reinterpret(), 64)
+    gtk_grid_set_row_spacing(settingsGrid?.reinterpret(), 8)
+    gtk_container_set_border_width(settingsGrid?.reinterpret(), 32)
 
     val logoLabel = gtk_label_new("Logo Color")
-    gtk_grid_attach(settings?.reinterpret(), logoLabel, 0, 0, 1, 1)
+    gtk_widget_set_halign(logoLabel, GtkAlign.GTK_ALIGN_START)
     gtk_widget_set_hexpand(logoLabel, 1)
+    gtk_grid_attach(settingsGrid?.reinterpret(), logoLabel, 0, 0, 1, 1)
+
     val logoColorChooser = gtk_color_button_new()!!
     gtk_color_button_set_use_alpha(logoColorChooser.reinterpret(), 0)
     gtk_color_button_set_title(logoColorChooser.reinterpret(), "Logo Color")
-    gtk_grid_attach(settings?.reinterpret(), logoColorChooser, 1, 0, 1, 1)
+    g_signal_connect(logoColorChooser, "color-set", staticCFunction { button: CPointer<GtkWidget>? ->
+        val color = memScoped { alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(button?.reinterpret(), ptr) } }
+        device.setChannel(0x06u, 0xFFu, 0x20u, 0x01u, 0xFFu, color.r, color.g, color.b)
+    })
+    gtk_grid_attach(settingsGrid?.reinterpret(), logoColorChooser, 1, 0, 1, 1)
 
-    gtk_grid_attach(settings?.reinterpret(), gtk_label_new("Fan Color"), 0, 1, 1, 1)
+    val fanLabel = gtk_label_new("Fan Color")
+    gtk_widget_set_halign(fanLabel, GtkAlign.GTK_ALIGN_START)
+    gtk_widget_set_hexpand(fanLabel, 1)
+    gtk_grid_attach(settingsGrid?.reinterpret(), fanLabel, 0, 1, 1, 1)
+
     val fanColorChooser = gtk_color_button_new()!!
     gtk_color_button_set_use_alpha(fanColorChooser.reinterpret(), 0)
     gtk_color_button_set_title(fanColorChooser.reinterpret(), "Fan Color")
-    gtk_grid_attach(settings?.reinterpret(), fanColorChooser, 1, 1, 1, 1)
-
-    val bottomToolbar = gtk_toolbar_new()
-    gtk_container_add(box?.reinterpret(), bottomToolbar)
-    val saveOption = gtk_tool_button_new(null, "Save")
-    gtk_toolbar_insert(bottomToolbar?.reinterpret(), saveOption, 0)
-
-    g_signal_connect(logoColorChooser, "color-set", staticCFunction { button: CPointer<GtkWidget>? ->
-        val color = memScoped { alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(button?.reinterpret(), ptr) } }
-        device.setChannel(0x06u, 0x3Cu, 0x20u, 0x01u, 0xFFu, color.r, color.g, color.b)
-    })
-
     g_signal_connect(fanColorChooser, "color-set", staticCFunction { button: CPointer<GtkWidget>? ->
         val color = memScoped { alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(button?.reinterpret(), ptr) } }
-        device.setChannel(0x05u, 0x3Cu, 0x20u, 0x01u, 0xFFu, color.r, color.g, color.b)
+        device.setChannel(0x05u, 0xFFu, 0x20u, 0x01u, 0xFFu, color.r, color.g, color.b)
     })
+    gtk_grid_attach(settingsGrid?.reinterpret(), fanColorChooser, 1, 1, 1, 1)
+
+    val ringLabel = gtk_label_new("Ring Color")
+    gtk_widget_set_halign(ringLabel, GtkAlign.GTK_ALIGN_START)
+    gtk_widget_set_hexpand(ringLabel, 1)
+    gtk_grid_attach(settingsGrid?.reinterpret(), ringLabel, 0, 2, 1, 1)
+
+    val ringColorChooser = gtk_color_button_new()!!
+    gtk_color_button_set_use_alpha(ringColorChooser.reinterpret(), 0)
+    gtk_color_button_set_title(ringColorChooser.reinterpret(), "Ring Color")
+    g_signal_connect(ringColorChooser, "color-set", staticCFunction { button: CPointer<GtkWidget>? ->
+        // enable ring LEDs
+        device.sendBytes(0x51u, 0xa0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, 0x05u, 0x06u)
+
+        val color = memScoped { alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(button?.reinterpret(), ptr) } }
+        device.setChannel(0x00u, 0xFFu, 0x20u, 0xFFu, 0xFFu, color.r, color.g, color.b)
+    })
+    gtk_grid_attach(settingsGrid?.reinterpret(), ringColorChooser, 1, 2, 1, 1)
+
+    val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL)
+    gtk_container_add(box?.reinterpret(), saveOptionBox)
+    gtk_button_box_set_layout(saveOptionBox?.reinterpret(), GTK_BUTTONBOX_END)
+    gtk_box_set_child_packing(box?.reinterpret(), saveOptionBox, 1, 1, 8, GtkPackType.GTK_PACK_END)
+
+    val saveOption = gtk_button_new()!!
+    gtk_button_set_label(saveOption.reinterpret(), "Save")
+    gtk_style_context_add_class(gtk_widget_get_style_context(saveOption), "suggested-action")
+    g_signal_connect(saveOption, "clicked", staticCFunction { _: CPointer<GtkWidget>? ->
+        device.save()
+    })
+    gtk_container_add(saveOptionBox?.reinterpret(), saveOption)
 
     gtk_widget_show_all(windowWidget)
 }

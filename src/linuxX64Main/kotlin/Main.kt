@@ -22,12 +22,6 @@ val device = memScoped {
 fun main() = memScoped {
     gtkMain(emptyArray())
 
-    UByteArray(64).let { outData ->
-        ubyteArrayOf(0x51u, 0xa0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, 0x05u, 0x06u).copyInto(outData)
-        UByteArray(3) { 0xFEu }.copyInto(outData, destinationOffset = 10)
-        device.sendBytes(outData)
-    }
-
     device.close()
     libusb_exit(null)
 }
