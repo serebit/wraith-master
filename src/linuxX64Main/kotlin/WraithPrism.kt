@@ -66,6 +66,19 @@ fun WraithPrism.setChannel(
 
 fun WraithPrism.save() = sendBytes(0x50u, 0x55u)
 
+fun WraithPrism.reset() {
+    // load
+    sendBytes(0x50u)
+    // power off
+    sendBytes(0x41u, 0x03u)
+    // restore
+    sendBytes(0u, 0x41u)
+    // power on
+    sendBytes(0x41u, 0x80u)
+    // apply changes
+    apply()
+}
+
 fun WraithPrism.initialize() {
     // turn on
     sendBytes(0x41u, 0x80u)
