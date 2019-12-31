@@ -3,6 +3,8 @@
 [![License][license-badge]](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Ko-fi][kofi-badge]](https://ko-fi.com/serebit)
 
+---
+
 Wraith Master is a graphical application for controlling the RGB LEDs on AMD's Wraith stock coolers. At the moment, the only supported cooler is the Wraith Prism, but there are plans to add other Wraith coolers as well.
 
 ## Building from Source
@@ -14,10 +16,10 @@ To build from source, run the following:
 ```bash
 git clone https://gitlab.com/serebit/wraith-master
 cd wraith-master
-./gradlew build
+./gradlew package
 ```
 
-Once built, the executable will be located at `build/bin/linuxX64/releaseExecutable/wraith-master.kexe`.
+Once built, the executable will be located at `build/package/wraith-master-gtk`.
 
 ## Acknowledgements
 
