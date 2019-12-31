@@ -12,27 +12,21 @@ const val WRAITH_PRISM_PRODUCT_ID: UShort = 0x51u
 const val ENDPOINT_IN: UByte = 0x83u
 const val ENDPOINT_OUT: UByte = 0x04u
 
-fun main() = memScoped {
+val device = memScoped {
+    print("Finding and opening Wraith Prism USB device... ")
     val init = libusb_init(null)
     check(init == 0) { "Failed to initialize libusb." }
+    findWraithPrism()?.apply { initialize() } ?: error("Failed to find Wraith Prism USB device.")
+}
 
-    print("Finding and opening Wraith Prism USB device... ")
-    val device = findWraithPrism() ?: error("Failed to find Wraith Prism USB device.")
-    println("Done.")
-
-    device.initialize()
-
-    device.setChannel(0x06u, 0x3Cu, 0x20u, 0x01u, 0xFFu, 0xFFu, 0x98u, 0x00u)
-
-    device.setChannel(0x05u, 0x3Cu, 0x20u, 0x01u, 0xFFu, 0xFFu, 0x98u, 0x00u)
+fun main() = memScoped {
+    gtkMain(emptyArray())
 
     UByteArray(64).let { outData ->
         ubyteArrayOf(0x51u, 0xa0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, 0x05u, 0x06u).copyInto(outData)
         UByteArray(3) { 0xFEu }.copyInto(outData, destinationOffset = 10)
         device.sendBytes(outData)
     }
-
-    device.apply()
 
     device.close()
     libusb_exit(null)
