@@ -20,13 +20,12 @@ val GdkRGBA.r get() = (red * 256 - 1).toInt().toUByte()
 val GdkRGBA.g get() = (green * 256 - 1).toInt().toUByte()
 val GdkRGBA.b get() = (blue * 256 - 1).toInt().toUByte()
 
-fun activate(app: CPointer<GtkApplication>?, user_data: gpointer?) {
-    val provider = gtk_css_provider_new()
-
-    val windowWidget = gtk_application_window_new(app)!!
+fun CPointer<GtkApplication>.activate() {
+    val windowWidget = gtk_application_window_new(this)!!
 
     val window = windowWidget.reinterpret<GtkWindow>()
     gtk_window_set_title(window, "Wraith Master")
+    gtk_window_set_default_size(window, 480, 200)
 
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)
     gtk_container_add(window.reinterpret(), box)
@@ -82,10 +81,18 @@ fun activate(app: CPointer<GtkApplication>?, user_data: gpointer?) {
     })
     gtk_grid_attach(settingsGrid?.reinterpret(), ringColorChooser, 1, 2, 1, 1)
 
-    val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL)
+    val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)
     gtk_container_add(box?.reinterpret(), saveOptionBox)
+    gtk_container_set_border_width(saveOptionBox?.reinterpret(), 16)
     gtk_button_box_set_layout(saveOptionBox?.reinterpret(), GTK_BUTTONBOX_END)
-    gtk_box_set_child_packing(box?.reinterpret(), saveOptionBox, 1, 1, 8, GtkPackType.GTK_PACK_END)
+    gtk_box_set_child_packing(box?.reinterpret(), saveOptionBox, 0, 1, 0, GtkPackType.GTK_PACK_END)
+
+    val resetOption = gtk_button_new()!!
+    gtk_button_set_label(resetOption.reinterpret(), "Reset")
+    g_signal_connect(resetOption, "clicked", staticCFunction { _: CPointer<GtkWidget>? ->
+        device.reset()
+    })
+    gtk_container_add(saveOptionBox?.reinterpret(), resetOption)
 
     val saveOption = gtk_button_new()!!
     gtk_button_set_label(saveOption.reinterpret(), "Save")
@@ -99,8 +106,8 @@ fun activate(app: CPointer<GtkApplication>?, user_data: gpointer?) {
 }
 
 fun gtkMain(args: Array<String>): Int {
-    val app = gtk_application_new("org.gtk.example", G_APPLICATION_FLAGS_NONE)!!
-    g_signal_connect(app, "activate", staticCFunction(::activate))
+    val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
+    g_signal_connect(app, "activate", staticCFunction { it: CPointer<GtkApplication>, _: gpointer -> it.activate() })
     val status = memScoped {
         g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues())
     }
