@@ -1,9 +1,11 @@
 @file:Suppress("EXPERIMENTAL_UNSIGNED_LITERALS", "EXPERIMENTAL_API_USAGE")
 
-package com.serebit.wraith
+package com.serebit.wraith.gtk
 
+import com.serebit.wraith.*
 import gtk3.*
 import kotlinx.cinterop.*
+import kotlin.system.exitProcess
 
 // Note that all callback parameters must be primitive types or nullable C pointers.
 fun <F : CFunction<*>> g_signal_connect(
@@ -105,12 +107,15 @@ fun CPointer<GtkApplication>.activate() {
     gtk_widget_show_all(windowWidget)
 }
 
-fun gtkMain(args: Array<String>): Int {
+fun main(args: Array<String>) {
     val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
     g_signal_connect(app, "activate", staticCFunction { it: CPointer<GtkApplication>, _: gpointer -> it.activate() })
     val status = memScoped {
         g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues())
     }
     g_object_unref(app)
-    return status
+
+    device.close()
+
+    if (status != 0) exitProcess(status)
 }

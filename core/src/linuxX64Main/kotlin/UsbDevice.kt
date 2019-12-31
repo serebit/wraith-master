@@ -6,24 +6,14 @@ import cnames.structs.libusb_device
 import kotlinx.cinterop.*
 import libusb.*
 
-const val COOLER_MASTER_VENDOR_ID: UShort = 0x2516u
-const val WRAITH_PRISM_PRODUCT_ID: UShort = 0x51u
-
-const val ENDPOINT_IN: UByte = 0x83u
-const val ENDPOINT_OUT: UByte = 0x04u
+private const val COOLER_MASTER_VENDOR_ID: UShort = 0x2516u
+private const val WRAITH_PRISM_PRODUCT_ID: UShort = 0x51u
 
 val device = memScoped {
     print("Finding and opening Wraith Prism USB device... ")
     val init = libusb_init(null)
     check(init == 0) { "Failed to initialize libusb." }
-    findWraithPrism()?.apply { initialize() } ?: error("Failed to find Wraith Prism USB device.")
-}
-
-fun main() = memScoped {
-    gtkMain(emptyArray())
-
-    device.close()
-    libusb_exit(null)
+    findWraithPrism()?.apply { initialize(); println("Done.") } ?: error("Failed to find Wraith Prism USB device.")
 }
 
 fun findWraithPrism(): WraithPrism? = memScoped {

@@ -7,6 +7,9 @@ import cnames.structs.libusb_device_handle
 import kotlinx.cinterop.*
 import libusb.*
 
+private const val ENDPOINT_IN: UByte = 0x83u
+private const val ENDPOINT_OUT: UByte = 0x04u
+
 class WraithPrism(device: libusb_device) {
     private val activeConfig = memScoped {
         val configPtr = allocPointerTo<libusb_config_descriptor>()
@@ -46,7 +49,10 @@ class WraithPrism(device: libusb_device) {
         }
     }
 
-    fun close() = libusb_close(handle.ptr)
+    fun close() {
+        libusb_close(handle.ptr)
+        libusb_exit(null)
+    }
 }
 
 fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UByte = 0x0u) =
