@@ -39,14 +39,16 @@ class WraithPrism(device: libusb_device) {
         }
     }
 
-    fun sendBytes(bytes: UByteArray) = memScoped {
-        libusb_interrupt_transfer(handle.ptr, ENDPOINT_OUT, bytes.toCValues().ptr, bytes.size, null, 1000u).let { err ->
-            check(err == 0) { "Failed to transfer bytes to device OUT endpoint with error code $err." }
+    private fun transfer(endpoint: UByte, bytes: UByteArray, timeout: UInt) = memScoped {
+        libusb_interrupt_transfer(handle.ptr, endpoint, bytes.toCValues().ptr, bytes.size, null, timeout).let { err ->
+            check(err == 0) { "Failed to transfer to device endpoint $endpoint with error code $err." }
         }
-        val inBytes = UByteArray(64).toCValues()
-        libusb_interrupt_transfer(handle.ptr, ENDPOINT_IN, inBytes, inBytes.size, null, 1000u).let { err ->
-            check(err == 0) { "Failed to transfer bytes from device IN endpoint with error code $err." }
-        }
+        bytes
+    }
+
+    fun sendBytes(bytes: UByteArray): UByteArray = memScoped {
+        transfer(ENDPOINT_OUT, bytes, 1000u)
+        transfer(ENDPOINT_IN, UByteArray(64), 1000u)
     }
 
     fun close() {
@@ -70,7 +72,7 @@ fun WraithPrism.setChannel(
     filler = 0xFFu
 )
 
-fun WraithPrism.save() = sendBytes(0x50u, 0x55u)
+fun WraithPrism.save() { sendBytes(0x50u, 0x55u) }
 
 fun WraithPrism.reset() {
     // load
