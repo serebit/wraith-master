@@ -1,3 +1,5 @@
+@file:Suppress("EXPERIMENTAL_UNSIGNED_LITERALS", "EXPERIMENTAL_API_USAGE")
+
 package com.serebit.wraith
 
 import cnames.structs.libusb_device
@@ -22,7 +24,7 @@ class WraithPrism(device: libusb_device) {
     }
 
     init {
-        reset()
+        libusb_reset_device(handle.ptr)
         claimInterfaces()
     }
 
@@ -44,14 +46,11 @@ class WraithPrism(device: libusb_device) {
         }
     }
 
-    fun reset() = libusb_reset_device(handle.ptr)
-
     fun close() = libusb_close(handle.ptr)
 }
 
-fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UByte = 0x0u) {
+fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UByte = 0x0u) =
     sendBytes(bytes.copyInto(UByteArray(bufferSize) { filler }))
-}
 
 fun WraithPrism.setChannel(
     channel: UByte,
@@ -60,12 +59,12 @@ fun WraithPrism.setChannel(
     mode: UByte,
     brightness: UByte,
     r: UByte, g: UByte, b: UByte
-) {
-    sendBytes(
-        0x51u, 0x2Cu, 0x01u, 0u, channel, speed, colorSource, mode, 0xFFu, brightness, r, g, b, 0u, 0u, 0u,
-        filler = 0xFFu
-    )
-}
+) = sendBytes(
+    0x51u, 0x2Cu, 0x01u, 0u, channel, speed, colorSource, mode, 0xFFu, brightness, r, g, b, 0u, 0u, 0u,
+    filler = 0xFFu
+)
+
+fun WraithPrism.save() = sendBytes(0x50u, 0x55u)
 
 fun WraithPrism.initialize() {
     // turn on
