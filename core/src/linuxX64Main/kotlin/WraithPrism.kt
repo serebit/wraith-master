@@ -11,7 +11,11 @@ private const val ENDPOINT_IN: UByte = 0x83u
 private const val ENDPOINT_OUT: UByte = 0x04u
 
 enum class LedMode(val value: UByte) {
-    OFF(0x00u), STATIC(0x01u), CYCLE(0x02u), BREATHE(0x03u), RING_SWIRL(0x4Au), RING_DEFAULT(0xFFu)
+    OFF(0x00u), STATIC(0x01u), CYCLE(0x02u), BREATHE(0x03u)
+}
+
+enum class RingMode(val channel: UByte, val mode: UByte) {
+    OFF(0xFEu, 0xFFu), STATIC(0x00u, 0xFFu), BREATHE(0x01u, 0xFFu), SWIRL(0x0Au, 0x4Au)
 }
 
 class WraithPrism(device: libusb_device) {
@@ -29,12 +33,9 @@ class WraithPrism(device: libusb_device) {
         check(err == 0) { "Failed to open Cooler Master device with error code $err" }
         handlePtr.value!!.pointed
     }
-    var logo: Logo
-        private set
-    var fan: Fan
-        private set
-    var ring: Ring
-        private set
+    val logo: Logo
+    val fan: Fan
+    val ring: Ring
 
     init {
         libusb_reset_device(handle.ptr)
@@ -45,9 +46,10 @@ class WraithPrism(device: libusb_device) {
         sendBytes(0x51u, 0x96u)
         // apply changes
         apply()
-        logo = Logo(getChannel(0x05u))
-        fan = Fan(getChannel(0x06u))
-        ring = Ring(getChannel(0u))
+        val channels = sendBytes(0x52u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u)
+        logo = Logo(getChannel(channels[8]))
+        fan = Fan(getChannel(channels[9]))
+        ring = Ring(getChannel(channels[10]))
     }
 
     private fun claimInterfaces() = memScoped {
@@ -71,8 +73,8 @@ class WraithPrism(device: libusb_device) {
         transfer(ENDPOINT_IN, UByteArray(64), 1000u)
     }
 
-    fun setChannel(channel: UByte, speed: UByte, mode: LedMode, brightness: UByte, color: Color) = sendBytes(
-        0x51u, 0x2Cu, 0x01u, 0u, channel, speed, 0x20u, mode.value, 0xFFu, brightness, color.r, color.g, color.b,
+    fun setChannel(channel: UByte, speed: UByte, mode: UByte, brightness: UByte, color: Color) = sendBytes(
+        0x51u, 0x2Cu, 0x01u, 0u, channel, speed, 0x20u, mode, 0xFFu, brightness, color.r, color.g, color.b,
         0u, 0u, 0u, filler = 0xFFu
     )
 
@@ -85,13 +87,25 @@ class WraithPrism(device: libusb_device) {
         var color: Color
             get() = channel.let { Color(it[10], it[11], it[12]) }
             set(value) {
-                channel = setChannel(0x05u, 0xFFu, LedMode.STATIC, brightness, value)
+                channel = setChannel(0x05u, speed, mode.value, brightness, value)
             }
 
         var brightness: UByte
             get() = channel[9]
             set(value) {
-                channel = setChannel(0x05u, 0xFFu, LedMode.STATIC, value, color)
+                channel = setChannel(0x05u, speed, mode.value, value, color)
+            }
+
+        var mode: LedMode
+            get() = LedMode.values().first { it.value == channel[7] }
+            set(value) {
+                channel = setChannel(0x05u, speed, value.value, brightness, color)
+            }
+
+        var speed: UByte
+            get() = channel[5]
+            set(value) {
+                channel = setChannel(0x05u, value, mode.value, brightness, color)
             }
     }
 
@@ -99,27 +113,51 @@ class WraithPrism(device: libusb_device) {
         var color: Color
             get() = channel.let { Color(it[10], it[11], it[12]) }
             set(value) {
-                channel = setChannel(0x06u, 0xFFu, LedMode.STATIC, brightness, value)
+                channel = setChannel(0x06u, speed, mode.value, brightness, value)
             }
 
         var brightness: UByte
             get() = channel[9]
             set(value) {
-                channel = setChannel(0x06u, 0xFFu, LedMode.STATIC, value, color)
+                channel = setChannel(0x06u, speed, mode.value, value, color)
+            }
+
+        var mode: LedMode
+            get() = LedMode.values().first { it.value == channel[7] }
+            set(value) {
+                channel = setChannel(0x06u, speed, value.value, brightness, color)
+            }
+
+        var speed: UByte
+            get() = channel[5]
+            set(value) {
+                channel = setChannel(0x06u, value, mode.value, brightness, color)
             }
     }
 
-    inner class Ring internal constructor(private var values: UByteArray) {
+    inner class Ring internal constructor(private var channel: UByteArray) {
         var color: Color
-            get() = values.let { Color(it[10], it[11], it[12]) }
+            get() = channel.let { Color(it[10], it[11], it[12]) }
             set(value) {
-                values = setChannel(0u, 0xFFu, LedMode.STATIC, brightness, value)
+                channel = setChannel(mode.channel, speed, mode.mode, brightness, value)
             }
 
         var brightness: UByte
-            get() = values[9]
+            get() = channel[9]
             set(value) {
-                values = setChannel(0u, 0xFFu, LedMode.STATIC, value, color)
+                channel = setChannel(mode.channel, speed, mode.mode, value, color)
+            }
+
+        var mode: RingMode
+            get() = RingMode.values().first { it.channel == channel[4] }
+            set(value) {
+                channel = setChannel(value.channel, speed, value.mode, brightness, color)
+            }
+
+        var speed: UByte
+            get() = channel[5]
+            set(value) {
+                channel = setChannel(mode.channel, value, mode.mode, brightness, color)
             }
     }
 }
@@ -128,7 +166,6 @@ fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UBy
     sendBytes(bytes.copyInto(UByteArray(bufferSize) { filler }))
 
 fun WraithPrism.getChannel(channel: UByte) = sendBytes(0x52u, 0x2Cu, 0x01u, 0u, channel)
-
 
 fun WraithPrism.save() {
     sendBytes(0x50u, 0x55u)
