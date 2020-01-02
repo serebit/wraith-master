@@ -2,12 +2,8 @@
 
 package com.serebit.wraith.cli
 
-import com.serebit.wraith.core.Color
-import com.serebit.wraith.core.device
-import com.serebit.wraith.core.save
-import kotlinx.cli.ArgParser
-import kotlinx.cli.ArgType
-import kotlinx.cli.failAssertion
+import com.serebit.wraith.core.*
+import kotlinx.cli.*
 
 object ColorArgType : ArgType<Color>(true) {
     override val conversion: (value: kotlin.String, name: kotlin.String) -> Color =
@@ -29,41 +25,89 @@ object ColorArgType : ArgType<Color>(true) {
                     val b = it and 0xFF
                     return Color(r.toUByte(), g.toUByte(), b.toUByte())
                 }
-            failAssertion("""
+            failAssertion(
+                """
                 |Option $name is expected to be a color, either represented by channel values separated by commas (such 
                 |as (255, 128, 0) or a hex color (such as 03A9F4).
-            """.trimMargin())
+                """.trimMargin()
+            )
         }
     override val description = "{ Color with format r,g,b or RRGGBB }"
 }
 
+@UseExperimental(ExperimentalCli::class)
+val logo = object : Subcommand("logo") {
+    val mode by option(ArgType.Choice(listOf("off", "static", "breathe")))
+    val color by option(ColorArgType, shortName = "c")
+    val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 5")
+    val speed by option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
+
+    override fun execute() {
+        mode?.let { device.logo.mode = LedMode.valueOf(it.toUpperCase()) }
+        color?.let { device.logo.color = it }
+        brightness?.let {
+            if (it !in 1..5) printError("Brightness must be within the range of 1 to 5")
+            device.logo.brightness = (it * 51).toUByte()
+        }
+        speed?.let {
+            if (it !in 1..5) printError("Speed must be within the range of 1 to 5")
+            device.logo.speed = ubyteArrayOf(0x3Cu, 0x34u, 0x2cu, 0x20u, 0x18u)[it - 1]
+        }
+    }
+}
+
+@UseExperimental(ExperimentalCli::class)
+val fan = object : Subcommand("fan") {
+    val mode by option(ArgType.Choice(listOf("off", "static", "breathe")))
+    val color by option(ColorArgType, shortName = "c")
+    val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 5")
+    val speed by option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
+
+    override fun execute() {
+        mode?.let { device.fan.mode = LedMode.valueOf(it.toUpperCase()) }
+        color?.let { device.fan.color = it }
+        brightness?.let {
+            if (it !in 1..5) printError("Brightness must be within the range of 1 to 5")
+            device.fan.brightness = (it * 51).toUByte()
+        }
+        speed?.let {
+            if (it !in 1..5) printError("Speed must be within the range of 1 to 5")
+            device.fan.speed = ubyteArrayOf(0x3Cu, 0x34u, 0x2cu, 0x20u, 0x18u)[it - 1]
+        }
+    }
+}
+
+@UseExperimental(ExperimentalCli::class)
+val ring = object : Subcommand("ring") {
+    val mode by option(ArgType.Choice(listOf("off", "static", "breathe", "swirl")))
+    val color by option(ColorArgType, shortName = "c")
+    val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 5")
+
+    override fun execute() {
+        mode?.let { device.ring.mode = RingMode.valueOf(it.toUpperCase()) }
+        color?.let { device.ring.color = it }
+        brightness?.let {
+            if (it !in 1..5) printError("Brightness must be within the range of 1 to 5")
+            device.ring.brightness = (it * 51).toUByte()
+        }
+    }
+}
+
 fun main(args: Array<String>) {
-    val parser = ArgParser("wraith-master")
-    val component by parser.argument(ArgType.Choice(listOf("logo", "fan", "ring")))
-    val color by parser.option(ColorArgType, shortName = "c", description = "The hex color to apply to the component")
-    val brightness by parser.option(
-        ArgType.Int,
-        shortName = "b",
-        description = "The component's brightness from 1 to 5"
-    )
-    parser.parse(args)
-    brightness?.let {
-        if (it !in 1..5) parser.printError("Brightness must be within the range of 1 to 5")
-        when (component) {
-            "logo" -> device.logo.brightness = (it * 51).toUByte()
-            "fan" -> device.fan.brightness = (it * 51).toUByte()
-            "ring" -> device.ring.brightness = (it * 51).toUByte()
-        }
-    }
-    color?.let {
-        when (component) {
-            "logo" -> device.logo.color = it
-            "fan" -> device.fan.color = it
-            "ring" -> device.ring.color = it
-        }
-    }
+    try {
+        val parser = ArgParser("wraith-master")
 
-    device.save()
+        parser.subcommands(logo, fan, ring)
+        parser.parse(args)
 
-    device.close()
+        device.sendBytes(
+            0x51u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, 0x05u, 0x06u,
+            *UByteArray(15) { device.ring.mode.channel }
+        )
+
+        device.apply()
+        device.save()
+    } finally {
+        device.close()
+    }
 }
