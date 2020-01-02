@@ -13,4 +13,5 @@ allprojects {
 
 tasks.register("package") {
     dependsOn(":gtk:package")
+    dependsOn(":cli:package")
 }

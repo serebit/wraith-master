@@ -1,3 +1,3 @@
 rootProject.name = "wraith-master"
 
-include(":core", ":gtk")
+include(":core", ":gtk", ":cli")

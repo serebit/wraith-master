@@ -43,7 +43,9 @@ kotlin {
 
 tasks.register("package") {
     dependsOn("build")
-    val packageDir = file("$rootDir/build/package").apply { mkdirs() }
-    file("$projectDir/build/bin/linuxX64/releaseExecutable/gtk.kexe")
-        .renameTo(packageDir.resolve("wraith-master-gtk"))
+    doLast {
+        val packageDir = file("${rootProject.buildDir}/package").apply { mkdirs() }
+        file("$buildDir/bin/linuxX64/releaseExecutable/cli.kexe")
+            .copyTo(packageDir.resolve("wraith-master"), overwrite = true)
+    }
 }
