@@ -24,5 +24,6 @@ tasks.register("package") {
         val packageDir = file("${rootProject.buildDir}/package").apply { mkdirs() }
         file("$buildDir/bin/linuxX64/releaseExecutable/cli.kexe")
             .copyTo(packageDir.resolve("wraith-master"), overwrite = true)
+            .setExecutable(true)
     }
 }
