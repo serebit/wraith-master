@@ -45,7 +45,7 @@ tasks.register("package") {
     dependsOn("build")
     doLast {
         val packageDir = file("${rootProject.buildDir}/package").apply { mkdirs() }
-        file("$buildDir/bin/linuxX64/releaseExecutable/cli.kexe")
+        file("$buildDir/bin/linuxX64/releaseExecutable/gtk.kexe")
             .copyTo(packageDir.resolve("wraith-master"), overwrite = true)
     }
 }
