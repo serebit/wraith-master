@@ -5,21 +5,29 @@
 
 ---
 
-Wraith Master is a graphical application for controlling the RGB LEDs on AMD's Wraith stock coolers. At the moment, the only supported cooler is the Wraith Prism, but there are plans to add other Wraith coolers as well.
+Wraith Master is a graphical and command-line application for controlling the RGB LEDs on AMD's Wraith stock coolers. At the moment, the only supported cooler is the Wraith Prism, but there are plans to add other Wraith coolers as well.
 
 ## Building from Source
 
-Building Wraith Master requires GTK3 and `libusb` development libraries, along with at least JDK8.
+Building Wraith Master requires the `libusb` development libraries, along with at least JDK8. If the `wraith-master-gtk` artifact is being built, the GTK3 development libraries are also required. Once built, the executables will be located in the `build/package` directory.
 
-To build from source, run the following:
+To build just the command-line application, run the following:
 
 ```bash
-git clone https://gitlab.com/serebit/wraith-master
-cd wraith-master
-./gradlew package
+./gradlew :cli:package
 ```
 
-Once built, the executable will be located at `build/package/wraith-master-gtk`.
+To build just the graphical application, run the following:
+
+```bash
+./gradlew :gtk:package
+```
+
+To build all artifacts, run the following:
+
+```bash
+./gradlew package
+```
 
 ## Acknowledgements
 

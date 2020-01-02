@@ -4,8 +4,11 @@ plugins {
 
 kotlin {
     linuxX64 {
-        compilations["main"].defaultSourceSet.dependencies {
-            implementation(project(":core"))
+        compilations["main"].apply {
+            defaultSourceSet.dependencies {
+                implementation(project(":core"))
+            }
+            enableEndorsedLibs = true
         }
 
         binaries.executable {

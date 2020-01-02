@@ -9,11 +9,12 @@ import libusb.*
 private const val COOLER_MASTER_VENDOR_ID: UShort = 0x2516u
 private const val WRAITH_PRISM_PRODUCT_ID: UShort = 0x51u
 
-val device = memScoped {
-    print("Finding and opening Wraith Prism USB device... ")
-    val init = libusb_init(null)
-    check(init == 0) { "Failed to initialize libusb." }
-    findWraithPrism()?.also { println("Done.") } ?: error("Failed to find Wraith Prism USB device.")
+val device: WraithPrism by lazy {
+    memScoped {
+        val init = libusb_init(null)
+        check(init == 0) { "Failed to initialize libusb." }
+        findWraithPrism() ?: error("Failed to find Wraith Prism USB device.")
+    }
 }
 
 fun findWraithPrism(): WraithPrism? = memScoped {
