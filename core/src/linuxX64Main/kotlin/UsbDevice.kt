@@ -1,6 +1,6 @@
 @file:Suppress("EXPERIMENTAL_UNSIGNED_LITERALS", "EXPERIMENTAL_API_USAGE")
 
-package com.serebit.wraith
+package com.serebit.wraith.core
 
 import cnames.structs.libusb_device
 import kotlinx.cinterop.*
@@ -13,7 +13,7 @@ val device = memScoped {
     print("Finding and opening Wraith Prism USB device... ")
     val init = libusb_init(null)
     check(init == 0) { "Failed to initialize libusb." }
-    findWraithPrism()?.apply { initialize(); println("Done.") } ?: error("Failed to find Wraith Prism USB device.")
+    findWraithPrism()?.also { println("Done.") } ?: error("Failed to find Wraith Prism USB device.")
 }
 
 fun findWraithPrism(): WraithPrism? = memScoped {

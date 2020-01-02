@@ -2,25 +2,33 @@
 
 package com.serebit.wraith.gtk
 
-import com.serebit.wraith.*
+import com.serebit.wraith.core.Color
+import com.serebit.wraith.core.device
+import com.serebit.wraith.core.reset
+import com.serebit.wraith.core.save
 import gtk3.*
 import kotlinx.cinterop.*
+import kotlin.math.roundToInt
 import kotlin.system.exitProcess
 
-// Note that all callback parameters must be primitive types or nullable C pointers.
+private typealias GtkCallbackFunction = CPointer<CFunction<(CPointer<GtkWidget>) -> Unit>>
+
 fun <F : CFunction<*>> g_signal_connect(
     obj: CPointer<*>, actionName: String,
     action: CPointer<F>, data: gpointer? = null, connect_flags: GConnectFlags = 0u
-) {
-    g_signal_connect_data(
-        obj.reinterpret(), actionName, action.reinterpret(),
-        data = data, destroy_data = null, connect_flags = connect_flags
-    )
+) = g_signal_connect_data(
+    obj.reinterpret(), actionName, action.reinterpret(),
+    data = data, destroy_data = null, connect_flags = connect_flags
+)
+
+fun MemScope.GdkRGBA(color: Color) = alloc<GdkRGBA>().apply {
+    red = color.r.toDouble() / 255
+    green = color.g.toDouble() / 255
+    blue = color.b.toDouble() / 255
+    alpha = 1.0
 }
 
-val GdkRGBA.r get() = (red * 256 - 1).toInt().toUByte()
-val GdkRGBA.g get() = (green * 256 - 1).toInt().toUByte()
-val GdkRGBA.b get() = (blue * 256 - 1).toInt().toUByte()
+fun GdkRGBA.toColor() = Color(red, green, blue)
 
 fun CPointer<GtkApplication>.activate() {
     val windowWidget = gtk_application_window_new(this)!!
@@ -32,86 +40,111 @@ fun CPointer<GtkApplication>.activate() {
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)
     gtk_container_add(window.reinterpret(), box)
 
-    val settingsGrid = gtk_grid_new()
-    gtk_container_add(box?.reinterpret(), settingsGrid)
-    gtk_grid_set_column_spacing(settingsGrid?.reinterpret(), 64)
-    gtk_grid_set_row_spacing(settingsGrid?.reinterpret(), 8)
-    gtk_container_set_border_width(settingsGrid?.reinterpret(), 32)
+    val settingsGrid = gtk_grid_new()?.apply {
+        gtk_grid_set_row_homogeneous(reinterpret(), 1)
+        gtk_container_add(box?.reinterpret(), this)
+        gtk_grid_set_column_spacing(reinterpret(), 64)
+        gtk_grid_set_row_spacing(reinterpret(), 8)
+        gtk_container_set_border_width(reinterpret(), 32)
+    }
 
-    val logoLabel = gtk_label_new("Logo Color")
-    gtk_widget_set_halign(logoLabel, GtkAlign.GTK_ALIGN_START)
-    gtk_widget_set_hexpand(logoLabel, 1)
-    gtk_grid_attach(settingsGrid?.reinterpret(), logoLabel, 0, 0, 1, 1)
+    fun gridLabel(text: String, position: Int) = gtk_label_new(text)?.apply {
+        gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
+        gtk_widget_set_hexpand(this, 1)
+        gtk_grid_attach(settingsGrid?.reinterpret(), this, 0, position, 1, 1)
+    }
 
-    val logoColorChooser = gtk_color_button_new()!!
-    gtk_color_button_set_use_alpha(logoColorChooser.reinterpret(), 0)
-    gtk_color_button_set_title(logoColorChooser.reinterpret(), "Logo Color")
-    g_signal_connect(logoColorChooser, "color-set", staticCFunction<CPointer<GtkWidget>, Unit> {
-        val color = memScoped { alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) } }
-        device.setChannel(0x06u, 0xFFu, 0x20u, 0x01u, 0xFFu, color.r, color.g, color.b)
-    })
-    gtk_grid_attach(settingsGrid?.reinterpret(), logoColorChooser, 1, 0, 1, 1)
+    gridLabel("Logo Color", 0)
+    gridLabel("Logo Brightness", 1)
+    gridLabel("Fan Color", 2)
+    gridLabel("Fan Brightness", 3)
+    gridLabel("Ring Color", 4)
+    gridLabel("Ring Brightness", 5)
 
-    val fanLabel = gtk_label_new("Fan Color")
-    gtk_widget_set_halign(fanLabel, GtkAlign.GTK_ALIGN_START)
-    gtk_widget_set_hexpand(fanLabel, 1)
-    gtk_grid_attach(settingsGrid?.reinterpret(), fanLabel, 0, 1, 1, 1)
+    memScoped {
+        fun gridColorButton(color: Color, position: Int, action: GtkCallbackFunction) =
+            gtk_color_button_new()?.apply {
+                gtk_color_button_set_use_alpha(reinterpret(), 0)
+                gtk_color_button_set_rgba(reinterpret(), GdkRGBA(color).ptr)
+                gtk_widget_set_size_request(this, 72, -1)
+                g_signal_connect(this, "color-set", action)
+                gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position, 1, 1)
+            }
 
-    val fanColorChooser = gtk_color_button_new()!!
-    gtk_color_button_set_use_alpha(fanColorChooser.reinterpret(), 0)
-    gtk_color_button_set_title(fanColorChooser.reinterpret(), "Fan Color")
-    g_signal_connect(fanColorChooser, "color-set", staticCFunction<CPointer<GtkWidget>, Unit> {
-        val color = memScoped { alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) } }
-        device.setChannel(0x05u, 0xFFu, 0x20u, 0x01u, 0xFFu, color.r, color.g, color.b)
-    })
-    gtk_grid_attach(settingsGrid?.reinterpret(), fanColorChooser, 1, 1, 1, 1)
+        fun gridScale(value: UByte, position: Int, action: GtkCallbackFunction) =
+            gtk_adjustment_new(value.toDouble() / 51, 1.0, 5.0, 1.0, 0.0, 0.0)?.let { adjustment ->
+                g_signal_connect(adjustment, "value-changed", action)
+                gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)?.apply {
+                    gtk_scale_set_digits(reinterpret(), 0)
+                    gtk_scale_set_draw_value(reinterpret(), 0)
+                    for (i in 1..5) {
+                        gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
+                    }
+                    gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position, 1, 1)
+                }
+            }
 
-    val ringLabel = gtk_label_new("Ring Color")
-    gtk_widget_set_halign(ringLabel, GtkAlign.GTK_ALIGN_START)
-    gtk_widget_set_hexpand(ringLabel, 1)
-    gtk_grid_attach(settingsGrid?.reinterpret(), ringLabel, 0, 2, 1, 1)
+        gridColorButton(device.logo.color, 0, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.logo.color = memScoped {
+                alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
+            }
+        })
+        gridScale(device.logo.brightness, 1, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.logo.brightness = (gtk_adjustment_get_value(it.reinterpret()).roundToInt() * 51).toUByte()
+        })
+        gridColorButton(device.fan.color, 2, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.fan.color = memScoped {
+                alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
+            }
+        })
+        gridScale(device.fan.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.fan.brightness = (gtk_adjustment_get_value(it.reinterpret()).roundToInt() * 51).toUByte()
+        })
+        gridColorButton(device.ring.color, 4, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.ring.color = memScoped {
+                alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
+            }
+        })
+        gridScale(device.ring.brightness, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.ring.brightness = (gtk_adjustment_get_value(it.reinterpret()).roundToInt() * 51).toUByte()
+        })
+    }
 
-    val ringColorChooser = gtk_color_button_new()!!
-    gtk_color_button_set_use_alpha(ringColorChooser.reinterpret(), 0)
-    gtk_color_button_set_title(ringColorChooser.reinterpret(), "Ring Color")
-    g_signal_connect(ringColorChooser, "color-set", staticCFunction<CPointer<GtkWidget>, Unit> {
-        // enable ring LEDs
-        device.sendBytes(0x51u, 0xa0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, 0x05u, 0x06u)
+    val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
+        gtk_container_add(box?.reinterpret(), this)
+        gtk_container_set_border_width(reinterpret(), 16)
+        gtk_button_box_set_layout(reinterpret(), GTK_BUTTONBOX_END)
+        gtk_box_set_child_packing(box?.reinterpret(), this, 0, 1, 0, GtkPackType.GTK_PACK_END)
+    }
 
-        val color = memScoped { alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) } }
-        device.setChannel(0x00u, 0xFFu, 0x20u, 0xFFu, 0xFFu, color.r, color.g, color.b)
-    })
-    gtk_grid_attach(settingsGrid?.reinterpret(), ringColorChooser, 1, 2, 1, 1)
+    gtk_button_new()?.apply {
+        gtk_button_set_label(reinterpret(), "Reset")
+        g_signal_connect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { device.reset() })
+        gtk_container_add(saveOptionBox?.reinterpret(), this)
+    }
 
-    val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)
-    gtk_container_add(box?.reinterpret(), saveOptionBox)
-    gtk_container_set_border_width(saveOptionBox?.reinterpret(), 16)
-    gtk_button_box_set_layout(saveOptionBox?.reinterpret(), GTK_BUTTONBOX_END)
-    gtk_box_set_child_packing(box?.reinterpret(), saveOptionBox, 0, 1, 0, GtkPackType.GTK_PACK_END)
-
-    val resetOption = gtk_button_new()!!
-    gtk_button_set_label(resetOption.reinterpret(), "Reset")
-    g_signal_connect(resetOption, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { device.reset() })
-    gtk_container_add(saveOptionBox?.reinterpret(), resetOption)
-
-    val saveOption = gtk_button_new()!!
-    gtk_button_set_label(saveOption.reinterpret(), "Save")
-    gtk_style_context_add_class(gtk_widget_get_style_context(saveOption), "suggested-action")
-    g_signal_connect(saveOption, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { device.save() })
-    gtk_container_add(saveOptionBox?.reinterpret(), saveOption)
+    gtk_button_new()?.apply {
+        gtk_button_set_label(reinterpret(), "Save")
+        gtk_style_context_add_class(gtk_widget_get_style_context(this), "suggested-action")
+        g_signal_connect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { device.save() })
+        gtk_container_add(saveOptionBox?.reinterpret(), this)
+    }
 
     gtk_widget_show_all(windowWidget)
 }
 
 fun main(args: Array<String>) {
-    val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
-    g_signal_connect(app, "activate", staticCFunction { it: CPointer<GtkApplication>, _: gpointer -> it.activate() })
-    val status = memScoped {
-        g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues())
+    var app: CPointer<GtkApplication>? = null
+    var status = 0
+    try {
+        app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
+        g_signal_connect(app, "activate", staticCFunction { it: CPointer<GtkApplication>, _: gpointer ->
+            it.activate()
+        })
+        status = memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
+    } finally {
+        g_object_unref(app)
+        device.close()
+        if (status != 0) exitProcess(status)
     }
-    g_object_unref(app)
-
-    device.close()
-
-    if (status != 0) exitProcess(status)
 }
