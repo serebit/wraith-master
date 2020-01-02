@@ -4,6 +4,7 @@ package com.serebit.wraith.cli
 
 import com.serebit.wraith.core.Color
 import com.serebit.wraith.core.device
+import com.serebit.wraith.core.save
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.failAssertion
@@ -61,6 +62,8 @@ fun main(args: Array<String>) {
             "ring" -> device.ring.color = it
         }
     }
+
+    device.save()
 
     device.close()
 }
