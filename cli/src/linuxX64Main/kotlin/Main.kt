@@ -35,47 +35,29 @@ object ColorArgType : ArgType<Color>(true) {
     override val description = "{ Color with format r,g,b or RRGGBB }"
 }
 
-@UseExperimental(ExperimentalCli::class)
-val logo = object : Subcommand("logo") {
+class BasicLedSubcommand(name: String, private val ledDevice: WraithPrism.BasicLedDevice) : Subcommand(name) {
     val mode by option(ArgType.Choice(listOf("off", "static", "breathe")))
     val color by option(ColorArgType, shortName = "c")
     val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 5")
     val speed by option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
 
+    @UseExperimental(ExperimentalCli::class)
     override fun execute() {
-        mode?.let { device.logo.mode = LedMode.valueOf(it.toUpperCase()) }
-        color?.let { device.logo.color = it }
+        mode?.let { ledDevice.mode = LedMode.valueOf(it.toUpperCase()) }
+        color?.let { ledDevice.color = it }
         brightness?.let {
             if (it !in 1..5) printError("Brightness must be within the range of 1 to 5")
-            device.logo.brightness = (it * 51).toUByte()
+            ledDevice.brightness = (it * 51).toUByte()
         }
         speed?.let {
             if (it !in 1..5) printError("Speed must be within the range of 1 to 5")
-            device.logo.speed = ubyteArrayOf(0x3Cu, 0x34u, 0x2cu, 0x20u, 0x18u)[it - 1]
+            ledDevice.speed = ubyteArrayOf(0x3Cu, 0x34u, 0x2cu, 0x20u, 0x18u)[it - 1]
         }
     }
 }
 
-@UseExperimental(ExperimentalCli::class)
-val fan = object : Subcommand("fan") {
-    val mode by option(ArgType.Choice(listOf("off", "static", "breathe")))
-    val color by option(ColorArgType, shortName = "c")
-    val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 5")
-    val speed by option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
-
-    override fun execute() {
-        mode?.let { device.fan.mode = LedMode.valueOf(it.toUpperCase()) }
-        color?.let { device.fan.color = it }
-        brightness?.let {
-            if (it !in 1..5) printError("Brightness must be within the range of 1 to 5")
-            device.fan.brightness = (it * 51).toUByte()
-        }
-        speed?.let {
-            if (it !in 1..5) printError("Speed must be within the range of 1 to 5")
-            device.fan.speed = ubyteArrayOf(0x3Cu, 0x34u, 0x2cu, 0x20u, 0x18u)[it - 1]
-        }
-    }
-}
+val logo = BasicLedSubcommand("logo", device.logo)
+val fan = BasicLedSubcommand("fan", device.fan)
 
 @UseExperimental(ExperimentalCli::class)
 val ring = object : Subcommand("ring") {
@@ -100,10 +82,7 @@ fun main(args: Array<String>) {
         parser.subcommands(logo, fan, ring)
         parser.parse(args)
 
-        device.sendBytes(
-            0x51u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, 0x05u, 0x06u,
-            *UByteArray(15) { device.ring.mode.channel }
-        )
+        device.assignChannels()
 
         device.apply()
         device.save()
