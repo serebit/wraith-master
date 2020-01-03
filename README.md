@@ -7,9 +7,13 @@
 
 Wraith Master is a graphical and command-line application for controlling the RGB LEDs on AMD's Wraith stock coolers. At the moment, the only supported cooler is the Wraith Prism, but there are plans to add other Wraith coolers as well.
 
+## Download
+
+There are precompiled binaries available for each release [here](https://gitlab.com/serebit/wraith-master/-/releases).
+
 ## Building from Source
 
-#### Requirements
+### Requirements
 
 Building Wraith Master requires the following to be installed on the system:
 - `libtinfo.so.5`, usually in a package called `ncurses-compat-libs`
@@ -17,7 +21,7 @@ Building Wraith Master requires the following to be installed on the system:
 - A JDK, whether Open or Oracle, of at least version 8
 - If building the GTK frontend, the GTK3 development libraries
 
-#### Instructions
+### Instructions
 
 Once built, the executables will be located in the `build/package` directory.
 
