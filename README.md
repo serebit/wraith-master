@@ -9,7 +9,17 @@ Wraith Master is a graphical and command-line application for controlling the RG
 
 ## Building from Source
 
-Building Wraith Master requires the `libusb` development libraries, along with at least JDK8. If the `wraith-master-gtk` artifact is being built, the GTK3 development libraries are also required. Once built, the executables will be located in the `build/package` directory.
+#### Requirements
+
+Building Wraith Master requires the following to be installed on the system:
+- `libtinfo.so.5`, usually in a package called `ncurses-compat-libs`
+- `libusb` development libraries
+- A JDK, whether Open or Oracle, of at least version 8
+- If building the GTK frontend, the GTK3 development libraries
+
+#### Instructions
+
+Once built, the executables will be located in the `build/package` directory.
 
 To build just the command-line application, run the following:
 
