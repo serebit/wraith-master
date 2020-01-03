@@ -2,10 +2,7 @@
 
 package com.serebit.wraith.gtk
 
-import com.serebit.wraith.core.Color
-import com.serebit.wraith.core.device
-import com.serebit.wraith.core.reset
-import com.serebit.wraith.core.save
+import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
 import kotlin.math.roundToInt
@@ -48,30 +45,47 @@ fun CPointer<GtkApplication>.activate() {
         gtk_container_set_border_width(reinterpret(), 32)
     }
 
-    fun gridLabel(text: String, position: Int) = gtk_label_new(text)?.apply {
+    var position = 0
+    fun gridLabel(text: String) = gtk_label_new(text)?.apply {
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
         gtk_widget_set_hexpand(this, 1)
-        gtk_grid_attach(settingsGrid?.reinterpret(), this, 0, position, 1, 1)
+        gtk_grid_attach(settingsGrid?.reinterpret(), this, 0, position++, 1, 1)
     }
 
-    gridLabel("Logo Color", 0)
-    gridLabel("Logo Brightness", 1)
-    gridLabel("Fan Color", 2)
-    gridLabel("Fan Brightness", 3)
-    gridLabel("Ring Color", 4)
-    gridLabel("Ring Brightness", 5)
+    gridLabel("Logo Mode")
+    gridLabel("Logo Color")
+    gridLabel("Logo Brightness")
+    gridLabel("Logo Speed")
+    gridLabel("Fan Mode")
+    gridLabel("Fan Color")
+    gridLabel("Fan Brightness")
+    gridLabel("Fan Speed")
+    gridLabel("Ring Mode")
+    gridLabel("Ring Color")
+    gridLabel("Ring Brightness")
 
+    position = 0
     memScoped {
-        fun gridColorButton(color: Color, position: Int, action: GtkCallbackFunction) =
+        fun <E : Enum<*>>gridComboBox(default: E, elements: Array<E>, action: GtkCallbackFunction) =
+            gtk_combo_box_text_new()?.apply {
+                elements.forEach {
+                    gtk_combo_box_text_append_text(reinterpret(), it.name.toLowerCase().capitalize())
+                }
+                gtk_combo_box_set_active(reinterpret(), elements.indexOf(default))
+                g_signal_connect(this, "changed", action)
+                gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position++, 1, 1)
+            }
+
+        fun gridColorButton(color: Color, action: GtkCallbackFunction) =
             gtk_color_button_new()?.apply {
                 gtk_color_button_set_use_alpha(reinterpret(), 0)
                 gtk_color_button_set_rgba(reinterpret(), GdkRGBA(color).ptr)
                 gtk_widget_set_size_request(this, 72, -1)
                 g_signal_connect(this, "color-set", action)
-                gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position, 1, 1)
+                gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position++, 1, 1)
             }
 
-        fun gridScale(value: UByte, position: Int, action: GtkCallbackFunction) =
+        fun gridScale(value: UByte, action: GtkCallbackFunction) =
             gtk_adjustment_new(value.toDouble() / 51, 1.0, 5.0, 1.0, 0.0, 0.0)?.let { adjustment ->
                 g_signal_connect(adjustment, "value-changed", action)
                 gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)?.apply {
@@ -80,32 +94,52 @@ fun CPointer<GtkApplication>.activate() {
                     for (i in 1..5) {
                         gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
                     }
-                    gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position, 1, 1)
+                    gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position++, 1, 1)
                 }
             }
 
-        gridColorButton(device.logo.color, 0, staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridComboBox(device.logo.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+            val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
+            device.logo.mode = LedMode.valueOf(text.toUpperCase())
+        })
+        gridColorButton(device.logo.color, staticCFunction<CPointer<GtkWidget>, Unit> {
             device.logo.color = memScoped {
                 alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
             }
         })
-        gridScale(device.logo.brightness, 1, staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridScale(device.logo.brightness, staticCFunction<CPointer<GtkWidget>, Unit> {
             device.logo.brightness = (gtk_adjustment_get_value(it.reinterpret()).roundToInt() * 51).toUByte()
         })
-        gridColorButton(device.fan.color, 2, staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridScale(device.logo.speed, staticCFunction<CPointer<GtkWidget>, Unit> {
+            val index = gtk_adjustment_get_value(it.reinterpret()).roundToInt()
+            device.logo.speed = ubyteArrayOf(0x3Cu, 0x34u, 0x2cu, 0x20u, 0x18u)[index - 1]
+        })
+        gridComboBox(device.fan.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+            val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
+            device.fan.mode = LedMode.valueOf(text.toUpperCase())
+        })
+        gridColorButton(device.fan.color, staticCFunction<CPointer<GtkWidget>, Unit> {
             device.fan.color = memScoped {
                 alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
             }
         })
-        gridScale(device.fan.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridScale(device.fan.brightness, staticCFunction<CPointer<GtkWidget>, Unit> {
             device.fan.brightness = (gtk_adjustment_get_value(it.reinterpret()).roundToInt() * 51).toUByte()
         })
-        gridColorButton(device.ring.color, 4, staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridScale(device.fan.speed, staticCFunction<CPointer<GtkWidget>, Unit> {
+            val index = gtk_adjustment_get_value(it.reinterpret()).roundToInt()
+            device.fan.speed = ubyteArrayOf(0x3Cu, 0x34u, 0x2cu, 0x20u, 0x18u)[index - 1]
+        })
+        gridComboBox(device.ring.mode, RingMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+            val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
+            device.ring.mode = RingMode.valueOf(text.toUpperCase())
+        })
+        gridColorButton(device.ring.color, staticCFunction<CPointer<GtkWidget>, Unit> {
             device.ring.color = memScoped {
                 alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
             }
         })
-        gridScale(device.ring.brightness, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridScale(device.ring.brightness, staticCFunction<CPointer<GtkWidget>, Unit> {
             device.ring.brightness = (gtk_adjustment_get_value(it.reinterpret()).roundToInt() * 51).toUByte()
         })
     }
@@ -126,7 +160,7 @@ fun CPointer<GtkApplication>.activate() {
     gtk_button_new()?.apply {
         gtk_button_set_label(reinterpret(), "Save")
         gtk_style_context_add_class(gtk_widget_get_style_context(this), "suggested-action")
-        g_signal_connect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { device.save() })
+        g_signal_connect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { device.save(); Unit })
         gtk_container_add(saveOptionBox?.reinterpret(), this)
     }
 
