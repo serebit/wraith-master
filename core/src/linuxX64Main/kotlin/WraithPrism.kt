@@ -88,58 +88,51 @@ class WraithPrism(device: libusb_device) {
         libusb_exit(null)
     }
 
-    inner class BasicLedDevice internal constructor(private val channel: UByte, private var values: UByteArray) {
-        var color: Color
-            get() = values.let { Color(it[10], it[11], it[12]) }
-            set(value) {
-                values = setChannel(channel, speed, mode.value, brightness, value)
-            }
-
-        var brightness: UByte
-            get() = values[9]
-            set(value) {
-                values = setChannel(channel, speed, mode.value, value, color); assignChannels()
-            }
-
+    inner class BasicLedDevice(val channel: UByte, override var values: UByteArray) : LedDevice {
         var mode: LedMode
             get() = LedMode.values().first { it.value == values[7] }
-            set(value) {
-                values = setChannel(channel, speed, value.value, brightness, color); assignChannels()
-            }
-
-        var speed: UByte
+            set(value) = updateValues { values[7] = value.value }
+        override var speed: UByte
             get() = values[5]
-            set(value) {
-                values = setChannel(channel, value, mode.value, brightness, color); assignChannels()
-            }
+            set(value) = updateValues { values[5] = value }
+
+        override fun updateValues(modify: (UByteArray) -> Unit) {
+            values.apply(modify)
+            values = setChannel(channel, speed, mode.value, brightness, color)
+            assignChannels()
+        }
     }
 
-    inner class Ring internal constructor(private var channel: UByteArray) {
-        var color: Color
-            get() = channel.let { Color(it[10], it[11], it[12]) }
-            set(value) {
-                channel = setChannel(mode.channel, speed, mode.mode, brightness, value); assignChannels()
-            }
-
-        var brightness: UByte
-            get() = channel[9]
-            set(value) {
-                channel = setChannel(mode.channel, speed, mode.mode, value, color); assignChannels()
-            }
-
+    inner class Ring(override var values: UByteArray) : LedDevice {
         var mode: RingMode
-            get() = RingMode.values().first { it.channel == channel[4] }
-            set(value) {
-                channel = setChannel(value.channel, speed, value.mode, brightness, color); assignChannels()
-            }
+            get() = RingMode.values().first { it.channel == values[4] }
+            set(value) = updateValues { values[4] = value.channel; values[7] = value.mode }
+        override var speed: UByte
+            get() = values[5]
+            set(value) = updateValues { values[5] = value }
 
-        var speed: UByte
-            get() = channel[5]
-            set(value) {
-                channel = setChannel(mode.channel, value, mode.mode, brightness, color); assignChannels()
-            }
+        override fun updateValues(modify: (UByteArray) -> Unit) {
+            values.apply(modify)
+            values = setChannel(mode.channel, speed, mode.mode, brightness, color)
+            assignChannels()
+        }
     }
 }
+
+interface LedDevice {
+    var values: UByteArray
+    var speed: UByte
+
+    fun updateValues(modify: (UByteArray) -> Unit)
+}
+
+var LedDevice.color: Color
+    get() = values.let { Color(it[10], it[11], it[12]) }
+    set(value) = updateValues { values[10] = value.r; values[11] = value.g; values[12] = value.b }
+
+var LedDevice.brightness: UByte
+    get() = values[9]
+    set(value) = updateValues { values[9] = value }
 
 fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UByte = 0x0u) =
     sendBytes(bytes.copyInto(UByteArray(bufferSize) { filler }))
