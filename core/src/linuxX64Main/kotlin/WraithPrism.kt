@@ -29,7 +29,7 @@ enum class RingMode(
     val brightnesses: UByteArray = ubyteArrayOf(0x4Cu, 0x99u, 0xFFu),
     val speeds: UByteArray = ubyteArrayOf(),
     val supportsColor: Boolean = false,
-    val supportsDirection: Boolean = false
+    val colorSource: UByte = 0x20u
 ) {
     OFF(0xFEu, 0xFFu, ubyteArrayOf()),
     STATIC(0x00u, 0xFFu, supportsColor = true),
@@ -37,8 +37,9 @@ enum class RingMode(
     BREATHE(0x01u, 0xFFu, speeds = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true),
     SWIRL(
         0x0Au, 0x4Au, speeds = ubyteArrayOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
-        supportsColor = true, supportsDirection = true
-    )
+        supportsColor = true, colorSource = 0u
+    ),
+    RAINBOW(0x07u, 0x05u, speeds = ubyteArrayOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u)
 }
 
 class WraithPrism(device: libusb_device) {
@@ -130,7 +131,6 @@ class BasicLedDevice(initialValues: UByteArray) : LedDevice {
 }
 
 class Ring(initialValues: UByteArray) : LedDevice {
-    val channel: UByte get() = mode.channel
     var mode: RingMode = RingMode.values().first { it.channel == initialValues[0] }
     var color: Color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
     var speed: UByte = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
@@ -140,8 +140,10 @@ class Ring(initialValues: UByteArray) : LedDevice {
         get() {
             val brightness = mode.brightnesses.elementAtOrNull(brightness.toInt() - 1) ?: 0x99u
             val speed = mode.speeds.elementAtOrNull(speed.toInt() - 1) ?: 0xFFu
-            val colorSource: UByte = if (mode.supportsDirection) 0u else 0x20u
-            return ubyteArrayOf(channel, speed, colorSource, mode.mode, 0xFFu, brightness, color.r, color.g, color.b)
+            return ubyteArrayOf(
+                mode.channel, speed, mode.colorSource, mode.mode,
+                0xFFu, brightness, color.r, color.g, color.b
+            )
         }
 }
 
@@ -165,7 +167,7 @@ fun WraithPrism.reset() {
     apply()
 }
 
-fun <T : LedDevice> WraithPrism.updateDevice(device: T, update: T.() -> Unit) {
+inline fun <T : LedDevice> WraithPrism.updateDevice(device: T, update: T.() -> Unit) {
     device.update()
     setChannelValues(device)
     assignChannels()
