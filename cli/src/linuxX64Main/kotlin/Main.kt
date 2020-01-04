@@ -36,22 +36,22 @@ object ColorArgType : ArgType<Color>(true) {
 }
 
 class BasicLedSubcommand(name: String, private val ledDevice: BasicLedDevice) : Subcommand(name) {
-    val mode by option(ArgType.Choice(listOf("off", "static", "cycle", "breathe")))
+    val mode by option(ArgType.Choice(LedMode.values().map { it.name.toLowerCase() }))
     val color by option(ColorArgType, shortName = "c")
-    val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 5")
+    val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 3")
     val speed by option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
 
     @UseExperimental(ExperimentalCli::class)
     override fun execute() {
-        mode?.let { ledDevice.mode = LedMode.valueOf(it.toUpperCase()) }
-        color?.let { ledDevice.color = it }
+        mode?.let { device.updateDevice(ledDevice) { mode = LedMode.valueOf(it.toUpperCase()) } }
+        color?.let { device.updateDevice(ledDevice) { color = it } }
         brightness?.let {
-            if (it !in 1..5) printError("Brightness must be within the range of 1 to 5")
-            ledDevice.brightness = it.toUByte()
+            if (it !in 1..3) printError("Brightness must be within the range of 1 to 3")
+            device.updateDevice(ledDevice) { brightness = it.toUByte() }
         }
         speed?.let {
             if (it !in 1..5) printError("Speed must be within the range of 1 to 5")
-            ledDevice.speed = it.toUByte()
+            device.updateDevice(ledDevice) { speed = it.toUByte() }
         }
     }
 }
@@ -61,16 +61,21 @@ val fan = BasicLedSubcommand("fan", device.fan)
 
 @UseExperimental(ExperimentalCli::class)
 val ring = object : Subcommand("ring") {
-    val mode by option(ArgType.Choice(listOf("off", "static", "cycle", "breathe", "swirl")))
+    val mode by option(ArgType.Choice(RingMode.values().map { it.name.toLowerCase() }))
     val color by option(ColorArgType, shortName = "c")
-    val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 5")
+    val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 3")
+    val speed by option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
 
     override fun execute() {
-        mode?.let { device.ring.mode = RingMode.valueOf(it.toUpperCase()) }
-        color?.let { device.ring.color = it }
+        mode?.let { device.updateDevice(device.ring) { mode = RingMode.valueOf(it.toUpperCase()) } }
+        color?.let { device.updateDevice(device.ring) { color = it } }
         brightness?.let {
-            if (it !in 1..5) printError("Brightness must be within the range of 1 to 5")
-            device.ring.brightness = it.toUByte()
+            if (it !in 1..3) printError("Brightness must be within the range of 1 to 3")
+            device.updateDevice(device.ring) { brightness = it.toUByte() }
+        }
+        speed?.let {
+            if (it !in 1..5) printError("Speed must be within the range of 1 to 5")
+            device.updateDevice(device.ring) { speed = it.toUByte() }
         }
     }
 }
