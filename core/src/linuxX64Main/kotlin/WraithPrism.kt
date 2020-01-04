@@ -10,12 +10,31 @@ import libusb.*
 private const val ENDPOINT_IN: UByte = 0x83u
 private const val ENDPOINT_OUT: UByte = 0x04u
 
-enum class LedMode(val value: UByte) {
-    OFF(0x00u), STATIC(0x01u), CYCLE(0x02u), BREATHE(0x03u)
+private fun UByteArray.indexOfOrNull(value: UByte) = indexOf(value).let { if (it == -1) null else it }
+
+enum class LedMode(
+    val mode: UByte,
+    val brightnessValues: UByteArray = ubyteArrayOf(0x4Cu, 0x99u, 0xFFu),
+    val speedValues: UByteArray = ubyteArrayOf(),
+    val supportsColor: Boolean = false
+) {
+    OFF(0x00u, ubyteArrayOf()),
+    STATIC(0x01u, supportsColor = true),
+    CYCLE(0x02u, ubyteArrayOf(0x10u, 0x40u, 0x7Fu), ubyteArrayOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u)),
+    BREATHE(0x03u, speedValues = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true)
 }
 
-enum class RingMode(val channel: UByte, val mode: UByte) {
-    OFF(0xFEu, 0xFFu), STATIC(0x00u, 0xFFu), BREATHE(0x01u, 0xFFu), SWIRL(0x0Au, 0x4Au)
+enum class RingMode(
+    val channel: UByte, val mode: UByte,
+    val brightnessValues: UByteArray = ubyteArrayOf(0x4Cu, 0x99u, 0xFFu),
+    val speedValues: UByteArray = ubyteArrayOf(),
+    val supportsColor: Boolean = false
+) {
+    OFF(0xFEu, 0xFFu, ubyteArrayOf()),
+    STATIC(0x00u, 0xFFu, supportsColor = true),
+    CYCLE(0x02u, 0xFFu, brightnessValues = ubyteArrayOf(0x10u, 0x40u, 0x7Fu)),
+    BREATHE(0x01u, 0xFFu, speedValues = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true),
+    SWIRL(0x0Au, 0x4Au, speedValues = ubyteArrayOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u), supportsColor = true)
 }
 
 class WraithPrism(device: libusb_device) {
@@ -47,9 +66,9 @@ class WraithPrism(device: libusb_device) {
         // apply changes
         apply()
         val channels = sendBytes(0x52u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u)
-        logo = BasicLedDevice(0x05u, getChannel(channels[8]))
-        fan = BasicLedDevice(0x06u, getChannel(channels[9]))
-        ring = Ring(getChannel(channels[10]))
+        logo = BasicLedDevice(getChannelValues(channels[8]).sliceArray(4..12))
+        fan = BasicLedDevice(getChannelValues(channels[9]).sliceArray(4..12))
+        ring = Ring(getChannelValues(channels[10]).sliceArray(4..12))
     }
 
     private fun claimInterfaces() = memScoped {
@@ -73,13 +92,11 @@ class WraithPrism(device: libusb_device) {
         transfer(ENDPOINT_IN, UByteArray(64), 1000u)
     }
 
-    fun setChannel(channel: UByte, speed: UByte, mode: UByte, brightness: UByte, color: Color) = sendBytes(
-        0x51u, 0x2Cu, 0x01u, 0u, channel, speed, 0x20u, mode, 0xFFu, brightness, color.r, color.g, color.b,
-        0u, 0u, 0u, filler = 0xFFu
-    )
+    fun setChannelValues(device: LedDevice) =
+        sendBytes(0x51u, 0x2Cu, 0x01u, 0u, *device.values, 0u, 0u, 0u, filler = 0xFFu)
 
     fun assignChannels() = sendBytes(
-        0x51u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, 0x05u, 0x06u,
+        0x51u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, logo.channel, fan.channel,
         *UByteArray(15) { ring.mode.channel }
     )
 
@@ -87,57 +104,46 @@ class WraithPrism(device: libusb_device) {
         libusb_close(handle.ptr)
         libusb_exit(null)
     }
-
-    inner class BasicLedDevice(val channel: UByte, override var values: UByteArray) : LedDevice {
-        var mode: LedMode
-            get() = LedMode.values().first { it.value == values[7] }
-            set(value) = updateValues { values[7] = value.value }
-        override var speed: UByte
-            get() = values[5]
-            set(value) = updateValues { values[5] = value }
-
-        override fun updateValues(modify: (UByteArray) -> Unit) {
-            values.apply(modify)
-            values = setChannel(channel, speed, mode.value, brightness, color)
-            assignChannels()
-        }
-    }
-
-    inner class Ring(override var values: UByteArray) : LedDevice {
-        var mode: RingMode
-            get() = RingMode.values().first { it.channel == values[4] }
-            set(value) = updateValues { values[4] = value.channel; values[7] = value.mode }
-        override var speed: UByte
-            get() = values[5]
-            set(value) = updateValues { values[5] = value }
-
-        override fun updateValues(modify: (UByteArray) -> Unit) {
-            values.apply(modify)
-            values = setChannel(mode.channel, speed, mode.mode, brightness, color)
-            assignChannels()
-        }
-    }
 }
 
 interface LedDevice {
-    var values: UByteArray
-    var speed: UByte
-
-    fun updateValues(modify: (UByteArray) -> Unit)
+    val values: UByteArray
 }
 
-var LedDevice.color: Color
-    get() = values.let { Color(it[10], it[11], it[12]) }
-    set(value) = updateValues { values[10] = value.r; values[11] = value.g; values[12] = value.b }
+class BasicLedDevice(initialValues: UByteArray) : LedDevice {
+    val channel: UByte = initialValues[0]
+    var mode: LedMode = LedMode.values().first { it.mode == initialValues[3] }
+    var color: Color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
+    var speed: UByte = mode.speedValues.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
+    var brightness: UByte = mode.brightnessValues.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
 
-var LedDevice.brightness: UByte
-    get() = values[9]
-    set(value) = updateValues { values[9] = value }
+    override val values: UByteArray
+        get() {
+            val brightness = mode.brightnessValues.elementAtOrNull(brightness.toInt() - 1) ?: 0u
+            val speed = mode.speedValues.elementAtOrNull(speed.toInt() - 1) ?: 0x2Cu
+            return ubyteArrayOf(channel, speed, 0x20u, mode.mode, 0xFFu, brightness, color.r, color.g, color.b)
+        }
+}
+
+class Ring(initialValues: UByteArray) : LedDevice {
+    val channel: UByte get() = mode.channel
+    var mode: RingMode = RingMode.values().first { it.channel == initialValues[0] }
+    var color: Color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
+    var speed: UByte = mode.speedValues.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
+    var brightness: UByte = mode.brightnessValues.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
+
+    override val values: UByteArray
+        get() {
+            val brightness = mode.brightnessValues.elementAtOrNull(brightness.toInt() - 1) ?: 0x99u
+            val speed = mode.speedValues.elementAtOrNull(speed.toInt() - 1) ?: 0xFFu
+            return ubyteArrayOf(channel, speed, 0x20u, mode.mode, 0xFFu, brightness, color.r, color.g, color.b)
+        }
+}
 
 fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UByte = 0x0u) =
     sendBytes(bytes.copyInto(UByteArray(bufferSize) { filler }))
 
-fun WraithPrism.getChannel(channel: UByte) = sendBytes(0x52u, 0x2Cu, 0x01u, 0u, channel)
+fun WraithPrism.getChannelValues(channel: UByte) = sendBytes(0x52u, 0x2Cu, 0x01u, 0u, channel)
 fun WraithPrism.save() = sendBytes(0x50u, 0x55u)
 fun WraithPrism.apply() = sendBytes(0x51u, 0x28u, 0u, 0u, 0xE0u)
 
@@ -152,4 +158,8 @@ fun WraithPrism.reset() {
     sendBytes(0x41u, 0x80u)
     // apply changes
     apply()
+}
+
+fun <T : LedDevice> WraithPrism.updateDevice(device: T, update: T.() -> Unit) {
+    device.update(); setChannelValues(device); assignChannels()
 }
