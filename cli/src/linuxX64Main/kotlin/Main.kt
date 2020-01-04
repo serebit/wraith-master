@@ -36,7 +36,7 @@ object ColorArgType : ArgType<Color>(true) {
 }
 
 class BasicLedSubcommand(name: String, private val ledDevice: BasicLedDevice) : Subcommand(name) {
-    val mode by option(ArgType.Choice(listOf("off", "static", "breathe")))
+    val mode by option(ArgType.Choice(listOf("off", "static", "cycle", "breathe")))
     val color by option(ColorArgType, shortName = "c")
     val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 5")
     val speed by option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
@@ -61,7 +61,7 @@ val fan = BasicLedSubcommand("fan", device.fan)
 
 @UseExperimental(ExperimentalCli::class)
 val ring = object : Subcommand("ring") {
-    val mode by option(ArgType.Choice(listOf("off", "static", "breathe", "swirl")))
+    val mode by option(ArgType.Choice(listOf("off", "static", "cycle", "breathe", "swirl")))
     val color by option(ColorArgType, shortName = "c")
     val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 5")
 
