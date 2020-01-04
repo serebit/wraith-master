@@ -63,10 +63,11 @@ fun CPointer<GtkApplication>.activate() {
     gridLabel("Ring Mode")
     gridLabel("Ring Color")
     gridLabel("Ring Brightness")
+    gridLabel("Ring Speed")
 
     position = 0
     memScoped {
-        fun <E : Enum<*>>gridComboBox(default: E, elements: Array<E>, action: GtkCallbackFunction) =
+        fun <E : Enum<*>> gridComboBox(default: E, elements: Array<E>, action: GtkCallbackFunction) =
             gtk_combo_box_text_new()?.apply {
                 elements.forEach {
                     gtk_combo_box_text_append_text(reinterpret(), it.name.toLowerCase().capitalize())
@@ -85,13 +86,13 @@ fun CPointer<GtkApplication>.activate() {
                 gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position++, 1, 1)
             }
 
-        fun gridScale(value: UByte, action: GtkCallbackFunction) =
-            gtk_adjustment_new(value.toDouble() / 51, 1.0, 5.0, 1.0, 0.0, 0.0)?.let { adjustment ->
+        fun gridScale(default: UByte, marks: Int, action: GtkCallbackFunction) =
+            gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)?.let { adjustment ->
                 g_signal_connect(adjustment, "value-changed", action)
                 gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)?.apply {
                     gtk_scale_set_digits(reinterpret(), 0)
                     gtk_scale_set_draw_value(reinterpret(), 0)
-                    for (i in 1..5) {
+                    for (i in 1..marks) {
                         gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
                     }
                     gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position++, 1, 1)
@@ -100,47 +101,72 @@ fun CPointer<GtkApplication>.activate() {
 
         gridComboBox(device.logo.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            device.logo.mode = LedMode.valueOf(text.toUpperCase())
-        })
-        gridColorButton(device.logo.color, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.logo.color = memScoped {
-                alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
+            device.updateDevice(device.logo) {
+                mode = LedMode.valueOf(text.toUpperCase())
             }
         })
-        gridScale(device.logo.brightness, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.logo.brightness = (gtk_adjustment_get_value(it.reinterpret()).roundToInt() * 51).toUByte()
+        gridColorButton(device.logo.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.updateDevice(device.logo) {
+                color = memScoped {
+                    alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
+                }
+            }
         })
-        gridScale(device.logo.speed, staticCFunction<CPointer<GtkWidget>, Unit> {
-            val index = gtk_adjustment_get_value(it.reinterpret()).roundToInt()
-            device.logo.speed = ubyteArrayOf(0x3Cu, 0x34u, 0x2cu, 0x20u, 0x18u)[index - 1]
+        gridScale(device.logo.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.updateDevice(device.logo) {
+                brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
+            }
+        })
+        gridScale(device.logo.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.updateDevice(device.logo) {
+                speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
+            }
         })
         gridComboBox(device.fan.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            device.fan.mode = LedMode.valueOf(text.toUpperCase())
-        })
-        gridColorButton(device.fan.color, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.fan.color = memScoped {
-                alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
+            device.updateDevice(device.fan) {
+                mode = LedMode.valueOf(text.toUpperCase())
             }
         })
-        gridScale(device.fan.brightness, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.fan.brightness = (gtk_adjustment_get_value(it.reinterpret()).roundToInt() * 51).toUByte()
+        gridColorButton(device.fan.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.updateDevice(device.fan) {
+                color = memScoped {
+                    alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
+                }
+            }
         })
-        gridScale(device.fan.speed, staticCFunction<CPointer<GtkWidget>, Unit> {
-            val index = gtk_adjustment_get_value(it.reinterpret()).roundToInt()
-            device.fan.speed = ubyteArrayOf(0x3Cu, 0x34u, 0x2cu, 0x20u, 0x18u)[index - 1]
+        gridScale(device.fan.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.updateDevice(device.fan) {
+                brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
+            }
+        })
+        gridScale(device.fan.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.updateDevice(device.fan) {
+                speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
+            }
         })
         gridComboBox(device.ring.mode, RingMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            device.ring.mode = RingMode.valueOf(text.toUpperCase())
-        })
-        gridColorButton(device.ring.color, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.ring.color = memScoped {
-                alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
+            device.updateDevice(device.ring) {
+                mode = RingMode.valueOf(text.toUpperCase())
             }
         })
-        gridScale(device.ring.brightness, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.ring.brightness = (gtk_adjustment_get_value(it.reinterpret()).roundToInt() * 51).toUByte()
+        gridColorButton(device.ring.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.updateDevice(device.ring) {
+                color = memScoped {
+                    alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
+                }
+            }
+        })
+        gridScale(device.ring.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.updateDevice(device.ring) {
+                brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
+            }
+        })
+        gridScale(device.ring.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+            device.updateDevice(device.ring) {
+                speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
+            }
         })
     }
 

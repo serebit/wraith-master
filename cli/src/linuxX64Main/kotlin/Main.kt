@@ -35,7 +35,7 @@ object ColorArgType : ArgType<Color>(true) {
     override val description = "{ Color with format r,g,b or RRGGBB }"
 }
 
-class BasicLedSubcommand(name: String, private val ledDevice: WraithPrism.BasicLedDevice) : Subcommand(name) {
+class BasicLedSubcommand(name: String, private val ledDevice: BasicLedDevice) : Subcommand(name) {
     val mode by option(ArgType.Choice(listOf("off", "static", "breathe")))
     val color by option(ColorArgType, shortName = "c")
     val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 5")
@@ -47,11 +47,11 @@ class BasicLedSubcommand(name: String, private val ledDevice: WraithPrism.BasicL
         color?.let { ledDevice.color = it }
         brightness?.let {
             if (it !in 1..5) printError("Brightness must be within the range of 1 to 5")
-            ledDevice.brightness = (it * 51).toUByte()
+            ledDevice.brightness = it.toUByte()
         }
         speed?.let {
             if (it !in 1..5) printError("Speed must be within the range of 1 to 5")
-            ledDevice.speed = ubyteArrayOf(0x3Cu, 0x34u, 0x2cu, 0x20u, 0x18u)[it - 1]
+            ledDevice.speed = it.toUByte()
         }
     }
 }
@@ -70,7 +70,7 @@ val ring = object : Subcommand("ring") {
         color?.let { device.ring.color = it }
         brightness?.let {
             if (it !in 1..5) printError("Brightness must be within the range of 1 to 5")
-            device.ring.brightness = (it * 51).toUByte()
+            device.ring.brightness = it.toUByte()
         }
     }
 }
