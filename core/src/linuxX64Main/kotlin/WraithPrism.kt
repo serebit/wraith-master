@@ -39,6 +39,10 @@ enum class RingMode(
         0x0Au, 0x4Au, speeds = ubyteArrayOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
         supportsColor = true, colorSource = 0u
     ),
+    CHASE(
+        0x09u, 0xC3u, speeds = ubyteArrayOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
+        supportsColor = true, colorSource = 0u
+    ),
     RAINBOW(0x07u, 0x05u, speeds = ubyteArrayOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u)
 }
 
