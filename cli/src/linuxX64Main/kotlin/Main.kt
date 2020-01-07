@@ -58,6 +58,10 @@ fun main(args: Array<String>) {
         val color by parser.option(ColorArgType, shortName = "c")
         val brightness by parser.option(ArgType.Int, shortName = "b", description = "Value from 1 to 3")
         val speed by parser.option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
+        val direction by parser.option(
+            ArgType.Choice(listOf("clockwise", "counterclockwise")),
+            shortName = "d", description = "Only supported by ring modes swirl and chase"
+        )
 
         parser.parse(args)
 
@@ -76,7 +80,12 @@ fun main(args: Array<String>) {
                     parser.printError("Provided mode is not in valid modes for component $component.")
                 mode?.let { wraith.update(ledDevice) { this.mode = LedMode.valueOf(it.toUpperCase()) } }
             }
-            is Ring -> mode?.let { wraith.update(ledDevice) { this.mode = RingMode.valueOf(it.toUpperCase()) } }
+            is Ring -> {
+                mode?.let { wraith.update(ledDevice) { this.mode = RingMode.valueOf(it.toUpperCase()) } }
+                direction?.let {
+                    wraith.update(ledDevice) { this.direction = RotationDirection.valueOf(it.toUpperCase()) }
+                }
+            }
         }
 
         color?.let { wraith.update(ledDevice) { this.color = it } }
