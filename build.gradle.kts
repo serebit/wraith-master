@@ -13,9 +13,9 @@ allprojects {
 }
 
 tasks.register("package") {
+    dependsOn("build")
     dependsOn(":gtk:package")
     dependsOn(":cli:package")
-    outputs.cacheIf { false }
 }
 
 tasks.register("install") {
