@@ -1,0 +1,7 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Wraith Master
+Comment=A configuration utility for the AMD Wraith Prism stock cooler
+Exec=wraith-master-gtk
+Icon=wraith-master

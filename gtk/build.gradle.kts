@@ -43,10 +43,36 @@ kotlin {
 
 tasks.register("package") {
     dependsOn("build")
+    outputs.dir("${rootProject.buildDir}/package")
+
     doLast {
         val packageDir = file("${rootProject.buildDir}/package").apply { mkdirs() }
+        val resourcesDir = packageDir.resolve("resources").apply { mkdirs() }
         file("$buildDir/bin/linuxX64/releaseExecutable/gtk.kexe")
             .copyTo(packageDir.resolve("wraith-master-gtk"), overwrite = true)
             .setExecutable(true)
+        file("$buildDir/processedResources/linuxX64/main/wraith-master.svg")
+            .copyTo(resourcesDir.resolve("wraith-master.svg"), overwrite = true)
+        file("$buildDir/processedResources/linuxX64/main/wraith-master.desktop")
+            .copyTo(resourcesDir.resolve("wraith-master.desktop"), overwrite = true)
+    }
+}
+
+tasks.register("install") {
+    dependsOn("package")
+
+    doLast {
+        val packageDir = file("${rootProject.buildDir}/package")
+        val resourcesDir = packageDir.resolve("resources")
+        val installDir = file(properties["installdir"] ?: "/usr/local")
+        val binDir = installDir.resolve("bin").apply { mkdirs() }
+        val iconDir = installDir.resolve("share/icons/hicolor/scalable/apps").apply { mkdirs() }
+        val appsDir = installDir.resolve("share/applications").apply { mkdirs() }
+
+        packageDir.resolve("wraith-master-gtk")
+            .copyTo(binDir.resolve("wraith-master-gtk"), overwrite = true)
+            .setExecutable(true)
+        resourcesDir.resolve("wraith-master.svg").copyTo(iconDir.resolve("wraith-master.svg"), overwrite = true)
+        resourcesDir.resolve("wraith-master.desktop").copyTo(appsDir.resolve("wraith-master.desktop"), overwrite = true)
     }
 }

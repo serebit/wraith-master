@@ -17,6 +17,8 @@ fun CPointer<GtkApplication>.activate() {
     val window = windowWidget.reinterpret<GtkWindow>()
     gtk_window_set_title(window, "Wraith Master")
     gtk_window_set_default_size(window, 480, 200)
+    gtk_window_set_default_icon_name("applications-games")
+    gtk_window_set_icon_name(window, "wraith-master")
 
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!
     gtk_container_add(window.reinterpret(), box)
