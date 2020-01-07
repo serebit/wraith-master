@@ -43,10 +43,11 @@ kotlin {
 
 tasks.register("package") {
     dependsOn("build")
-    outputs.dir("${rootProject.buildDir}/package")
+    outputs.dir("${rootProject.buildDir}/gtkPackage")
+    outputs.cacheIf { false }
 
     doLast {
-        val packageDir = file("${rootProject.buildDir}/package").apply { mkdirs() }
+        val packageDir = file("${rootProject.buildDir}/gtkPackage").apply { mkdirs() }
         val resourcesDir = packageDir.resolve("resources").apply { mkdirs() }
         file("$buildDir/bin/linuxX64/releaseExecutable/gtk.kexe")
             .copyTo(packageDir.resolve("wraith-master-gtk"), overwrite = true)
@@ -62,7 +63,7 @@ tasks.register("install") {
     dependsOn("package")
 
     doLast {
-        val packageDir = file("${rootProject.buildDir}/package")
+        val packageDir = file("${rootProject.buildDir}/gtkPackage")
         val resourcesDir = packageDir.resolve("resources")
         val installDir = file(properties["installdir"] ?: "/usr/local")
         val binDir = installDir.resolve("bin").apply { mkdirs() }

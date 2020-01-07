@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added 
 - `install` Gradle task, to make installation easier for both packagers and regular users who build from source
+- Error dialog for when a Wraith Prism USB device can't be found
 
 #### Changed 
 - Layout of `wraith-master-gtk` has been refreshed
