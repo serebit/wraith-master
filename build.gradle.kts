@@ -1,5 +1,6 @@
 plugins {
     kotlin("multiplatform") version "1.3.61" apply false
+    base // to add clean task, for cleaning up package output
 }
 
 allprojects {
@@ -14,4 +15,11 @@ allprojects {
 tasks.register("package") {
     dependsOn(":gtk:package")
     dependsOn(":cli:package")
+    outputs.dir("${rootProject.buildDir}/package")
+}
+
+tasks.register("install") {
+    dependsOn("package")
+    dependsOn(":gtk:install")
+    dependsOn(":cli:install")
 }
