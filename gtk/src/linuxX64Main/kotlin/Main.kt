@@ -10,6 +10,8 @@ import kotlin.system.exitProcess
 
 private typealias GtkCallbackFunction = CPointer<CFunction<(CPointer<GtkWidget>) -> Unit>>
 
+val wraith by lazy { obtainWraithPrism() }
+
 fun <F : CFunction<*>> g_signal_connect(
     obj: CPointer<*>, actionName: String,
     action: CPointer<F>, data: gpointer? = null, connect_flags: GConnectFlags = 0u
@@ -99,72 +101,72 @@ fun CPointer<GtkApplication>.activate() {
                 }
             }
 
-        gridComboBox(device.logo.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridComboBox(wraith.logo.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            device.updateDevice(device.logo) {
+            wraith.update(wraith.logo) {
                 mode = LedMode.valueOf(text.toUpperCase())
             }
         })
-        gridColorButton(device.logo.color, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.updateDevice(device.logo) {
+        gridColorButton(wraith.logo.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+            wraith.update(wraith.logo) {
                 color = memScoped {
                     alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
                 }
             }
         })
-        gridScale(device.logo.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.updateDevice(device.logo) {
+        gridScale(wraith.logo.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+            wraith.update(wraith.logo) {
                 brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
-        gridScale(device.logo.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.updateDevice(device.logo) {
+        gridScale(wraith.logo.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+            wraith.update(wraith.logo) {
                 speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
-        gridComboBox(device.fan.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridComboBox(wraith.fan.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            device.updateDevice(device.fan) {
+            wraith.update(wraith.fan) {
                 mode = LedMode.valueOf(text.toUpperCase())
             }
         })
-        gridColorButton(device.fan.color, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.updateDevice(device.fan) {
+        gridColorButton(wraith.fan.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+            wraith.update(wraith.fan) {
                 color = memScoped {
                     alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
                 }
             }
         })
-        gridScale(device.fan.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.updateDevice(device.fan) {
+        gridScale(wraith.fan.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+            wraith.update(wraith.fan) {
                 brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
-        gridScale(device.fan.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.updateDevice(device.fan) {
+        gridScale(wraith.fan.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+            wraith.update(wraith.fan) {
                 speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
-        gridComboBox(device.ring.mode, RingMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridComboBox(wraith.ring.mode, RingMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            device.updateDevice(device.ring) {
+            wraith.update(wraith.ring) {
                 mode = RingMode.valueOf(text.toUpperCase())
             }
         })
-        gridColorButton(device.ring.color, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.updateDevice(device.ring) {
+        gridColorButton(wraith.ring.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+            wraith.update(wraith.ring) {
                 color = memScoped {
                     alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
                 }
             }
         })
-        gridScale(device.ring.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.updateDevice(device.ring) {
+        gridScale(wraith.ring.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+            wraith.update(wraith.ring) {
                 brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
-        gridScale(device.ring.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
-            device.updateDevice(device.ring) {
+        gridScale(wraith.ring.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+            wraith.update(wraith.ring) {
                 speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
@@ -179,14 +181,14 @@ fun CPointer<GtkApplication>.activate() {
 
     gtk_button_new()?.apply {
         gtk_button_set_label(reinterpret(), "Reset")
-        g_signal_connect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { device.reset() })
+        g_signal_connect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { wraith.reset() })
         gtk_container_add(saveOptionBox?.reinterpret(), this)
     }
 
     gtk_button_new()?.apply {
         gtk_button_set_label(reinterpret(), "Save")
         gtk_style_context_add_class(gtk_widget_get_style_context(this), "suggested-action")
-        g_signal_connect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { device.save(); Unit })
+        g_signal_connect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { wraith.save(); Unit })
         gtk_container_add(saveOptionBox?.reinterpret(), this)
     }
 
@@ -204,7 +206,7 @@ fun main(args: Array<String>) {
         status = memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
     } finally {
         g_object_unref(app)
-        device.close()
+        wraith.close()
         if (status != 0) exitProcess(status)
     }
 }

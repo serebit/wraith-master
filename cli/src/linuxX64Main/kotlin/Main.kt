@@ -3,7 +3,9 @@
 package com.serebit.wraith.cli
 
 import com.serebit.wraith.core.*
-import kotlinx.cli.*
+import kotlinx.cli.ArgParser
+import kotlinx.cli.ArgType
+import kotlinx.cli.failAssertion
 
 object ColorArgType : ArgType<Color>(true) {
     override val conversion: (value: kotlin.String, name: kotlin.String) -> Color =
@@ -35,63 +37,60 @@ object ColorArgType : ArgType<Color>(true) {
     override val description = "{ Color with format r,g,b or RRGGBB }"
 }
 
-class BasicLedSubcommand(name: String, private val ledDevice: BasicLedDevice) : Subcommand(name) {
-    val mode by option(ArgType.Choice(LedMode.values().map { it.name.toLowerCase() }))
-    val color by option(ColorArgType, shortName = "c")
-    val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 3")
-    val speed by option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
-
-    @UseExperimental(ExperimentalCli::class)
-    override fun execute() {
-        mode?.let { device.updateDevice(ledDevice) { mode = LedMode.valueOf(it.toUpperCase()) } }
-        color?.let { device.updateDevice(ledDevice) { color = it } }
-        brightness?.let {
-            if (it !in 1..3) printError("Brightness must be within the range of 1 to 3")
-            device.updateDevice(ledDevice) { brightness = it.toUByte() }
-        }
-        speed?.let {
-            if (it !in 1..5) printError("Speed must be within the range of 1 to 5")
-            device.updateDevice(ledDevice) { speed = it.toUByte() }
-        }
-    }
-}
-
-val logo = BasicLedSubcommand("logo", device.logo)
-val fan = BasicLedSubcommand("fan", device.fan)
-
-@UseExperimental(ExperimentalCli::class)
-val ring = object : Subcommand("ring") {
-    val mode by option(ArgType.Choice(RingMode.values().map { it.name.toLowerCase() }))
-    val color by option(ColorArgType, shortName = "c")
-    val brightness by option(ArgType.Int, shortName = "b", description = "Value from 1 to 3")
-    val speed by option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
-
-    override fun execute() {
-        mode?.let { device.updateDevice(device.ring) { mode = RingMode.valueOf(it.toUpperCase()) } }
-        color?.let { device.updateDevice(device.ring) { color = it } }
-        brightness?.let {
-            if (it !in 1..3) printError("Brightness must be within the range of 1 to 3")
-            device.updateDevice(device.ring) { brightness = it.toUByte() }
-        }
-        speed?.let {
-            if (it !in 1..5) printError("Speed must be within the range of 1 to 5")
-            device.updateDevice(device.ring) { speed = it.toUByte() }
-        }
-    }
-}
+enum class Components { LOGO, FAN, RING }
 
 fun main(args: Array<String>) {
+    val wraith: WraithPrism by lazy { obtainWraithPrism() }
+
     try {
         val parser = ArgParser("wraith-master")
 
-        parser.subcommands(logo, fan, ring)
+        val component by parser.argument(ArgType.Choice(Components.values().map { it.name.toLowerCase() }))
+
+        val ringModes = RingMode.values().map { it.name.toLowerCase() }
+        val ledModes = LedMode.values().map { it.name.toLowerCase() }
+        val modes = ringModes.plus(ledModes).distinct()
+
+        val mode by parser.option(
+            ArgType.Choice(modes), shortName = "m",
+            description = "(Modes ${modes - ledModes} are only supported by ring component)"
+        )
+        val color by parser.option(ColorArgType, shortName = "c")
+        val brightness by parser.option(ArgType.Int, shortName = "b", description = "Value from 1 to 3")
+        val speed by parser.option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
+
         parser.parse(args)
 
-        device.assignChannels()
+        brightness?.let { if (it !in 1..3) parser.printError("Brightness must be within the range of 1 to 3") }
+        speed?.let { if (it !in 1..5) parser.printError("Speed must be within the range of 1 to 5") }
 
-        device.apply()
-        device.save()
+        val ledDevice = when (Components.valueOf(component.toUpperCase())) {
+            Components.LOGO -> wraith.logo
+            Components.FAN -> wraith.fan
+            Components.RING -> wraith.ring
+        }
+
+        when (ledDevice) {
+            is BasicLedDevice -> {
+                if (mode !in LedMode.values().map { it.name.toLowerCase() })
+                    parser.printError("Provided mode is not in valid modes for component $component.")
+
+                mode?.let { wraith.update(ledDevice) { this.mode = LedMode.valueOf(it.toUpperCase()) } }
+                color?.let { wraith.update(ledDevice) { this.color = it } }
+                brightness?.let { wraith.update(ledDevice) { this.brightness = it.toUByte() } }
+                speed?.let { wraith.update(ledDevice) { this.speed = it.toUByte() } }
+            }
+            is Ring -> {
+                mode?.let { wraith.update(ledDevice) { this.mode = RingMode.valueOf(it.toUpperCase()) } }
+                color?.let { wraith.update(ledDevice) { this.color = it } }
+                brightness?.let { wraith.update(ledDevice) { this.brightness = it.toUByte() } }
+                speed?.let { wraith.update(ledDevice) { this.speed = it.toUByte() } }
+            }
+        }
+
+        wraith.apply()
+        wraith.save()
     } finally {
-        device.close()
+        wraith.close()
     }
 }

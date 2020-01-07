@@ -173,7 +173,7 @@ fun WraithPrism.reset() {
     apply()
 }
 
-inline fun <T : LedDevice> WraithPrism.updateDevice(device: T, update: T.() -> Unit) {
+inline fun <T : LedDevice> WraithPrism.update(device: T, update: T.() -> Unit) {
     device.update()
     setChannelValues(device)
     assignChannels()
