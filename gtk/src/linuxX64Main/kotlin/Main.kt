@@ -6,28 +6,10 @@ import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
 import kotlin.math.roundToInt
+import kotlin.properties.Delegates
 import kotlin.system.exitProcess
 
-private typealias GtkCallbackFunction = CPointer<CFunction<(CPointer<GtkWidget>) -> Unit>>
-
 val wraith by lazy { obtainWraithPrism() }
-
-fun <F : CFunction<*>> g_signal_connect(
-    obj: CPointer<*>, actionName: String,
-    action: CPointer<F>, data: gpointer? = null, connect_flags: GConnectFlags = 0u
-) = g_signal_connect_data(
-    obj.reinterpret(), actionName, action.reinterpret(),
-    data = data, destroy_data = null, connect_flags = connect_flags
-)
-
-fun MemScope.GdkRGBA(color: Color) = alloc<GdkRGBA>().apply {
-    red = color.r.toDouble() / 255
-    green = color.g.toDouble() / 255
-    blue = color.b.toDouble() / 255
-    alpha = 1.0
-}
-
-fun GdkRGBA.toColor() = Color(red, green, blue)
 
 fun CPointer<GtkApplication>.activate() {
     val windowWidget = gtk_application_window_new(this)!!
@@ -36,136 +18,98 @@ fun CPointer<GtkApplication>.activate() {
     gtk_window_set_title(window, "Wraith Master")
     gtk_window_set_default_size(window, 480, 200)
 
-    val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)
+    val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!
     gtk_container_add(window.reinterpret(), box)
 
-    val settingsGrid = gtk_grid_new()?.apply {
-        gtk_grid_set_row_homogeneous(reinterpret(), 1)
-        gtk_container_add(box?.reinterpret(), this)
-        gtk_grid_set_column_spacing(reinterpret(), 64)
-        gtk_grid_set_row_spacing(reinterpret(), 8)
-        gtk_container_set_border_width(reinterpret(), 32)
-    }
+    val mainNotebook = gtk_notebook_new()!!
+    gtk_container_add(box.reinterpret(), mainNotebook)
 
-    var position = 0
-    fun gridLabel(text: String) = gtk_label_new(text)?.apply {
+    val logoGrid = mainNotebook.newSettingsPage("Logo").newSettingsGrid()
+    val fanGrid = mainNotebook.newSettingsPage("Fan").newSettingsGrid()
+    val ringGrid = mainNotebook.newSettingsPage("Ring").newSettingsGrid()
+
+    var position: Int by Delegates.notNull()
+    fun CPointer<GtkWidget>?.gridLabel(text: String) = gtk_label_new(text)?.apply {
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
         gtk_widget_set_hexpand(this, 1)
-        gtk_grid_attach(settingsGrid?.reinterpret(), this, 0, position++, 1, 1)
+        gtk_grid_attach(this@gridLabel?.reinterpret(), this, 0, position++, 1, 1)
     }
 
-    gridLabel("Logo Mode")
-    gridLabel("Logo Color")
-    gridLabel("Logo Brightness")
-    gridLabel("Logo Speed")
-    gridLabel("Fan Mode")
-    gridLabel("Fan Color")
-    gridLabel("Fan Brightness")
-    gridLabel("Fan Speed")
-    gridLabel("Ring Mode")
-    gridLabel("Ring Color")
-    gridLabel("Ring Brightness")
-    gridLabel("Ring Speed")
+    listOf(logoGrid, fanGrid, ringGrid).forEach {
+        position = 0
+        it.gridLabel("Mode")
+        it.gridLabel("Color")
+        it.gridLabel("Brightness")
+        it.gridLabel("Speed")
+    }
 
     position = 0
     memScoped {
-        fun <E : Enum<*>> gridComboBox(default: E, elements: Array<E>, action: GtkCallbackFunction) =
-            gtk_combo_box_text_new()?.apply {
-                elements.forEach {
-                    gtk_combo_box_text_append_text(reinterpret(), it.name.toLowerCase().capitalize())
-                }
-                gtk_combo_box_set_active(reinterpret(), elements.indexOf(default))
-                g_signal_connect(this, "changed", action)
-                gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position++, 1, 1)
-            }
-
-        fun gridColorButton(color: Color, action: GtkCallbackFunction) =
-            gtk_color_button_new()?.apply {
-                gtk_color_button_set_use_alpha(reinterpret(), 0)
-                gtk_color_button_set_rgba(reinterpret(), GdkRGBA(color).ptr)
-                gtk_widget_set_size_request(this, 72, -1)
-                g_signal_connect(this, "color-set", action)
-                gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position++, 1, 1)
-            }
-
-        fun gridScale(default: UByte, marks: Int, action: GtkCallbackFunction) =
-            gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)?.let { adjustment ->
-                g_signal_connect(adjustment, "value-changed", action)
-                gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)?.apply {
-                    gtk_scale_set_digits(reinterpret(), 0)
-                    gtk_scale_set_draw_value(reinterpret(), 0)
-                    for (i in 1..marks) {
-                        gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
-                    }
-                    gtk_grid_attach(settingsGrid?.reinterpret(), this, 1, position++, 1, 1)
-                }
-            }
-
-        gridComboBox(wraith.logo.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+        logoGrid.gridComboBox(0, wraith.logo.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
             wraith.update(wraith.logo) {
                 mode = LedMode.valueOf(text.toUpperCase())
             }
         })
-        gridColorButton(wraith.logo.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+        logoGrid.gridColorButton(1, wraith.logo.color, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.update(wraith.logo) {
                 color = memScoped {
                     alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
                 }
             }
         })
-        gridScale(wraith.logo.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+        logoGrid.gridScale(2, wraith.logo.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.update(wraith.logo) {
                 brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
-        gridScale(wraith.logo.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+        logoGrid.gridScale(3, wraith.logo.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.update(wraith.logo) {
                 speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
-        gridComboBox(wraith.fan.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+        fanGrid.gridComboBox(0, wraith.fan.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
             wraith.update(wraith.fan) {
                 mode = LedMode.valueOf(text.toUpperCase())
             }
         })
-        gridColorButton(wraith.fan.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+        fanGrid.gridColorButton(1, wraith.fan.color, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.update(wraith.fan) {
                 color = memScoped {
                     alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
                 }
             }
         })
-        gridScale(wraith.fan.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+        fanGrid.gridScale(2, wraith.fan.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.update(wraith.fan) {
                 brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
-        gridScale(wraith.fan.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+        fanGrid.gridScale(3, wraith.fan.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.update(wraith.fan) {
                 speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
-        gridComboBox(wraith.ring.mode, RingMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+        ringGrid.gridComboBox(0, wraith.ring.mode, RingMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
             wraith.update(wraith.ring) {
                 mode = RingMode.valueOf(text.toUpperCase())
             }
         })
-        gridColorButton(wraith.ring.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+        ringGrid.gridColorButton(1, wraith.ring.color, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.update(wraith.ring) {
                 color = memScoped {
                     alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
                 }
             }
         })
-        gridScale(wraith.ring.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+        ringGrid.gridScale(2, wraith.ring.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.update(wraith.ring) {
                 brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
-        gridScale(wraith.ring.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+        ringGrid.gridScale(3, wraith.ring.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.update(wraith.ring) {
                 speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
@@ -173,10 +117,11 @@ fun CPointer<GtkApplication>.activate() {
     }
 
     val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
-        gtk_container_add(box?.reinterpret(), this)
-        gtk_container_set_border_width(reinterpret(), 16)
+        gtk_container_add(box.reinterpret(), this)
+        gtk_container_set_border_width(reinterpret(), 12)
         gtk_button_box_set_layout(reinterpret(), GTK_BUTTONBOX_END)
-        gtk_box_set_child_packing(box?.reinterpret(), this, 0, 1, 0, GtkPackType.GTK_PACK_END)
+        gtk_box_set_spacing(reinterpret(), 8)
+        gtk_box_set_child_packing(box.reinterpret(), this, 0, 1, 0, GtkPackType.GTK_PACK_END)
     }
 
     gtk_button_new()?.apply {
