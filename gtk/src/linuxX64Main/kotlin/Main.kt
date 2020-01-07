@@ -44,6 +44,7 @@ fun CPointer<GtkApplication>.activate() {
         it.gridLabel("Brightness")
         it.gridLabel("Speed")
     }
+    ringGrid.gridLabel("Direction")
 
     position = 0
     memScoped {
@@ -116,6 +117,13 @@ fun CPointer<GtkApplication>.activate() {
                 speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
             }
         })
+        ringGrid.gridComboBox(
+            4, wraith!!.ring.direction, RotationDirection.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+                val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
+                wraith!!.update(wraith!!.ring) {
+                    direction = RotationDirection.valueOf(text.toUpperCase())
+                }
+            })
     }
 
     val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
