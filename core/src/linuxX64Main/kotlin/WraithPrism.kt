@@ -14,14 +14,14 @@ private fun UByteArray.indexOfOrNull(value: UByte) = indexOf(value).let { if (it
 
 enum class LedMode(
     val mode: UByte,
-    val brightnessValues: UByteArray = ubyteArrayOf(0x4Cu, 0x99u, 0xFFu),
-    val speedValues: UByteArray = ubyteArrayOf(),
+    val brightnesses: UByteArray = ubyteArrayOf(0x4Cu, 0x99u, 0xFFu),
+    val speeds: UByteArray = ubyteArrayOf(),
     val supportsColor: Boolean = false
 ) {
     OFF(0x00u, ubyteArrayOf()),
     STATIC(0x01u, supportsColor = true),
     CYCLE(0x02u, ubyteArrayOf(0x10u, 0x40u, 0x7Fu), ubyteArrayOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u)),
-    BREATHE(0x03u, speedValues = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true)
+    BREATHE(0x03u, speeds = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true)
 }
 
 enum class RingMode(
@@ -31,10 +31,9 @@ enum class RingMode(
     val supportsColor: Boolean = false,
     val colorSource: UByte = 0x20u
 ) {
-    OFF(0xFEu, 0xFFu, ubyteArrayOf()),
+    OFF(0xFEu, 0xFFu, ubyteArrayOf(), ubyteArrayOf()),
     STATIC(0x00u, 0xFFu, supportsColor = true),
-    CYCLE(0x02u, 0xFFu, ubyteArrayOf(0x10u, 0x40u, 0x7Fu), ubyteArrayOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u)),
-    BREATHE(0x01u, 0xFFu, speeds = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true),
+    RAINBOW(0x07u, 0x05u, speeds = ubyteArrayOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u),
     SWIRL(
         0x0Au, 0x4Au, speeds = ubyteArrayOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
         supportsColor = true, colorSource = 0u
@@ -43,7 +42,10 @@ enum class RingMode(
         0x09u, 0xC3u, speeds = ubyteArrayOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
         supportsColor = true, colorSource = 0u
     ),
-    RAINBOW(0x07u, 0x05u, speeds = ubyteArrayOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u)
+    BOUNCE(0x08u, 0xFFu, speeds = ubyteArrayOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u), colorSource = 0x80u),
+    MORSE(0x0Bu, 0x05u, supportsColor = true, colorSource = 0u),
+    CYCLE(0x02u, 0xFFu, ubyteArrayOf(0x10u, 0x40u, 0x7Fu), ubyteArrayOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u)),
+    BREATHE(0x01u, 0xFFu, speeds = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true)
 }
 
 class WraithPrism(device: libusb_device) {
@@ -123,13 +125,13 @@ class BasicLedDevice(initialValues: UByteArray) : LedDevice {
     val channel: UByte = initialValues[0]
     var mode: LedMode = LedMode.values().first { it.mode == initialValues[3] }
     var color: Color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
-    var speed: UByte = mode.speedValues.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
-    var brightness: UByte = mode.brightnessValues.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
+    var speed: UByte = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
+    var brightness: UByte = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
 
     override val values: UByteArray
         get() {
-            val brightness = mode.brightnessValues.elementAtOrNull(brightness.toInt() - 1) ?: 0u
-            val speed = mode.speedValues.elementAtOrNull(speed.toInt() - 1) ?: 0x2Cu
+            val brightness = mode.brightnesses.elementAtOrNull(brightness.toInt() - 1) ?: 0u
+            val speed = mode.speeds.elementAtOrNull(speed.toInt() - 1) ?: 0x2Cu
             return ubyteArrayOf(channel, speed, 0x20u, mode.mode, 0xFFu, brightness, color.r, color.g, color.b)
         }
 }
