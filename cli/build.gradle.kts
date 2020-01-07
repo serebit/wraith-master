@@ -23,10 +23,11 @@ kotlin {
 
 tasks.register("package") {
     dependsOn("build")
-    outputs.dir("${rootProject.buildDir}/package")
+    outputs.dir("${rootProject.buildDir}/cliPackage")
+    outputs.cacheIf { false }
 
     doLast {
-        val packageDir = file("${rootProject.buildDir}/package").apply { mkdirs() }
+        val packageDir = file("${rootProject.buildDir}/cliPackage").apply { mkdirs() }
         file("$buildDir/bin/linuxX64/releaseExecutable/cli.kexe")
             .copyTo(packageDir.resolve("wraith-master"), overwrite = true)
             .setExecutable(true)
@@ -37,7 +38,7 @@ tasks.register("install") {
     dependsOn("package")
 
     doLast {
-        val packageDir = file("${rootProject.buildDir}/package")
+        val packageDir = file("${rootProject.buildDir}/cliPackage")
         val installDir = file(properties["installdir"] ?: "/usr/local")
         val binDir = installDir.resolve("bin").apply { mkdirs() }
 

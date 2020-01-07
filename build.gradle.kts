@@ -15,7 +15,7 @@ allprojects {
 tasks.register("package") {
     dependsOn(":gtk:package")
     dependsOn(":cli:package")
-    outputs.dir("${rootProject.buildDir}/package")
+    outputs.cacheIf { false }
 }
 
 tasks.register("install") {

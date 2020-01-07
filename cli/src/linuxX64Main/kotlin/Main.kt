@@ -40,7 +40,7 @@ object ColorArgType : ArgType<Color>(true) {
 enum class Components { LOGO, FAN, RING }
 
 fun main(args: Array<String>) {
-    val wraith: WraithPrism by lazy { obtainWraithPrism() }
+    val wraith: WraithPrism by lazy { obtainWraithPrism() ?: error("Failed to find Wraith Prism.") }
 
     try {
         val parser = ArgParser("wraith-master")
