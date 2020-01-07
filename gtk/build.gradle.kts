@@ -43,9 +43,6 @@ kotlin {
 
 tasks.register("package") {
     dependsOn("build")
-    outputs.dir("${rootProject.buildDir}/gtkPackage")
-    outputs.cacheIf { false }
-
     doLast {
         val packageDir = file("${rootProject.buildDir}/gtkPackage").apply { mkdirs() }
         val resourcesDir = packageDir.resolve("resources").apply { mkdirs() }
@@ -61,7 +58,6 @@ tasks.register("package") {
 
 tasks.register("install") {
     dependsOn("package")
-
     doLast {
         val packageDir = file("${rootProject.buildDir}/gtkPackage")
         val resourcesDir = packageDir.resolve("resources")
