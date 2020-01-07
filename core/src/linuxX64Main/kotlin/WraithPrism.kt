@@ -119,14 +119,18 @@ class WraithPrism(device: libusb_device) {
 
 interface LedDevice {
     val values: UByteArray
+
+    var color: Color
+    var speed: UByte
+    var brightness: UByte
 }
 
 class BasicLedDevice(initialValues: UByteArray) : LedDevice {
     val channel: UByte = initialValues[0]
     var mode: LedMode = LedMode.values().first { it.mode == initialValues[3] }
-    var color: Color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
-    var speed: UByte = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
-    var brightness: UByte = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
+    override var color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
+    override var speed = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
+    override var brightness = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
 
     override val values: UByteArray
         get() {
@@ -138,9 +142,9 @@ class BasicLedDevice(initialValues: UByteArray) : LedDevice {
 
 class Ring(initialValues: UByteArray) : LedDevice {
     var mode: RingMode = RingMode.values().first { it.channel == initialValues[0] }
-    var color: Color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
-    var speed: UByte = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
-    var brightness: UByte = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
+    override var color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
+    override var speed: UByte = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
+    override var brightness: UByte = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
 
     override val values: UByteArray
         get() {

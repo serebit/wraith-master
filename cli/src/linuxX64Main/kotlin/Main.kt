@@ -74,19 +74,14 @@ fun main(args: Array<String>) {
             is BasicLedDevice -> {
                 if (mode !in LedMode.values().map { it.name.toLowerCase() })
                     parser.printError("Provided mode is not in valid modes for component $component.")
-
                 mode?.let { wraith.update(ledDevice) { this.mode = LedMode.valueOf(it.toUpperCase()) } }
-                color?.let { wraith.update(ledDevice) { this.color = it } }
-                brightness?.let { wraith.update(ledDevice) { this.brightness = it.toUByte() } }
-                speed?.let { wraith.update(ledDevice) { this.speed = it.toUByte() } }
             }
-            is Ring -> {
-                mode?.let { wraith.update(ledDevice) { this.mode = RingMode.valueOf(it.toUpperCase()) } }
-                color?.let { wraith.update(ledDevice) { this.color = it } }
-                brightness?.let { wraith.update(ledDevice) { this.brightness = it.toUByte() } }
-                speed?.let { wraith.update(ledDevice) { this.speed = it.toUByte() } }
-            }
+            is Ring -> mode?.let { wraith.update(ledDevice) { this.mode = RingMode.valueOf(it.toUpperCase()) } }
         }
+
+        color?.let { wraith.update(ledDevice) { this.color = it } }
+        brightness?.let { wraith.update(ledDevice) { this.brightness = it.toUByte() } }
+        speed?.let { wraith.update(ledDevice) { this.speed = it.toUByte() } }
 
         wraith.apply()
         wraith.save()
