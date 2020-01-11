@@ -23,25 +23,32 @@ Building Wraith Master requires the following to be installed on the system:
 
 ### Instructions
 
-Once built, the executables will be located in the `build/package` directory.
+Each Gradle command that follows can be run with the subproject name as a prefix in order to only build and install specific artifacts. For instance, `:cli:package` would build the command line artifact, and `:gtk:package` would build the GTK artifact.
 
-To build just the command-line application, run the following:
-
-```bash
-./gradlew :cli:package
-```
-
-To build just the graphical application, run the following:
-
-```bash
-./gradlew :gtk:package
-```
-
-To build all artifacts, run the following:
+To build all artifacts and place them in the `build/package` directory, run the following:
 
 ```bash
 ./gradlew package
 ```
+
+To install the built artifacts, run the following:
+
+```bash
+./gradlew install
+```
+
+This will install the packages in `/usr/local` by default. To change the installation directory, pass a parameter to the above task in the format `-Pinstalldir="/your/install/dir"`.
+
+## Dependencies
+
+Both frontends require the following packages to run:
+- `glibc`
+- `libgcc`
+- `libusb`
+
+The GTK frontend also requires the following packages:
+- `libgtk-3`
+- `glib2`
 
 ## Acknowledgements
 
