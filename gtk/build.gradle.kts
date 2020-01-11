@@ -68,7 +68,7 @@ tasks.register("install") {
 
         packageDir.resolve("wraith-master-gtk")
             .copyTo(binDir.resolve("wraith-master-gtk"), overwrite = true)
-            .setExecutable(true)
+            .also { exec { commandLine("chmod", "00755", it.absolutePath) } }
         resourcesDir.resolve("wraith-master.svg").copyTo(iconDir.resolve("wraith-master.svg"), overwrite = true)
         resourcesDir.resolve("wraith-master.desktop").copyTo(appsDir.resolve("wraith-master.desktop"), overwrite = true)
     }
