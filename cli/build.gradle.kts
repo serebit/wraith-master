@@ -40,6 +40,6 @@ tasks.register("install") {
 
         packageDir.resolve("wraith-master")
             .copyTo(binDir.resolve("wraith-master"), overwrite = true)
-            .setExecutable(true)
+            .also { exec { commandLine("chmod", "00755", it.absolutePath) } }
     }
 }
