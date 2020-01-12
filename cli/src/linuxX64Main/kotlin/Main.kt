@@ -1,4 +1,4 @@
-@file:Suppress("EXPERIMENTAL_UNSIGNED_LITERALS", "EXPERIMENTAL_API_USAGE")
+@file:UseExperimental(ExperimentalUnsignedTypes::class)
 
 package com.serebit.wraith.cli
 
@@ -6,40 +6,42 @@ import com.serebit.wraith.core.*
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.failAssertion
+import kotlin.String as KString
 
 object ColorArgType : ArgType<Color>(true) {
-    override val conversion: (value: kotlin.String, name: kotlin.String) -> Color =
-        fun(value: kotlin.String, name: kotlin.String): Color {
-            "(\\d{1,3}),(\\d{1,3}),(\\d{1,3})".toRegex()
-                .matchEntire(value)
-                ?.groupValues
-                ?.let { channels ->
-                    val (r, g, b) = channels.drop(1).map { it.toUByteOrNull() ?: failAssertion("Failed assertion") }
-                    return Color(r.toUByte(), g.toUByte(), b.toUByte())
-                }
-            "#?[\\da-fA-F]{6}".toRegex()
-                .matchEntire(value)
-                ?.value
-                ?.removePrefix("#")
-                ?.toIntOrNull(16)?.let {
-                    val r = it shr 16 and 0xFF
-                    val g = it shr 8 and 0xFF
-                    val b = it and 0xFF
-                    return Color(r.toUByte(), g.toUByte(), b.toUByte())
-                }
-            failAssertion(
-                """
-                |Option $name is expected to be a color, either represented by channel values separated by commas (such 
-                |as (255, 128, 0) or a hex color (such as 03A9F4).
-                """.trimMargin()
-            )
-        }
+    private val commaSeparatedChannelPattern = "(\\d{1,3}),(\\d{1,3}),(\\d{1,3})".toRegex() // r,g,b
+    private val hexColorPattern = "#?[\\da-fA-F]{6}".toRegex() // RRGGBB
+
     override val description = "{ Color with format r,g,b or RRGGBB }"
+    override val conversion: (value: KString, name: KString) -> Color = fun(value: KString, name: KString): Color {
+        commaSeparatedChannelPattern.matchEntire(value)
+            ?.groupValues
+            ?.drop(1)
+            ?.map { it.toUByteOrNull() ?: failAssertion("Color channel value exceeded maximum of 255") }
+            ?.let { return Color(it.component1(), it.component2(), it.component3()) }
+
+        hexColorPattern.matchEntire(value)
+            ?.value
+            ?.removePrefix("#")
+            ?.toIntOrNull(16)?.let {
+                val r = it shr 16 and 0xFF
+                val g = it shr 8 and 0xFF
+                val b = it and 0xFF
+                return Color(r.toUByte(), g.toUByte(), b.toUByte())
+            }
+
+        failAssertion(
+            """
+                |Option $name is expected to be a color, either represented by channel values separated by commas (such 
+                |as 255,128,0) or a hex color (such as 03A9F4).
+                """.trimMargin()
+        )
+    }
 }
 
-enum class Components { LOGO, FAN, RING }
+private enum class Components { LOGO, FAN, RING }
 
-fun main(args: Array<String>) {
+fun main(args: Array<KString>) {
     val wraith: WraithPrism by lazy { obtainWraithPrism() ?: error("Failed to find Wraith Prism.") }
 
     try {
@@ -68,29 +70,29 @@ fun main(args: Array<String>) {
         brightness?.let { if (it !in 1..3) parser.printError("Brightness must be within the range of 1 to 3") }
         speed?.let { if (it !in 1..5) parser.printError("Speed must be within the range of 1 to 5") }
 
-        val ledDevice = when (Components.valueOf(component.toUpperCase())) {
+        val ledComponent = when (Components.valueOf(component.toUpperCase())) {
             Components.LOGO -> wraith.logo
             Components.FAN -> wraith.fan
             Components.RING -> wraith.ring
         }
 
-        when (ledDevice) {
-            is BasicLedDevice -> {
+        when (ledComponent) {
+            is BasicLedComponent -> {
                 if (mode !in LedMode.values().map { it.name.toLowerCase() })
                     parser.printError("Provided mode is not in valid modes for component $component.")
-                mode?.let { wraith.update(ledDevice) { this.mode = LedMode.valueOf(it.toUpperCase()) } }
+                mode?.let { wraith.update(ledComponent) { this.mode = LedMode.valueOf(it.toUpperCase()) } }
             }
-            is Ring -> {
-                mode?.let { wraith.update(ledDevice) { this.mode = RingMode.valueOf(it.toUpperCase()) } }
+            is RingComponent -> {
+                mode?.let { wraith.update(ledComponent) { this.mode = RingMode.valueOf(it.toUpperCase()) } }
                 direction?.let {
-                    wraith.update(ledDevice) { this.direction = RotationDirection.valueOf(it.toUpperCase()) }
+                    wraith.update(ledComponent) { this.direction = RotationDirection.valueOf(it.toUpperCase()) }
                 }
             }
         }
 
-        color?.let { wraith.update(ledDevice) { this.color = it } }
-        brightness?.let { wraith.update(ledDevice) { this.brightness = it.toUByte() } }
-        speed?.let { wraith.update(ledDevice) { this.speed = it.toUByte() } }
+        color?.let { wraith.update(ledComponent) { this.color = it } }
+        brightness?.let { wraith.update(ledComponent) { this.brightness = it.toUByte() } }
+        speed?.let { wraith.update(ledComponent) { this.speed = it.toUByte() } }
 
         wraith.apply()
         wraith.save()

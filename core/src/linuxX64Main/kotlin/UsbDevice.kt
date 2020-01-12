@@ -1,4 +1,4 @@
-@file:Suppress("EXPERIMENTAL_UNSIGNED_LITERALS", "EXPERIMENTAL_API_USAGE")
+@file:UseExperimental(ExperimentalUnsignedTypes::class)
 
 package com.serebit.wraith.core
 
@@ -39,6 +39,7 @@ fun MemScope.getUsbDeviceDescriptors(devices: List<CPointer<libusb_device>>) = d
 }
 
 class UsbDevice(private val descriptor: libusb_device_descriptor, private val device: libusb_device) {
+    @UseExperimental(ExperimentalUnsignedTypes::class)
     private val isWraithPrism
         get() = descriptor.idVendor == COOLER_MASTER_VENDOR_ID && descriptor.idProduct == WRAITH_PRISM_PRODUCT_ID
 
