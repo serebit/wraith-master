@@ -1,5 +1,3 @@
-@file:Suppress("EXPERIMENTAL_UNSIGNED_LITERALS", "EXPERIMENTAL_API_USAGE")
-
 package com.serebit.wraith.gtk
 
 import com.serebit.wraith.core.*
@@ -11,6 +9,7 @@ import kotlin.system.exitProcess
 
 val wraith by lazy { obtainWraithPrism() }
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.activate() {
     val windowWidget = gtk_application_window_new(this)!!
 
@@ -136,33 +135,34 @@ fun CPointer<GtkApplication>.activate() {
 
     gtk_button_new()?.apply {
         gtk_button_set_label(reinterpret(), "Reset")
-        g_signal_connect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { wraith!!.reset() })
+        gSignalConnect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { wraith!!.reset() })
         gtk_container_add(saveOptionBox?.reinterpret(), this)
     }
 
     gtk_button_new()?.apply {
         gtk_button_set_label(reinterpret(), "Save")
         gtk_style_context_add_class(gtk_widget_get_style_context(this), "suggested-action")
-        g_signal_connect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { wraith!!.save(); Unit })
+        gSignalConnect(this, "clicked", staticCFunction<CPointer<GtkWidget>, Unit> { wraith!!.save(); Unit })
         gtk_container_add(saveOptionBox?.reinterpret(), this)
     }
 
     gtk_widget_show_all(windowWidget)
 }
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 fun main(args: Array<String>) {
     val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
     val status: Int
 
     if (wraith != null) {
-        g_signal_connect(app, "activate", staticCFunction { it: CPointer<GtkApplication>, _: gpointer ->
+        gSignalConnect(app, "activate", staticCFunction { it: CPointer<GtkApplication>, _: gpointer ->
             it.activate()
         })
     } else {
-        g_signal_connect(app, "activate", staticCFunction { _: CPointer<GtkApplication>, _: gpointer ->
+        gSignalConnect(app, "activate", staticCFunction { _: CPointer<GtkApplication>, _: gpointer ->
             val message = "Failed to find Wraith Prism.\nMake sure the internal USB 2.0 cable is connected."
             val dialog = gtk_message_dialog_new(
-                null, 0, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK, "%s", message
+                null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK, "%s", message
             )
 
             gtk_dialog_run(dialog?.reinterpret())
