@@ -1,19 +1,15 @@
 package com.serebit.wraith.gtk
 
-import com.serebit.wraith.core.Color
+import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
+import kotlin.math.roundToInt
 
 private typealias GtkCallbackFunction = CPointer<CFunction<(CPointer<GtkWidget>) -> Unit>>
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-fun <F : CFunction<*>> gSignalConnect(
-    obj: CPointer<*>, actionName: String,
-    action: CPointer<F>, data: gpointer? = null, connect_flags: GConnectFlags = 0u
-) = g_signal_connect_data(
-    obj.reinterpret(), actionName, action.reinterpret(),
-    data = data, destroy_data = null, connect_flags = connect_flags
-)
+fun <F : CFunction<*>> gSignalConnect(obj: CPointer<*>, signal: String, action: CPointer<F>) =
+    g_signal_connect_data(obj.reinterpret(), signal, action.reinterpret(), null, null, 0u)
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
@@ -75,3 +71,26 @@ fun CPointer<GtkWidget>.gridScale(position: Int, default: UByte, marks: Int, act
             gtk_grid_attach(this@gridScale.reinterpret(), this, 1, position, 1, 1)
         }
     }
+
+fun WraithPrism.updateColor(component: LedComponent, colorButton: CPointer<GtkWidget>) = update(component) {
+    color = memScoped {
+        alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(colorButton.reinterpret(), ptr) }.toColor()
+    }
+}
+
+@UseExperimental(ExperimentalUnsignedTypes::class)
+fun WraithPrism.updateSpeed(component: LedComponent, adjustment: CPointer<GtkWidget>) = update(component) {
+    speed = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt().toUByte()
+}
+
+@UseExperimental(ExperimentalUnsignedTypes::class)
+fun WraithPrism.updateBrightness(component: LedComponent, adjustment: CPointer<GtkWidget>) = update(component) {
+    brightness = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt().toUByte()
+}
+
+fun WraithPrism.updateMode(component: BasicLedComponent, comboBox: CPointer<GtkWidget>) = update(component) {
+    val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
+    wraith!!.update(wraith!!.logo) {
+        mode = LedMode.valueOf(text.toUpperCase())
+    }
+}

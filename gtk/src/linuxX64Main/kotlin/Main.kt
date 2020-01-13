@@ -3,7 +3,6 @@ package com.serebit.wraith.gtk
 import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
-import kotlin.math.roundToInt
 import kotlin.properties.Delegates
 import kotlin.system.exitProcess
 
@@ -45,85 +44,55 @@ fun CPointer<GtkApplication>.activate() {
     }
     ringGrid.gridLabel("Direction")
 
-    position = 0
-    memScoped {
-        logoGrid.gridComboBox(0, wraith!!.logo.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
-            val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            wraith!!.update(wraith!!.logo) {
-                mode = LedMode.valueOf(text.toUpperCase())
-            }
-        })
-        logoGrid.gridColorButton(1, wraith!!.logo.color, staticCFunction<CPointer<GtkWidget>, Unit> {
-            wraith!!.update(wraith!!.logo) {
-                color = memScoped {
-                    alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
-                }
-            }
-        })
-        logoGrid.gridScale(2, wraith!!.logo.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
-            wraith!!.update(wraith!!.logo) {
-                brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
-            }
-        })
-        logoGrid.gridScale(3, wraith!!.logo.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
-            wraith!!.update(wraith!!.logo) {
-                speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
-            }
-        })
-        fanGrid.gridComboBox(0, wraith!!.fan.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
-            val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            wraith!!.update(wraith!!.fan) {
-                mode = LedMode.valueOf(text.toUpperCase())
-            }
-        })
-        fanGrid.gridColorButton(1, wraith!!.fan.color, staticCFunction<CPointer<GtkWidget>, Unit> {
-            wraith!!.update(wraith!!.fan) {
-                color = memScoped {
-                    alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
-                }
-            }
-        })
-        fanGrid.gridScale(2, wraith!!.fan.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
-            wraith!!.update(wraith!!.fan) {
-                brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
-            }
-        })
-        fanGrid.gridScale(3, wraith!!.fan.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
-            wraith!!.update(wraith!!.fan) {
-                speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
-            }
-        })
-        ringGrid.gridComboBox(0, wraith!!.ring.mode, RingMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+    logoGrid.gridComboBox(0, wraith!!.logo.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateMode(wraith!!.logo, it)
+    })
+    logoGrid.gridColorButton(1, wraith!!.logo.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateColor(wraith!!.logo, it)
+    })
+    logoGrid.gridScale(2, wraith!!.logo.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateBrightness(wraith!!.logo, it)
+    })
+    logoGrid.gridScale(3, wraith!!.logo.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateSpeed(wraith!!.logo, it)
+    })
+
+    fanGrid.gridComboBox(0, wraith!!.fan.mode, LedMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateMode(wraith!!.logo, it)
+    })
+    fanGrid.gridColorButton(1, wraith!!.fan.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateColor(wraith!!.fan, it.reinterpret())
+    })
+    fanGrid.gridScale(2, wraith!!.fan.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateBrightness(wraith!!.fan, it.reinterpret())
+    })
+    fanGrid.gridScale(3, wraith!!.fan.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateSpeed(wraith!!.fan, it.reinterpret())
+    })
+
+    ringGrid.gridComboBox(0, wraith!!.ring.mode, RingMode.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
+        val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
+        wraith!!.update(wraith!!.ring) {
+            mode = RingMode.valueOf(text.toUpperCase())
+        }
+    })
+    ringGrid.gridColorButton(1, wraith!!.ring.color, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateColor(wraith!!.ring, it.reinterpret())
+    })
+    ringGrid.gridScale(2, wraith!!.ring.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateBrightness(wraith!!.ring, it.reinterpret())
+    })
+    ringGrid.gridScale(3, wraith!!.ring.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith!!.updateSpeed(wraith!!.ring, it.reinterpret())
+    })
+    ringGrid.gridComboBox(
+        4, wraith!!.ring.direction, RotationDirection.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
             wraith!!.update(wraith!!.ring) {
-                mode = RingMode.valueOf(text.toUpperCase())
+                direction = RotationDirection.valueOf(text.toUpperCase())
             }
         })
-        ringGrid.gridColorButton(1, wraith!!.ring.color, staticCFunction<CPointer<GtkWidget>, Unit> {
-            wraith!!.update(wraith!!.ring) {
-                color = memScoped {
-                    alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(it.reinterpret(), ptr) }.toColor()
-                }
-            }
-        })
-        ringGrid.gridScale(2, wraith!!.ring.brightness, 3, staticCFunction<CPointer<GtkWidget>, Unit> {
-            wraith!!.update(wraith!!.ring) {
-                brightness = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
-            }
-        })
-        ringGrid.gridScale(3, wraith!!.ring.speed, 5, staticCFunction<CPointer<GtkWidget>, Unit> {
-            wraith!!.update(wraith!!.ring) {
-                speed = gtk_adjustment_get_value(it.reinterpret()).roundToInt().toUByte()
-            }
-        })
-        ringGrid.gridComboBox(
-            4, wraith!!.ring.direction, RotationDirection.values(), staticCFunction<CPointer<GtkWidget>, Unit> {
-                val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-                wraith!!.update(wraith!!.ring) {
-                    direction = RotationDirection.valueOf(text.toUpperCase())
-                }
-            })
-    }
+
 
     val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
         gtk_container_add(box.reinterpret(), this)
@@ -155,11 +124,9 @@ fun main(args: Array<String>) {
     val status: Int
 
     if (wraith != null) {
-        gSignalConnect(app, "activate", staticCFunction { it: CPointer<GtkApplication>, _: gpointer ->
-            it.activate()
-        })
+        gSignalConnect(app, "activate", staticCFunction { it: CPointer<GtkApplication> -> it.activate() })
     } else {
-        gSignalConnect(app, "activate", staticCFunction { _: CPointer<GtkApplication>, _: gpointer ->
+        gSignalConnect(app, "activate", staticCFunction { _: CPointer<GtkApplication> ->
             val message = "Failed to find Wraith Prism.\nMake sure the internal USB 2.0 cable is connected."
             val dialog = gtk_message_dialog_new(
                 null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK, "%s", message
