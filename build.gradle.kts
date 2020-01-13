@@ -5,7 +5,7 @@ plugins {
 
 allprojects {
     group = "com.serebit.wraith"
-    version = "0.3.0"
+    version = "0.3.1"
 
     repositories {
         jcenter()
