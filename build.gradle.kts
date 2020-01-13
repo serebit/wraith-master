@@ -14,12 +14,14 @@ allprojects {
 
 tasks.register("package") {
     dependsOn("build")
+    dependsOn(":core:package")
     dependsOn(":gtk:package")
     dependsOn(":cli:package")
 }
 
 tasks.register("install") {
     dependsOn("package")
+    dependsOn(":core:install")
     dependsOn(":gtk:install")
     dependsOn(":cli:install")
 }
