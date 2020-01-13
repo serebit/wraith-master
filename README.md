@@ -11,6 +11,8 @@ Wraith Master is a graphical and command-line application for controlling the RG
 
 There are precompiled binaries available for each release [here](https://gitlab.com/serebit/wraith-master/-/releases).
 
+If you're on Arch Linux or one of its derivatives, you can also install both frontends from the AUR, under `wraith-master-cli` for the CLI frontend and `wraith-master-gtk` for the GTK frontend. 
+
 ## Building from Source
 
 ### Requirements
