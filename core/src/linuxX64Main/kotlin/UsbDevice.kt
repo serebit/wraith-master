@@ -15,7 +15,7 @@ fun obtainWraithPrism(): WraithPrism? = memScoped {
     findWraithPrism() ?: null.also { libusb_exit(null) }
 }
 
-fun findWraithPrism(): WraithPrism? = memScoped {
+private fun MemScope.findWraithPrism(): WraithPrism? {
     val cDevices = loadUsbDevices()
     val descriptors = getUsbDeviceDescriptors(cDevices.map { it.ptr })
     val devices = descriptors.zip(cDevices).map { UsbDevice(it.first, it.second) }
@@ -23,7 +23,7 @@ fun findWraithPrism(): WraithPrism? = memScoped {
     return devices.mapNotNull { it.open() }.singleOrNull()
 }
 
-fun loadUsbDevices(): List<libusb_device> = memScoped {
+private fun MemScope.loadUsbDevices(): List<libusb_device> {
     val devicesPtr = allocPointerTo<CArrayPointerVar<libusb_device>>().ptr
     val len = libusb_get_device_list(null, devicesPtr)
 
@@ -31,14 +31,14 @@ fun loadUsbDevices(): List<libusb_device> = memScoped {
     return (0 until len).map { devicesArray[it]!!.pointed }.also { libusb_free_device_list(devicesArray, 1) }
 }
 
-fun MemScope.getUsbDeviceDescriptors(devices: List<CPointer<libusb_device>>) = devices.map {
+private fun MemScope.getUsbDeviceDescriptors(devices: List<CPointer<libusb_device>>) = devices.map {
     val descriptor = alloc<libusb_device_descriptor>()
     val err = libusb_get_device_descriptor(it, descriptor.ptr)
     if (err != 0) println("Failed to load device descriptor with error code $err")
     descriptor
 }
 
-class UsbDevice(private val descriptor: libusb_device_descriptor, private val device: libusb_device) {
+private class UsbDevice(private val descriptor: libusb_device_descriptor, private val device: libusb_device) {
     @UseExperimental(ExperimentalUnsignedTypes::class)
     private val isWraithPrism
         get() = descriptor.idVendor == COOLER_MASTER_VENDOR_ID && descriptor.idProduct == WRAITH_PRISM_PRODUCT_ID
