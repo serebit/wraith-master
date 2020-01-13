@@ -9,10 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Added 
 - `install` Gradle task, to make installation easier for both packagers and regular users who build from source
 - Error dialog for when a Wraith Prism USB device can't be found
-
-#### Changed 
-- Layout of `wraith-master-gtk` has been refreshed
-
+- Direction control for ring modes that support it
+- New page-based layout for GTK frontend
+- Certain controls in the GTK frontend become inactive when a mode that doesn't support them is selected
 
 ## 0.2.0 (2020-01-06)
 
