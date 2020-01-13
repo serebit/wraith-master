@@ -28,6 +28,7 @@ class BasicLedComponent(initialValues: UByteArray) : LedComponent {
 
 enum class RotationDirection(val value: UByte) { CLOCKWISE(0u), COUNTERCLOCKWISE(1u) }
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 class RingComponent(initialValues: UByteArray) : LedComponent {
     var mode: RingMode = RingMode.values().first { it.channel == initialValues[0] }
     override var color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
@@ -49,6 +50,7 @@ class RingComponent(initialValues: UByteArray) : LedComponent {
         }
 }
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 private fun UByteArray.indexOfOrNull(value: UByte) = indexOf(value).let { if (it == -1) null else it }
 
 enum class LedMode(
@@ -96,3 +98,9 @@ class Color(val r: UByte, val g: UByte, val b: UByte) {
         (255 * b).toInt().toUByte()
     )
 }
+
+val LedMode.supportsBrightness get() = brightnesses.isNotEmpty()
+val LedMode.supportsSpeed get() = speeds.isNotEmpty()
+
+val RingMode.supportsBrightness get() = brightnesses.isNotEmpty()
+val RingMode.supportsSpeed get() = speeds.isNotEmpty()
