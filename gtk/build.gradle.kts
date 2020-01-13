@@ -43,6 +43,7 @@ kotlin {
 
 tasks.register("package") {
     dependsOn("build")
+    dependsOn(":core:package")
     doLast {
         val packageDir = file("${rootProject.buildDir}/package").apply { mkdirs() }
         val resourcesDir = packageDir.resolve("resources").apply { mkdirs() }
@@ -58,10 +59,12 @@ tasks.register("package") {
 
 tasks.register("install") {
     dependsOn("package")
+    dependsOn(":core:install")
     doLast {
         val packageDir = file("${rootProject.buildDir}/package")
         val resourcesDir = packageDir.resolve("resources")
-        val installDir = file(properties["installdir"] ?: "/usr/local")
+        val installDir = rootDir.resolve(properties["installdir"] as? String ?: "/usr/local")
+
         val binDir = installDir.resolve("bin").apply { mkdirs() }
         val iconDir = installDir.resolve("share/icons/hicolor/scalable/apps").apply { mkdirs() }
         val appsDir = installDir.resolve("share/applications").apply { mkdirs() }
