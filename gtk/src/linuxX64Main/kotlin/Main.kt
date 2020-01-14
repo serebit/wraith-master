@@ -82,10 +82,10 @@ fun CPointer<GtkApplication>.activate() {
 
     val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
         gtk_container_add(box.reinterpret(), this)
-        gtk_container_set_border_width(reinterpret(), 12)
+        gtk_container_set_border_width(reinterpret(), 12u)
         gtk_button_box_set_layout(reinterpret(), GTK_BUTTONBOX_END)
         gtk_box_set_spacing(reinterpret(), 8)
-        gtk_box_set_child_packing(box.reinterpret(), this, 0, 1, 0, GtkPackType.GTK_PACK_END)
+        gtk_box_set_child_packing(box.reinterpret(), this, 0, 1, 0u, GtkPackType.GTK_PACK_END)
     }
 
     gtk_button_new()?.apply {

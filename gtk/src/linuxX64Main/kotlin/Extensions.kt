@@ -32,8 +32,8 @@ fun CPointer<GtkWidget>.newSettingsPage(label: String): CPointer<GtkWidget> =
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkWidget>.newSettingsGrid(): CPointer<GtkWidget> = gtk_grid_new()!!.apply {
     gtk_grid_set_row_homogeneous(reinterpret(), 1)
-    gtk_grid_set_column_spacing(reinterpret(), 64)
-    gtk_grid_set_row_spacing(reinterpret(), 8)
+    gtk_grid_set_column_spacing(reinterpret(), 64u)
+    gtk_grid_set_row_spacing(reinterpret(), 8u)
     gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_START)
     gtk_container_add(this@newSettingsGrid.reinterpret(), this)
 }
