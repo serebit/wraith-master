@@ -1,5 +1,5 @@
 plugins {
-    kotlin("multiplatform") version "1.3.70-eap-42" apply false
+    kotlin("multiplatform") version "1.3.61" apply false
     base // to add clean task, for cleaning up package output
 }
 
