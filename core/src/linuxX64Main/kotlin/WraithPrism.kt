@@ -11,7 +11,7 @@ private const val ENDPOINT_IN: UByte = 0x83u
 private const val ENDPOINT_OUT: UByte = 0x04u
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-class WraithPrism(device: libusb_device) {
+class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
     private val activeConfig = memScoped {
         val configPtr = allocPointerTo<libusb_config_descriptor>()
         val err = libusb_get_active_config_descriptor(device.ptr, configPtr.ptr)

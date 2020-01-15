@@ -6,8 +6,8 @@ import kotlinx.cinterop.*
 import kotlin.properties.Delegates
 import kotlin.system.exitProcess
 
-private val wraithOrNull by lazy { obtainWraithPrism() }
-val wraith get() = wraithOrNull!!
+val result = obtainWraithPrism()
+val wraith: WraithPrism get() = (result as WraithPrismResult.Success).device
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.activate() {
@@ -109,21 +109,23 @@ fun main(args: Array<String>) {
     val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
     val status: Int
 
-    if (wraithOrNull != null) {
-        gSignalConnect(app, "activate", staticCFunction { it: CPointer<GtkApplication> -> it.activate() })
-    } else {
-        gSignalConnect(app, "activate", staticCFunction { _: CPointer<GtkApplication> ->
-            val message = "Failed to find Wraith Prism.\nMake sure the internal USB 2.0 cable is connected."
-            val dialog = gtk_message_dialog_new(
-                null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK, "%s", message
-            )
+    when (result) {
+        is WraithPrismResult.Success -> {
+            gSignalConnect(app, "activate", staticCFunction { it: CPointer<GtkApplication> -> it.activate() })
+        }
+        is WraithPrismResult.Failure -> {
+            gSignalConnect(app, "activate", staticCFunction { _: CPointer<GtkApplication> ->
+                val dialog = gtk_message_dialog_new(
+                    null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK, "%s", result.message
+                )
 
-            gtk_dialog_run(dialog?.reinterpret())
-        })
+                gtk_dialog_run(dialog?.reinterpret())
+            })
+        }
     }
 
     status = memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
-    wraithOrNull?.close()
+    if (result is WraithPrismResult.Success) wraith.close()
 
     g_object_unref(app)
     if (status != 0) exitProcess(status)
