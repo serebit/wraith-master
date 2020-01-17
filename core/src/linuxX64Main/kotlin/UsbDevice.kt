@@ -1,5 +1,3 @@
-@file:UseExperimental(ExperimentalUnsignedTypes::class)
-
 package com.serebit.wraith.core
 
 import cnames.structs.libusb_device
@@ -7,18 +5,15 @@ import cnames.structs.libusb_device_handle
 import kotlinx.cinterop.*
 import libusb.*
 
-private const val COOLER_MASTER_VENDOR_ID: UShort = 0x2516u
-private const val WRAITH_PRISM_PRODUCT_ID: UShort = 0x51u
+sealed class WraithPrismResult {
+    class Success(val device: WraithPrism) : WraithPrismResult()
+    class Failure(val message: String) : WraithPrismResult()
+}
 
 private fun success(handle: libusb_device_handle, device: libusb_device) =
     WraithPrismResult.Success(WraithPrism(handle, device))
 
 private fun failure(message: String) = WraithPrismResult.Failure(message)
-
-sealed class WraithPrismResult {
-    class Success(val device: WraithPrism) : WraithPrismResult()
-    class Failure(val message: String) : WraithPrismResult()
-}
 
 fun obtainWraithPrism(): WraithPrismResult = memScoped {
     val init = libusb_init(null)
@@ -44,7 +39,7 @@ private fun MemScope.loadUsbDevices(): List<libusb_device> {
 private fun MemScope.getUsbDeviceDescriptors(devices: List<CPointer<libusb_device>>) = devices.map {
     val descriptor = alloc<libusb_device_descriptor>()
     val err = libusb_get_device_descriptor(it, descriptor.ptr)
-    if (err != 0) println("Failed to load device descriptor with error code $err")
+    if (err != LIBUSB_SUCCESS) println("Failed to load device descriptor with error code $err")
     descriptor
 }
 
@@ -55,11 +50,19 @@ private class UsbDevice(private val descriptor: libusb_device_descriptor, privat
 
     fun open(): WraithPrismResult = memScoped {
         val handlePtr = allocPointerTo<libusb_device_handle>()
-        val err = libusb_open(device.ptr, handlePtr.ptr)
-        if (err == 0) {
-            success(handlePtr.value!!.pointed, device)
-        } else {
-            failure("Found a Wraith Prism, but failed to open a connection to it. Try with sudo.")
+        when (val err = libusb_open(device.ptr, handlePtr.ptr)) {
+            LIBUSB_SUCCESS -> success(handlePtr.value!!.pointed, device)
+            LIBUSB_ERROR_ACCESS -> failure("Found a Wraith Prism, but don't have permission to connect. Try with sudo.")
+            else -> {
+                val name = libusb_error_name(err)
+                failure("Found a Wraith Prism, but encountered $name when trying to open a connection.")
+            }
         }
+    }
+
+    @UseExperimental(ExperimentalUnsignedTypes::class)
+    companion object {
+        private const val COOLER_MASTER_VENDOR_ID: UShort = 0x2516u
+        private const val WRAITH_PRISM_PRODUCT_ID: UShort = 0x51u
     }
 }
