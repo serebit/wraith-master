@@ -22,7 +22,7 @@ sealed class WraithPrismResult {
 
 fun obtainWraithPrism(): WraithPrismResult = memScoped {
     val init = libusb_init(null)
-    check(init == 0) { "Failed to initialize libusb." }
+    if (init != LIBUSB_SUCCESS) return failure("Libusb initialization returned error code ${libusb_error_name(init)}.")
 
     val cDevices = loadUsbDevices()
     val descriptors = getUsbDeviceDescriptors(cDevices.map { it.ptr })

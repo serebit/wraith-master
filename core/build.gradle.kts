@@ -1,5 +1,3 @@
-import java.io.ByteArrayOutputStream
-
 plugins {
     kotlin("multiplatform")
 }
@@ -23,21 +21,12 @@ tasks.register("package") {
     }
 }
 
-val usesSystemd: Boolean
-    get() = ByteArrayOutputStream().use {
-        exec {
-            commandLine("ps", "--no-headers", "-o", "comm", "1")
-            standardOutput = it
-        }
-        it.toString().trim() == "systemd"
-    }
-
 tasks.register("install") {
     dependsOn("package")
     doLast {
         val resourcesDir = file("${rootProject.buildDir}/package/resources")
 
-        if (usesSystemd) {
+        if (file("/sbin/udevadm").exists()) {
             val udevDir = rootDir.resolve(properties["udevdir"] as? String ?: "/etc/udev")
                 .resolve("rules.d")
                 .apply { mkdirs() }
