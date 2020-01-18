@@ -26,8 +26,8 @@ class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
         check(err == 0) { "Failed to open Cooler Master device with error code $err" }
         handlePtr.value!!.pointed
     }
-    val logo: BasicLedComponent
-    val fan: BasicLedComponent
+    val logo: LogoComponent
+    val fan: FanComponent
     val ring: RingComponent
 
     init {
@@ -40,8 +40,8 @@ class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
         // apply changes
         apply()
         val channels = sendBytes(0x52u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u)
-        logo = BasicLedComponent(getChannelValues(channels[8]).sliceArray(4..12))
-        fan = BasicLedComponent(getChannelValues(channels[9]).sliceArray(4..12))
+        logo = LogoComponent(getChannelValues(channels[8]).sliceArray(4..12))
+        fan = FanComponent(getChannelValues(channels[9]).sliceArray(4..12))
         ring = RingComponent(getChannelValues(channels[10]).sliceArray(4..12))
     }
 
@@ -86,6 +86,14 @@ fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UBy
 fun WraithPrism.getChannelValues(channel: UByte) = sendBytes(0x52u, 0x2Cu, 0x01u, 0u, channel)
 fun WraithPrism.save() = sendBytes(0x50u, 0x55u)
 fun WraithPrism.apply() = sendBytes(0x51u, 0x28u, 0u, 0u, 0xE0u)
+
+fun WraithPrism.updateFanMirage() = if (fan.mirage) sendBytes(
+    0x51u, 0x71u, 0u, 0u, 0x01u, 0u, 0xFFu, 0x4Au, 0x02u, 0x02u, 0x63u, 0xBDu, 0x03u, 0x02u, 0x63u, 0xBDu,
+    0x04u, 0x02u, 0x63u, 0xBDu
+) else sendBytes(
+    0x51u, 0x71u, 0u, 0u, 0x01u, 0u, 0xFFu, 0x4Au, 0x02u, 0u, 0xFFu, 0x4Au, 0x03u, 0u, 0xFFu, 0x4Au,
+    0x04u, 0u, 0xFFu, 0x4Au
+)
 
 fun WraithPrism.reset() {
     // load

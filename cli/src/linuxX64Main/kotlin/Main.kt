@@ -80,6 +80,8 @@ fun main(args: Array<KString>) {
         is WraithPrismResult.Success -> {
             val wraith = result.device
 
+            println(wraith.sendBytes(0x52u, 0x71u).joinToString { it.toString(16) })
+
             val ledComponent = when (Components.valueOf(component.toUpperCase())) {
                 Components.LOGO -> wraith.logo
                 Components.FAN -> wraith.fan

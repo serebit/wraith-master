@@ -98,7 +98,7 @@ fun WraithPrism.updateBrightness(component: LedComponent, adjustment: CPointer<G
 
 fun WraithPrism.updateMode(component: BasicLedComponent, comboBox: CPointer<GtkWidget>) = update(component) {
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
-    wraith.update(wraith.logo) {
+    wraith.update(component) {
         mode = LedMode.valueOf(text.toUpperCase())
     }
 }

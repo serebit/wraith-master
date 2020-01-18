@@ -1,11 +1,9 @@
 package com.serebit.wraith.gtk
 
-import com.serebit.wraith.core.RotationDirection
-import com.serebit.wraith.core.supportsBrightness
-import com.serebit.wraith.core.supportsSpeed
-import com.serebit.wraith.core.update
+import com.serebit.wraith.core.*
 import gtk3.GtkWidget
 import gtk3.gtk_combo_box_text_get_active_text
+import gtk3.gtk_switch_new
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.staticCFunction
@@ -49,6 +47,17 @@ internal val fanSpeedScale by lazy {
     gridScale(fan.speed, 5, fan.mode.supportsSpeed, staticCFunction<CPointer<GtkWidget>, Unit> {
         wraith.updateSpeed(fan, it)
     })
+}
+
+internal val fanMirageToggle by lazy {
+    gtk_switch_new()!!.apply {
+        setSensitive(wraith.fan.mode != LedMode.OFF)
+        gSignalConnect(this, "state-set", staticCFunction<CPointer<GtkWidget>, Int, Boolean> { _, state ->
+            wraith.fan.mirage = state != 0
+            wraith.updateFanMirage()
+            false
+        })
+    }
 }
 
 internal val ringColorButton by lazy {

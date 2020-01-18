@@ -29,21 +29,20 @@ fun CPointer<GtkApplication>.activate() {
     val fanGrid = mainNotebook.newSettingsPage("Fan").newSettingsGrid()
     val ringGrid = mainNotebook.newSettingsPage("Ring").newSettingsGrid()
 
-    var position: Int by Delegates.notNull()
-    fun CPointer<GtkWidget>?.gridLabel(text: String) = gtk_label_new(text)?.apply {
+    fun CPointer<GtkWidget>?.gridLabel(position: Int, text: String) = gtk_label_new(text)?.apply {
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
         gtk_widget_set_hexpand(this, 1)
-        gtk_grid_attach(this@gridLabel?.reinterpret(), this, 0, position++, 1, 1)
+        gtk_grid_attach(this@gridLabel?.reinterpret(), this, 0, position, 1, 1)
     }
 
     listOf(logoGrid, fanGrid, ringGrid).forEach {
-        position = 0
-        it.gridLabel("Mode")
-        it.gridLabel("Color")
-        it.gridLabel("Brightness")
-        it.gridLabel("Speed")
+        it.gridLabel(0, "Mode")
+        it.gridLabel(1, "Color")
+        it.gridLabel(2, "Brightness")
+        it.gridLabel(3, "Speed")
     }
-    ringGrid.gridLabel("Direction")
+    fanGrid.gridLabel(4, "Mirage")
+    ringGrid.gridLabel(4, "Direction")
 
     gridComboBox(wraith.logo.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
         wraith.updateMode(wraith.logo, it)
@@ -56,14 +55,16 @@ fun CPointer<GtkApplication>.activate() {
     logoGrid.gridAttachRight(logoSpeedScale, 3)
 
     gridComboBox(wraith.fan.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
-        wraith.updateMode(wraith.logo, it)
+        wraith.updateMode(wraith.fan, it)
         fanColorButton.setSensitive(wraith.fan.mode.supportsColor)
         fanBrightnessScale.setSensitive(wraith.fan.mode.supportsBrightness)
         fanSpeedScale.setSensitive(wraith.fan.mode.supportsSpeed)
+        fanMirageToggle.setSensitive(wraith.fan.mode != LedMode.OFF)
     }).also { fanGrid.gridAttachRight(it, 0) }
     fanGrid.gridAttachRight(fanColorButton, 1)
     fanGrid.gridAttachRight(fanBrightnessScale, 2)
     fanGrid.gridAttachRight(fanSpeedScale, 3)
+    fanGrid.gridAttachRight(fanMirageToggle, 4)
 
     gridComboBox(wraith.ring.mode, RingMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
         val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
