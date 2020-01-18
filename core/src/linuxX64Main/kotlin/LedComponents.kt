@@ -10,13 +10,9 @@ interface LedComponent {
     var brightness: UByte
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
-class BasicLedComponent(initialValues: UByteArray) : LedComponent {
-    val channel: UByte = initialValues[0]
-    var mode: LedMode = LedMode.values().first { it.mode == initialValues[3] }
-    override var color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
-    override var speed = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
-    override var brightness = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
+interface BasicLedComponent : LedComponent {
+    var mode: LedMode
+    val channel: UByte
 
     override val values: UByteArray
         get() {
@@ -24,6 +20,25 @@ class BasicLedComponent(initialValues: UByteArray) : LedComponent {
             val speed = mode.speeds.elementAtOrNull(speed.toInt() - 1) ?: 0x2Cu
             return ubyteArrayOf(channel, speed, 0x20u, mode.mode, 0xFFu, brightness, color.r, color.g, color.b)
         }
+}
+
+@UseExperimental(ExperimentalUnsignedTypes::class)
+class LogoComponent(initialValues: UByteArray) : BasicLedComponent {
+    override var mode: LedMode = LedMode.values().first { it.mode == initialValues[3] }
+    override val channel: UByte = initialValues[0]
+    override var color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
+    override var speed = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
+    override var brightness = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
+}
+
+@UseExperimental(ExperimentalUnsignedTypes::class)
+class FanComponent(initialValues: UByteArray) : BasicLedComponent {
+    override var mode: LedMode = LedMode.values().first { it.mode == initialValues[3] }
+    override val channel: UByte = initialValues[0]
+    override var color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
+    override var speed = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
+    override var brightness = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
+    var mirage: Boolean = false
 }
 
 enum class RotationDirection(val value: UByte) { CLOCKWISE(0u), COUNTERCLOCKWISE(1u) }
