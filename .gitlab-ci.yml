@@ -1,0 +1,32 @@
+image: registry.gitlab.com/serebit/wraith-master:latest
+
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  GRADLE_USER_HOME: $CI_PROJECT_DIR/.gradle
+  KONAN_DATA_DIR: $CI_PROJECT_DIR/.konan
+
+before_script:
+  - rm -f .gradle/caches/modules-2/modules-2.lock
+  - rm -f .gradle/caches/build-cache-1/build-cache-1.lock
+
+cache:
+  key: one-key-to-rule-them-all
+  paths:
+    - .gradle/caches/modules-2/
+    - .gradle/wrapper/dists/
+    - .gradle/caches/build-cache-1/
+    - .konan/
+
+build:
+  stage: build
+  script: ./gradlew build
+  artifacts:
+    paths:
+      - "**/build/classes"
+      - "**/build/libs"
+  except:
+    changes:
+      - README.md
+      - CHANGELOG.md
+      - LICENSE.md
+      - FUNDING.yml
