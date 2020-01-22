@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added 
 - Mirage toggle for fan
+- `noudev` Gradle property to disable automatic installation of udev rules
 
 #### Fixed 
 - Fan mode toggle applying to ring instead
 - Fan settings not being disabled when a mode that can't use those settings is selected
 - Both frontends no longer require `sudo` to run on systems that use `udev` or `eudev`
+- Compilation now works on Debian without modification. Alpine is pending a fix for [this issue](https://github.com/JetBrains/kotlin-native/issues/3771)
 
 ## 0.3.1 (2020-01-13)
 
