@@ -1,4 +1,4 @@
 headers = libusb-1.0/libusb.h
 headerFilter = libusb-1.0/*
 package = libusb
-linkerOpts.linux = -L/usr/lib -lusb-1.0
+linkerOpts.linux = -L/usr/lib -L/usr/lib/x86_64-linux-gnu -lusb-1.0
