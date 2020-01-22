@@ -15,7 +15,7 @@ cache:
     - .gradle/caches/modules-2/
     - .gradle/wrapper/dists/
     - .gradle/caches/build-cache-1/
-    - .konan/
+    - .konan/dependencies/
 
 build:
   stage: build
