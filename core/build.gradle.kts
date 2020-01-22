@@ -26,7 +26,7 @@ tasks.register("install") {
     doLast {
         val resourcesDir = file("${rootProject.buildDir}/package/resources")
 
-        if (file("/sbin/udevadm").exists()) {
+        if (file("/sbin/udevadm").exists() && property("noudev") == null) {
             val udevDir = rootDir.resolve(properties["udevdir"] as? String ?: "/etc/udev")
                 .resolve("rules.d")
                 .apply { mkdirs() }
