@@ -16,6 +16,7 @@ cache:
     - .gradle/wrapper/dists/
     - .gradle/caches/build-cache-1/
     - .konan/dependencies/
+    - .konan/kotlin-native-*
 
 build:
   stage: build
