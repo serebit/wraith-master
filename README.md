@@ -1,5 +1,6 @@
 ![Wraith Master][wraith-master-logo]
 
+[![pipeline status][pipeline-status]](https://gitlab.com/serebit/wraith-master/commits/master)
 [![License][license-badge]](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Ko-fi][kofi-badge]](https://ko-fi.com/serebit)
 
@@ -59,5 +60,6 @@ The GTK frontend also requires the following packages:
 - **AMD**, for telling me I'd need to sign an NDA to get that information. Sorry, but that's not really my style. Thanks for the great product though!
 
 [wraith-master-logo]: https://serebit.com/images/wraith-master-banner-nopad.svg "Wraith Master"
+[pipeline-status]: https://gitlab.com/serebit/wraith-master/badges/master/pipeline.svg "Pipeline Status"
 [license-badge]: https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg "License"
 [kofi-badge]: https://img.shields.io/badge/-ko--fi-ff5f5f?logo=ko-fi&logoColor=white "Ko-fi"
