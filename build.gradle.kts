@@ -7,9 +7,7 @@ allprojects {
     group = "com.serebit.wraith"
     version = "0.4.0-dev"
 
-    repositories {
-        jcenter()
-    }
+    repositories { jcenter() }
 }
 
 tasks.register("package") {
