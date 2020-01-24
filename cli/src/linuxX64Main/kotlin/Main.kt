@@ -1,5 +1,3 @@
-@file:UseExperimental(ExperimentalUnsignedTypes::class)
-
 package com.serebit.wraith.cli
 
 import com.serebit.wraith.core.*
@@ -8,6 +6,7 @@ import kotlinx.cli.ArgType
 import kotlinx.cli.failAssertion
 import kotlin.String as KString
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 object ColorArgType : ArgType<Color>(true) {
     private val commaSeparatedChannelPattern = "(\\d{1,3}),(\\d{1,3}),(\\d{1,3})".toRegex() // r,g,b
     private val hexColorPattern = "#?[\\da-fA-F]{6}".toRegex() // RRGGBB
@@ -41,6 +40,7 @@ object ColorArgType : ArgType<Color>(true) {
 
 private enum class Components { LOGO, FAN, RING }
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 fun main(args: Array<KString>) {
     val parser = ArgParser("wraith-master")
 

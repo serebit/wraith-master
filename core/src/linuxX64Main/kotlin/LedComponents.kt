@@ -1,7 +1,6 @@
-@file:UseExperimental(ExperimentalUnsignedTypes::class)
-
 package com.serebit.wraith.core
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 interface LedComponent {
     val values: UByteArray
 
@@ -10,6 +9,7 @@ interface LedComponent {
     var brightness: UByte
 }
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 interface BasicLedComponent : LedComponent {
     var mode: LedMode
     val channel: UByte
@@ -41,6 +41,7 @@ class FanComponent(initialValues: UByteArray) : BasicLedComponent {
     var mirage: Boolean = false
 }
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 enum class RotationDirection(val value: UByte) { CLOCKWISE(0u), COUNTERCLOCKWISE(1u) }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
@@ -68,6 +69,7 @@ class RingComponent(initialValues: UByteArray) : LedComponent {
 @UseExperimental(ExperimentalUnsignedTypes::class)
 private fun UByteArray.indexOfOrNull(value: UByte) = indexOf(value).let { if (it == -1) null else it }
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 enum class LedMode(
     val mode: UByte,
     val brightnesses: UByteArray = ubyteArrayOf(0x4Cu, 0x99u, 0xFFu),
@@ -80,6 +82,7 @@ enum class LedMode(
     BREATHE(0x03u, speeds = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true)
 }
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 enum class RingMode(
     val channel: UByte, val mode: UByte,
     val brightnesses: UByteArray = ubyteArrayOf(0x4Cu, 0x99u, 0xFFu),

@@ -1,5 +1,3 @@
-@file:UseExperimental(ExperimentalUnsignedTypes::class)
-
 package com.serebit.wraith.core
 
 import cnames.structs.libusb_device
@@ -7,7 +5,9 @@ import cnames.structs.libusb_device_handle
 import kotlinx.cinterop.*
 import libusb.*
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 private const val ENDPOINT_IN: UByte = 0x83u
+@UseExperimental(ExperimentalUnsignedTypes::class)
 private const val ENDPOINT_OUT: UByte = 0x04u
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
@@ -80,13 +80,20 @@ class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
     }
 }
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UByte = 0x0u) =
     sendBytes(bytes.copyInto(UByteArray(bufferSize) { filler }))
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 fun WraithPrism.getChannelValues(channel: UByte) = sendBytes(0x52u, 0x2Cu, 0x01u, 0u, channel)
+
+@UseExperimental(ExperimentalUnsignedTypes::class)
 fun WraithPrism.save() = sendBytes(0x50u, 0x55u)
+
+@UseExperimental(ExperimentalUnsignedTypes::class)
 fun WraithPrism.apply() = sendBytes(0x51u, 0x28u, 0u, 0u, 0xE0u)
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 fun WraithPrism.updateFanMirage() = if (fan.mirage) sendBytes(
     0x51u, 0x71u, 0u, 0u, 0x01u, 0u, 0xFFu, 0x4Au, 0x02u, 0x02u, 0x63u, 0xBDu, 0x03u, 0x02u, 0x63u, 0xBDu,
     0x04u, 0x02u, 0x63u, 0xBDu
@@ -95,6 +102,7 @@ fun WraithPrism.updateFanMirage() = if (fan.mirage) sendBytes(
     0x04u, 0u, 0xFFu, 0x4Au
 )
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 fun WraithPrism.reset() {
     // load
     sendBytes(0x50u)
