@@ -3,7 +3,6 @@ package com.serebit.wraith.gtk
 import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
-import kotlin.properties.Delegates
 import kotlin.system.exitProcess
 
 val result = obtainWraithPrism()
