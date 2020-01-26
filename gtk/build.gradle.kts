@@ -35,6 +35,7 @@ kotlin.linuxX64 {
 tasks.register("package") {
     dependsOn("build")
     dependsOn(":core:package")
+
     doLast {
         val packageDir = rootProject.buildDir.resolve("package")
         val builtResourcesDir = buildDir.resolve("processedResources/linuxX64/main")
@@ -55,6 +56,7 @@ tasks.register("package") {
 tasks.register("install") {
     dependsOn("package")
     dependsOn(":core:install")
+
     doLast {
         val packageDir = rootProject.buildDir.resolve("package")
         val resourcesDir = packageDir.resolve("resources")
