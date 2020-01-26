@@ -8,8 +8,8 @@ import kotlin.math.roundToInt
 private typealias GtkCallbackFunction = CPointer<CFunction<(CPointer<GtkWidget>) -> Unit>>
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-fun <F : CFunction<*>> gSignalConnect(obj: CPointer<*>, signal: String, action: CPointer<F>) =
-    g_signal_connect_data(obj.reinterpret(), signal, action.reinterpret(), null, null, 0u)
+fun <F : CFunction<*>> CPointer<*>.connectSignal(signal: String, action: CPointer<F>) =
+    g_signal_connect_data(reinterpret(), signal, action.reinterpret(), null, null, 0u)
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
@@ -18,8 +18,6 @@ fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
     blue = color.b.toDouble() / 255
     alpha = 1.0
 }
-
-fun GdkRGBA.toColor() = Color(red, green, blue)
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkWidget>.newSettingsPage(label: String): CPointer<GtkWidget> =
@@ -49,25 +47,30 @@ fun <E : Enum<*>> gridComboBox(default: E, elements: Array<E>, sensitive: Boolea
             gtk_combo_box_text_append_text(reinterpret(), it.name.toLowerCase().capitalize())
         }
         gtk_combo_box_set_active(reinterpret(), elements.indexOf(default))
-        gtk_widget_set_sensitive(this, sensitive.toByte().toInt())
+        setSensitive(sensitive)
         gtk_widget_set_size_request(this, 96, -1)
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
-        gSignalConnect(this, "changed", action)
+        connectSignal("changed", action)
     }
 
-fun gridColorButton(color: Color, sensitive: Boolean, action: GtkCallbackFunction) = gtk_color_button_new()!!.apply {
-    gtk_color_button_set_use_alpha(reinterpret(), 0)
-    memScoped { gtk_color_button_set_rgba(reinterpret(), gdkRgba(color).ptr) }
-    gtk_widget_set_size_request(this, 96, -1)
-    gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
-    gtk_widget_set_sensitive(this, sensitive.toByte().toInt())
-    gSignalConnect(this, "color-set", action)
+fun <E : Enum<*>> lazyGridComboBox(default: E, elements: Array<E>, sensitive: Boolean, action: GtkCallbackFunction) =
+    lazy { gridComboBox(default, elements, sensitive, action) }
+
+fun lazyGridColorButton(color: Color, sensitive: Boolean, action: GtkCallbackFunction) = lazy {
+    gtk_color_button_new()!!.apply {
+        gtk_color_button_set_use_alpha(reinterpret(), 0)
+        memScoped { gtk_color_button_set_rgba(reinterpret(), gdkRgba(color).ptr) }
+        gtk_widget_set_size_request(this, 96, -1)
+        gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
+        setSensitive(sensitive)
+        connectSignal("color-set", action)
+    }
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-fun gridScale(default: UByte, marks: Int, sensitive: Boolean, action: GtkCallbackFunction) =
+fun lazyGridScale(default: UByte, marks: Int, sensitive: Boolean, action: GtkCallbackFunction) = lazy {
     gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
-        gSignalConnect(adjustment, "value-changed", action)
+        adjustment.connectSignal("value-changed", action)
         gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {
             gtk_scale_set_digits(reinterpret(), 0)
             gtk_scale_set_draw_value(reinterpret(), 0)
@@ -76,13 +79,16 @@ fun gridScale(default: UByte, marks: Int, sensitive: Boolean, action: GtkCallbac
             for (i in 1..marks) {
                 gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
             }
-            gtk_widget_set_sensitive(this, sensitive.toByte().toInt())
+            setSensitive(sensitive)
         }
     }
+}
 
 fun WraithPrism.updateColor(component: LedComponent, colorButton: CPointer<GtkWidget>) = update(component) {
     color = memScoped {
-        alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(colorButton.reinterpret(), ptr) }.toColor()
+        alloc<GdkRGBA>()
+            .apply { gtk_color_button_get_rgba(colorButton.reinterpret(), ptr) }
+            .run { Color(red, green, blue) }
     }
 }
 
