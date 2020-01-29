@@ -29,9 +29,9 @@ internal val fanSpeedScale by lazyGridScale(fan.speed, 5, fan.mode.supportsSpeed
 
 internal val fanMirageToggle by lazy {
     gtk_switch_new()!!.apply {
-        setSensitive(wraith.fan.mode != LedMode.OFF)
+        setSensitive(fan.mode != LedMode.OFF)
         connectSignal("state-set", staticCFunction<CPointer<GtkWidget>, Int, Boolean> { _, state ->
-            wraith.fan.mirage = state != 0
+            fan.mirage = state != 0
             wraith.updateFanMirage()
             false
         })

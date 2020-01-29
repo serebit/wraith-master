@@ -8,9 +8,9 @@ import kotlin.system.exitProcess
 val result = obtainWraithPrism()
 val wraith: WraithPrism get() = (result as WraithPrismResult.Success).device
 
-val logo get() = wraith.logo
-val fan get() = wraith.fan
-val ring get() = wraith.ring
+inline val logo get() = wraith.logo
+inline val fan get() = wraith.fan
+inline val ring get() = wraith.ring
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.activate() {
