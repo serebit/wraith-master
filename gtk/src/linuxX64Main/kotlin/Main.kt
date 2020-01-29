@@ -6,7 +6,7 @@ import kotlinx.cinterop.*
 import kotlin.system.exitProcess
 
 val result = obtainWraithPrism()
-val wraith: WraithPrism get() = (result as WraithPrismResult.Success).device
+val wraith: WraithPrism get() = (result as? WraithPrismResult.Success)!!.device
 
 inline val logo get() = wraith.logo
 inline val fan get() = wraith.fan
@@ -47,37 +47,37 @@ fun CPointer<GtkApplication>.activate() {
     fanGrid.gridLabel(4, "Mirage")
     ringGrid.gridLabel(4, "Direction")
 
-    gridComboBox(wraith.logo.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
-        wraith.updateMode(wraith.logo, it)
-        logoColorButton.setSensitive(wraith.logo.mode.supportsColor)
-        logoBrightnessScale.setSensitive(wraith.logo.mode.supportsBrightness)
-        logoSpeedScale.setSensitive(wraith.logo.mode.supportsSpeed)
+    gridComboBox(logo.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith.updateMode(logo, it)
+        logoColorButton.setSensitive(logo.mode.supportsColor)
+        logoBrightnessScale.setSensitive(logo.mode.supportsBrightness)
+        logoSpeedScale.setSensitive(logo.mode.supportsSpeed)
     }).also { logoGrid.gridAttachRight(it, 0) }
     logoGrid.gridAttachRight(logoColorButton, 1)
     logoGrid.gridAttachRight(logoBrightnessScale, 2)
     logoGrid.gridAttachRight(logoSpeedScale, 3)
 
-    gridComboBox(wraith.fan.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
-        wraith.updateMode(wraith.fan, it)
-        fanColorButton.setSensitive(wraith.fan.mode.supportsColor)
-        fanBrightnessScale.setSensitive(wraith.fan.mode.supportsBrightness)
-        fanSpeedScale.setSensitive(wraith.fan.mode.supportsSpeed)
-        fanMirageToggle.setSensitive(wraith.fan.mode != LedMode.OFF)
+    gridComboBox(fan.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
+        wraith.updateMode(fan, it)
+        fanColorButton.setSensitive(fan.mode.supportsColor)
+        fanBrightnessScale.setSensitive(fan.mode.supportsBrightness)
+        fanSpeedScale.setSensitive(fan.mode.supportsSpeed)
+        fanMirageToggle.setSensitive(fan.mode != LedMode.OFF)
     }).also { fanGrid.gridAttachRight(it, 0) }
     fanGrid.gridAttachRight(fanColorButton, 1)
     fanGrid.gridAttachRight(fanBrightnessScale, 2)
     fanGrid.gridAttachRight(fanSpeedScale, 3)
     fanGrid.gridAttachRight(fanMirageToggle, 4)
 
-    gridComboBox(wraith.ring.mode, RingMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
+    gridComboBox(ring.mode, RingMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
         val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-        wraith.update(wraith.ring) {
+        wraith.update(ring) {
             mode = RingMode.valueOf(text.toUpperCase())
         }
-        ringColorButton.setSensitive(wraith.ring.mode.supportsColor)
-        ringBrightnessScale.setSensitive(wraith.ring.mode.supportsBrightness)
-        ringSpeedScale.setSensitive(wraith.ring.mode.supportsSpeed)
-        ringDirectionComboBox.setSensitive(wraith.ring.mode.supportsDirection)
+        ringColorButton.setSensitive(ring.mode.supportsColor)
+        ringBrightnessScale.setSensitive(ring.mode.supportsBrightness)
+        ringSpeedScale.setSensitive(ring.mode.supportsSpeed)
+        ringDirectionComboBox.setSensitive(ring.mode.supportsDirection)
     }).also { ringGrid.gridAttachRight(it, 0) }
     ringGrid.gridAttachRight(ringColorButton, 1)
     ringGrid.gridAttachRight(ringBrightnessScale, 2)
@@ -114,8 +114,8 @@ fun main(args: Array<String>) {
     val status: Int
 
     app.connectSignal("activate", when (result) {
-        is WraithPrismResult.Success -> staticCFunction { it: CPointer<GtkApplication> -> it.activate() }
-        is WraithPrismResult.Failure -> staticCFunction { _: CPointer<GtkApplication> ->
+        is WraithPrismResult.Success -> staticCFunction<CPointer<GtkApplication>, Unit> { it.activate() }
+        is WraithPrismResult.Failure -> staticCFunction<CPointer<GtkApplication>, Unit> {
             val dialog = gtk_message_dialog_new(
                 null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK, "%s", result.message
             )
