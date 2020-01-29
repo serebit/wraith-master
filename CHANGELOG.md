@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Fixed 
 - Fan mode toggle applying to logo instead
 - Fan settings not being disabled when a mode that can't use those settings is selected
+- Creating additional broken "remote instance" windows is no longer allowed
 - Both frontends no longer require `sudo` to run on systems that use `udev` or `eudev`
 - Compilation now works on Debian without modification. Alpine is pending a fix for [this issue](https://github.com/JetBrains/kotlin-native/issues/3771)
 
