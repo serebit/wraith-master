@@ -3,7 +3,7 @@ plugins {
     base // to add clean task, for cleaning up package output
 }
 
-allprojects {
+subprojects {
     group = "com.serebit.wraith"
     version = "0.4.0-dev"
 
