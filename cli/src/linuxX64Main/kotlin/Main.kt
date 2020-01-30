@@ -61,16 +61,19 @@ fun main(args: Array<KString>) {
         ArgType.Choice(listOf("clockwise", "counterclockwise")),
         shortName = "d", description = "Only supported by ring modes swirl and chase"
     )
+    val mirage by parser.option(ArgType.Choice(listOf("on", "off")), description = "Enable or disable fan mirage")
 
     parser.parse(args)
 
     brightness?.let { if (it !in 1..3) parser.printError("Brightness must be within the range of 1 to 3") }
     speed?.let { if (it !in 1..5) parser.printError("Speed must be within the range of 1 to 5") }
     mode?.let { it ->
-        val invalidRingMode = it == "ring" && it.toUpperCase() !in RingMode.values().map { it.name }
-        val invalidLedMode = it in listOf("fan", "logo") && it.toUpperCase() !in LedMode.values().map { it.name }
+        val invalidRingMode = component.toLowerCase() == "ring"
+                && it.toUpperCase() !in RingMode.values().map { it.name }
+        val invalidLedMode = component.toLowerCase() in listOf("fan", "logo")
+                && it.toUpperCase() !in LedMode.values().map { it.name }
         if (invalidRingMode || invalidLedMode) {
-            parser.printError("Provided mode is not in valid modes for component $component.")
+            parser.printError("Provided mode $it is not in valid modes for component $component.")
         }
     }
 
@@ -79,8 +82,6 @@ fun main(args: Array<KString>) {
 
         is WraithPrismResult.Success -> {
             val wraith = result.device
-
-            println(wraith.sendBytes(0x52u, 0x71u).joinToString { it.toString(16) })
 
             val ledComponent = when (Components.valueOf(component.toUpperCase())) {
                 Components.LOGO -> wraith.logo
@@ -101,6 +102,10 @@ fun main(args: Array<KString>) {
 
             if (ledComponent is RingComponent) direction?.toUpperCase()?.let {
                 wraith.update(ledComponent) { this.direction = RotationDirection.valueOf(it) }
+            }
+            if (ledComponent is FanComponent) mirage?.let {
+                wraith.fan.mirage = it == "on"
+                wraith.updateFanMirage()
             }
 
             wraith.apply()
