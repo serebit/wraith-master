@@ -2,6 +2,6 @@
 Version=1.0
 Type=Application
 Name=Wraith Master
-Comment=A configuration utility for the AMD Wraith Prism stock cooler
+Comment=An application for controlling the RGB LEDs on the AMD Wraith Prism CPU cooler
 Exec=wraith-master-gtk
 Icon=wraith-master
