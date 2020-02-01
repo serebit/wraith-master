@@ -50,6 +50,7 @@ fun CPointer<GtkApplication>.activate() {
 
         gridComboBox(logo.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateMode(logo, it)
+            memScoped { gtk_color_button_set_rgba(logoColorButton.reinterpret(), gdkRgba(logo.color).ptr) }
             logoColorButton.setSensitive(logo.mode.supportsColor)
             logoBrightnessScale.setSensitive(logo.mode.supportsBrightness)
             logoSpeedScale.setSensitive(logo.mode.supportsSpeed)
@@ -60,6 +61,7 @@ fun CPointer<GtkApplication>.activate() {
 
         gridComboBox(fan.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateMode(fan, it)
+            memScoped { gtk_color_button_set_rgba(fanColorButton.reinterpret(), gdkRgba(fan.color).ptr) }
             fanColorButton.setSensitive(fan.mode.supportsColor)
             fanBrightnessScale.setSensitive(fan.mode.supportsBrightness)
             fanSpeedScale.setSensitive(fan.mode.supportsSpeed)
@@ -72,9 +74,12 @@ fun CPointer<GtkApplication>.activate() {
 
         gridComboBox(ring.mode, RingMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            wraith.update(ring) {
-                mode = RingMode.valueOf(text.toUpperCase())
-            }
+            val mode = RingMode.valueOf(text.toUpperCase())
+
+            ring.assignValuesFromChannel(wraith.getChannelValues(mode.channel))
+            wraith.update(ring) { this.mode = mode }
+            memScoped { gtk_color_button_set_rgba(ringColorButton.reinterpret(), gdkRgba(ring.color).ptr) }
+
             ringColorButton.setSensitive(ring.mode.supportsColor)
             ringBrightnessScale.setSensitive(ring.mode.supportsBrightness)
             ringSpeedScale.setSensitive(ring.mode.supportsSpeed)
