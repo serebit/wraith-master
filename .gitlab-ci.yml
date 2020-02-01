@@ -12,13 +12,14 @@ before_script:
 cache:
   key: one-key-to-rule-them-all
   paths:
+    - $GRADLE_USER_HOME/wrapper/dists/
     - $GRADLE_USER_HOME/caches/modules-2/
     - $GRADLE_USER_HOME/caches/build-cache-1/
     - $KONAN_DATA_DIR/kotlin-native-*
 
 build:
   stage: build
-  script: gradle build
+  script: ./gradlew build
   artifacts:
     paths:
       - "**/build/classes"
