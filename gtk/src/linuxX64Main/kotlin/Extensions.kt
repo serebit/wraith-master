@@ -106,5 +106,6 @@ fun WraithPrism.updateMode(component: BasicLedComponent, comboBox: CPointer<GtkW
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
     wraith.update(component) {
         mode = LedMode.valueOf(text.toUpperCase())
+        assignValuesFromChannel(wraith.getChannelValues(channel))
     }
 }

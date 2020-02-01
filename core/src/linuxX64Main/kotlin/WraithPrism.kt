@@ -40,9 +40,9 @@ class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
         // apply changes
         apply()
         val channels = sendBytes(0x52u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u)
-        logo = LogoComponent(getChannelValues(channels[8]).sliceArray(4..12))
-        fan = FanComponent(getChannelValues(channels[9]).sliceArray(4..12))
-        ring = RingComponent(getChannelValues(channels[10]).sliceArray(4..12))
+        logo = LogoComponent(getChannelValues(channels[8]))
+        fan = FanComponent(getChannelValues(channels[9]))
+        ring = RingComponent(getChannelValues(channels[10]))
     }
 
     private fun claimInterfaces() = memScoped {
@@ -85,7 +85,17 @@ fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UBy
     sendBytes(bytes.copyInto(UByteArray(bufferSize) { filler }))
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-fun WraithPrism.getChannelValues(channel: UByte) = sendBytes(0x52u, 0x2Cu, 0x01u, 0u, channel)
+class ChannelValues(val array: UByteArray) {
+    val channel get() = array[4]
+    val speed get() = array[5]
+    val colorSource get() = array[6]
+    val mode get() = array[7]
+    val brightness get() = array[9]
+    val color get() = Color(array[10], array[11], array[12])
+}
+
+@UseExperimental(ExperimentalUnsignedTypes::class)
+fun WraithPrism.getChannelValues(channel: UByte) = ChannelValues(sendBytes(0x52u, 0x2Cu, 0x01u, 0u, channel))
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun WraithPrism.save() = sendBytes(0x50u, 0x55u)

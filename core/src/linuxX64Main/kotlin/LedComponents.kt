@@ -7,12 +7,21 @@ interface LedComponent {
     var color: Color
     var speed: UByte
     var brightness: UByte
+
+    fun assignValuesFromChannel(channelValues: ChannelValues)
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 interface BasicLedComponent : LedComponent {
     var mode: LedMode
     val channel: UByte
+
+    override fun assignValuesFromChannel(channelValues: ChannelValues) {
+        mode = LedMode.values().first { it.mode == channelValues.mode }
+        color = channelValues.let { if (mode.supportsColor) it.color else Color(0u, 0u, 0u) }
+        speed = mode.speeds.indexOfOrNull(channelValues.speed)?.plus(1)?.toUByte() ?: 3u
+        brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1)?.toUByte() ?: 2u
+    }
 
     override val values: UByteArray
         get() {
@@ -23,36 +32,58 @@ interface BasicLedComponent : LedComponent {
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-class LogoComponent(initialValues: UByteArray) : BasicLedComponent {
-    override var mode: LedMode = LedMode.values().first { it.mode == initialValues[3] }
-    override val channel: UByte = initialValues[0]
-    override var color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
-    override var speed = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
-    override var brightness = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
+class LogoComponent(initialValues: ChannelValues) : BasicLedComponent {
+    override lateinit var mode: LedMode
+    override val channel: UByte get() = if (mode == LedMode.OFF) 0xFEu else 0x05u
+    override lateinit var color: Color
+    override var speed: UByte = 0u
+    override var brightness: UByte = 0u
+
+    init {
+        assignValuesFromChannel(initialValues)
+    }
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-class FanComponent(initialValues: UByteArray) : BasicLedComponent {
-    override var mode: LedMode = LedMode.values().first { it.mode == initialValues[3] }
-    override val channel: UByte = initialValues[0]
-    override var color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
-    override var speed = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
-    override var brightness = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
+class FanComponent(initialValues: ChannelValues) : BasicLedComponent {
+    override val channel: UByte get() = if (mode == LedMode.OFF) 0xFEu else 0x06u
+    override lateinit var mode: LedMode
+    override lateinit var color: Color
+    override var speed: UByte = 0u
+    override var brightness: UByte = 0u
     var mirage: Boolean = false
+
+    init {
+        assignValuesFromChannel(initialValues)
+    }
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-enum class RotationDirection(val value: UByte) { CLOCKWISE(0u), COUNTERCLOCKWISE(1u) }
+enum class RotationDirection(val value: UByte) { CLOCKWISE(0u), COUNTERCLOCKWISE(1u); }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-class RingComponent(initialValues: UByteArray) : LedComponent {
-    var mode: RingMode = RingMode.values().first { it.channel == initialValues[0] }
-    override var color = initialValues.let { if (mode.supportsColor) Color(it[6], it[7], it[8]) else Color(0u, 0u, 0u) }
-    override var speed: UByte = mode.speeds.indexOfOrNull(initialValues[1])?.plus(1)?.toUByte() ?: 3u
-    override var brightness: UByte = mode.brightnesses.indexOfOrNull(initialValues[5])?.plus(1)?.toUByte() ?: 2u
-    var direction: RotationDirection = if (mode.supportsDirection) {
-        RotationDirection.values()[initialValues[2].toInt()]
-    } else RotationDirection.CLOCKWISE
+class RingComponent(initialValues: ChannelValues) : LedComponent {
+    lateinit var mode: RingMode
+    override lateinit var color: Color
+    override var speed: UByte = 0u
+    override var brightness: UByte = 0u
+    lateinit var direction: RotationDirection
+
+    init {
+        assignValuesFromChannel(initialValues)
+    }
+
+    override fun assignValuesFromChannel(channelValues: ChannelValues) {
+        mode = RingMode.values().first { it.channel == channelValues.channel && it.mode == channelValues.mode }
+        color = channelValues.let { if (mode.supportsColor) it.color else Color(0u, 0u, 0u) }
+        speed = mode.speeds.indexOfOrNull(channelValues.speed)?.plus(1)?.toUByte() ?: 3u
+        brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1)?.toUByte() ?: 2u
+        direction = if (mode.supportsDirection) {
+            RotationDirection.values()[channelValues.colorSource.toInt()]
+        } else {
+            RotationDirection.CLOCKWISE
+        }
+    }
 
     override val values: UByteArray
         get() {
@@ -60,8 +91,7 @@ class RingComponent(initialValues: UByteArray) : LedComponent {
             val speed = mode.speeds.elementAtOrNull(speed.toInt() - 1) ?: 0xFFu
             val colorSource = if (mode.supportsDirection) direction.value else mode.colorSource
             return ubyteArrayOf(
-                mode.channel, speed, colorSource, mode.mode,
-                0xFFu, brightness, color.r, color.g, color.b
+                mode.channel, speed, colorSource, mode.mode, 0xFFu, brightness, color.r, color.g, color.b
             )
         }
 }
