@@ -9,7 +9,7 @@ before_script:
   - rm -f $GRADLE_USER_HOME/caches/modules-2/modules-2.lock
   - rm -f $GRADLE_USER_HOME/caches/build-cache-1/build-cache-1.lock
   - mkdir -p $KONAN_DATA_DIR/cache
-  - ln /var/lib/konan/deps/* $KONAN_DATA_DIR/cache/
+  - ln -s /var/lib/konan/deps/* $KONAN_DATA_DIR/cache/
 
 cache:
   key: one-key-to-rule-them-all
