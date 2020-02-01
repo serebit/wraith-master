@@ -2,8 +2,8 @@ image: registry.gitlab.com/serebit/wraith-master:latest
 
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-  GRADLE_USER_HOME: /var/lib/gradle
-  KONAN_DATA_DIR: /var/lib/konan
+  GRADLE_USER_HOME: /builds/local/gradle
+  KONAN_DATA_DIR: /builds/local/konan
 
 before_script:
   - rm -f $GRADLE_USER_HOME/caches/modules-2/modules-2.lock
