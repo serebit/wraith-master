@@ -28,6 +28,5 @@ build:
   except:
     changes:
       - README.md
-      - CHANGELOG.md
       - LICENSE.md
       - FUNDING.yml
