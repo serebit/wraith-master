@@ -13,13 +13,14 @@ cache:
   key: one-key-to-rule-them-all
   paths:
     - .gradle/caches/modules-2/
+    - .gradle/wrapper/dists/
     - .gradle/caches/build-cache-1/
     - .konan/dependencies/
     - .konan/kotlin-native-*
 
 build:
   stage: build
-  script: gradle build
+  script: ./gradlew build
   artifacts:
     paths:
       - "**/build/classes"
