@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+#### Changed
+- In the GTK frontend, when a component's mode is changed, the UI updates to show the color that the new mode had previously selected
+
 ## 0.4.0 (2020-01-30)
 
 #### Added 
