@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 #### Changed
-- In the GTK frontend, when a component's mode is changed, the UI updates to show the color that the new mode had previously selected
+- In both frontends, restore a mode's previous settings (color, speed, brightness, etc) when that mode is selected
 
 ## 0.4.0 (2020-01-30)
 

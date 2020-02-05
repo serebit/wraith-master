@@ -51,7 +51,8 @@ fun CPointer<GtkApplication>.activate() {
         gridComboBox(logo.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateMode(logo, it)
             memScoped { gtk_color_button_set_rgba(logoColorButton.reinterpret(), gdkRgba(logo.color).ptr) }
-			gtk_range_set_value(logoBrightnessScale.reinterpret(), logo.brightness.toDouble())
+            gtk_range_set_value(logoBrightnessScale.reinterpret(), logo.brightness.toDouble())
+            gtk_range_set_value(logoSpeedScale.reinterpret(), logo.speed.toDouble())
             logoColorButton.setSensitive(logo.mode.supportsColor)
             logoBrightnessScale.setSensitive(logo.mode.supportsBrightness)
             logoSpeedScale.setSensitive(logo.mode.supportsSpeed)
@@ -63,7 +64,8 @@ fun CPointer<GtkApplication>.activate() {
         gridComboBox(fan.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateMode(fan, it)
             memScoped { gtk_color_button_set_rgba(fanColorButton.reinterpret(), gdkRgba(fan.color).ptr) }
-			gtk_range_set_value(fanBrightnessScale.reinterpret(), fan.brightness.toDouble())
+            gtk_range_set_value(fanBrightnessScale.reinterpret(), fan.brightness.toDouble())
+            gtk_range_set_value(fanSpeedScale.reinterpret(), fan.speed.toDouble())
             fanColorButton.setSensitive(fan.mode.supportsColor)
             fanBrightnessScale.setSensitive(fan.mode.supportsBrightness)
             fanSpeedScale.setSensitive(fan.mode.supportsSpeed)
@@ -81,7 +83,9 @@ fun CPointer<GtkApplication>.activate() {
             ring.assignValuesFromChannel(wraith.getChannelValues(mode.channel))
             wraith.update(ring) { this.mode = mode }
             memScoped { gtk_color_button_set_rgba(ringColorButton.reinterpret(), gdkRgba(ring.color).ptr) }
-			gtk_range_set_value(ringBrightnessScale.reinterpret(), ring.brightness.toDouble())
+            gtk_range_set_value(ringBrightnessScale.reinterpret(), ring.brightness.toDouble())
+            gtk_range_set_value(ringSpeedScale.reinterpret(), ring.speed.toDouble())
+            gtk_combo_box_set_active(ringDirectionComboBox.reinterpret(), ring.direction.value.toInt())
 
             ringColorButton.setSensitive(ring.mode.supportsColor)
             ringBrightnessScale.setSensitive(ring.mode.supportsBrightness)
