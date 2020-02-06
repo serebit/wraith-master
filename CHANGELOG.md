@@ -6,8 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-#### Changed
+#### Changed 
 - In both frontends, restore a mode's previous settings (color, speed, brightness, etc) when that mode is selected
+
+#### Fixed 
+- Regression in GTK frontend where a failure in resolving the Wraith device would crash the program instead of providing the error message
 
 ## 0.4.0 (2020-01-30)
 

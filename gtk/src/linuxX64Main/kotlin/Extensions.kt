@@ -53,22 +53,17 @@ fun <E : Enum<*>> gridComboBox(default: E, elements: Array<E>, sensitive: Boolea
         connectSignal("changed", action)
     }
 
-fun <E : Enum<*>> lazyGridComboBox(default: E, elements: Array<E>, sensitive: Boolean, action: GtkCallbackFunction) =
-    lazy { gridComboBox(default, elements, sensitive, action) }
-
-fun lazyGridColorButton(color: Color, sensitive: Boolean, action: GtkCallbackFunction) = lazy {
-    gtk_color_button_new()!!.apply {
-        gtk_color_button_set_use_alpha(reinterpret(), 0)
-        memScoped { gtk_color_button_set_rgba(reinterpret(), gdkRgba(color).ptr) }
-        gtk_widget_set_size_request(this, 96, -1)
-        gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
-        setSensitive(sensitive)
-        connectSignal("color-set", action)
-    }
+fun gridColorButton(color: Color, sensitive: Boolean, action: GtkCallbackFunction) = gtk_color_button_new()!!.apply {
+    gtk_color_button_set_use_alpha(reinterpret(), 0)
+    memScoped { gtk_color_button_set_rgba(reinterpret(), gdkRgba(color).ptr) }
+    gtk_widget_set_size_request(this, 96, -1)
+    gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
+    setSensitive(sensitive)
+    connectSignal("color-set", action)
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-fun lazyGridScale(default: UByte, marks: Int, sensitive: Boolean, action: GtkCallbackFunction) = lazy {
+fun gridScale(default: UByte, marks: Int, sensitive: Boolean, action: GtkCallbackFunction) =
     gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
         adjustment.connectSignal("value-changed", action)
         gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {
@@ -82,7 +77,6 @@ fun lazyGridScale(default: UByte, marks: Int, sensitive: Boolean, action: GtkCal
             setSensitive(sensitive)
         }
     }
-}
 
 fun WraithPrism.updateColor(component: LedComponent, colorButton: CPointer<GtkWidget>) = update(component) {
     color = memScoped {
