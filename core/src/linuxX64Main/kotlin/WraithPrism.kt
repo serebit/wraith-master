@@ -6,11 +6,6 @@ import kotlinx.cinterop.*
 import libusb.*
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-private const val ENDPOINT_IN: UByte = 0x83u
-@UseExperimental(ExperimentalUnsignedTypes::class)
-private const val ENDPOINT_OUT: UByte = 0x04u
-
-@UseExperimental(ExperimentalUnsignedTypes::class)
 class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
     private val activeConfig = memScoped {
         val configPtr = allocPointerTo<libusb_config_descriptor>()
@@ -69,14 +64,17 @@ class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
     fun setChannelValues(component: LedComponent) =
         sendBytes(0x51u, 0x2Cu, 0x01u, 0u, *component.values, 0u, 0u, 0u, filler = 0xFFu)
 
-    fun assignChannels() = sendBytes(
-        0x51u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, logo.channel, fan.channel,
-        *UByteArray(15) { ring.mode.channel }
-    )
+    fun assignChannels() = sendBytes(0x51u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, logo.channel, fan.channel,
+        *UByteArray(15) { ring.mode.channel })
 
     fun close() {
         libusb_close(handle.ptr)
         libusb_exit(null)
+    }
+
+    companion object {
+        private const val ENDPOINT_IN: UByte = 0x83u
+        private const val ENDPOINT_OUT: UByte = 0x04u
     }
 }
 
@@ -85,7 +83,7 @@ fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UBy
     sendBytes(bytes.copyInto(UByteArray(bufferSize) { filler }))
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-class ChannelValues(val array: UByteArray) {
+class ChannelValues(private val array: UByteArray) {
     val channel get() = array[4]
     val speed get() = array[5]
     val colorSource get() = array[6]
@@ -126,9 +124,9 @@ fun WraithPrism.reset() {
     apply()
 }
 
-inline fun <T : LedComponent> WraithPrism.update(device: T, update: T.() -> Unit) {
-    device.update()
-    setChannelValues(device)
+inline fun <C : LedComponent> WraithPrism.update(component: C, update: C.() -> Unit) {
+    component.update()
+    setChannelValues(component)
     assignChannels()
     apply()
 }
