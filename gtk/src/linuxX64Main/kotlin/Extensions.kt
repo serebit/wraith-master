@@ -63,7 +63,7 @@ fun gridColorButton(color: Color, sensitive: Boolean, action: GtkCallbackFunctio
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-fun gridScale(default: UByte, marks: Int, sensitive: Boolean, action: GtkCallbackFunction) =
+fun gridScale(default: Int, marks: Int, sensitive: Boolean, action: GtkCallbackFunction) =
     gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
         adjustment.connectSignal("value-changed", action)
         gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {
@@ -86,20 +86,15 @@ fun WraithPrism.updateColor(component: LedComponent, colorButton: CPointer<GtkWi
     }
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
 fun WraithPrism.updateSpeed(component: LedComponent, adjustment: CPointer<GtkWidget>) = update(component) {
-    speed = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt().toUByte()
+    speed = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt()
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
 fun WraithPrism.updateBrightness(component: LedComponent, adjustment: CPointer<GtkWidget>) = update(component) {
-    brightness = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt().toUByte()
+    brightness = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt()
 }
 
 fun WraithPrism.updateMode(component: BasicLedComponent, comboBox: CPointer<GtkWidget>) = update(component) {
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
-    wraith.update(component) {
-        mode = LedMode.valueOf(text.toUpperCase())
-        assignValuesFromChannel(wraith.getChannelValues(channel))
-    }
+    wraith.update(component) { mode = LedMode.valueOf(text.toUpperCase()) }
 }

@@ -1,57 +1,60 @@
 package com.serebit.wraith.core
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
 interface LedComponent {
+    @UseExperimental(ExperimentalUnsignedTypes::class)
     val values: UByteArray
-
     var color: Color
-    var speed: UByte
-    var brightness: UByte
+    var speed: Int
+    var brightness: Int
 
     fun assignValuesFromChannel(channelValues: ChannelValues)
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
 interface BasicLedComponent : LedComponent {
-    var mode: LedMode
+    @UseExperimental(ExperimentalUnsignedTypes::class)
     val channel: UByte
+    var mode: LedMode
 
+    @UseExperimental(ExperimentalUnsignedTypes::class)
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
         mode = LedMode.values().first { it.mode == channelValues.mode }
-        color = channelValues.let { if (mode.supportsColor) it.color else Color(0u, 0u, 0u) }
-        speed = mode.speeds.indexOfOrNull(channelValues.speed)?.plus(1)?.toUByte() ?: 3u
-        brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1)?.toUByte() ?: 2u
+        if (mode != LedMode.CYCLE) {
+            color = channelValues.color
+        }
+        speed = mode.speeds.indexOfOrNull(channelValues.speed)?.plus(1) ?: 3
+        brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1) ?: 2
     }
 
+    @UseExperimental(ExperimentalUnsignedTypes::class)
     override val values: UByteArray
         get() {
-            val brightness = mode.brightnesses.elementAtOrNull(brightness.toInt() - 1) ?: 0u
-            val speed = mode.speeds.elementAtOrNull(speed.toInt() - 1) ?: 0x2Cu
-            return ubyteArrayOf(channel, speed, 0x20u, mode.mode, 0xFFu, brightness, color.r, color.g, color.b)
+            val brightness = mode.brightnesses.elementAtOrNull(brightness - 1) ?: 0u
+            val speed = mode.speeds.elementAtOrNull(speed - 1) ?: 0x2Cu
+            return ubyteArrayOf(channel, speed, 0x20u, mode.mode, 0xFFu, brightness, *color.bytes)
         }
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
 class LogoComponent(initialValues: ChannelValues) : BasicLedComponent {
+    @UseExperimental(ExperimentalUnsignedTypes::class)
+    override val channel: UByte = 0x05u
     override lateinit var mode: LedMode
-    override val channel: UByte get() = if (mode == LedMode.OFF) 0xFEu else 0x05u
-    override lateinit var color: Color
-    override var speed: UByte = 0u
-    override var brightness: UByte = 0u
+    override var color = Color(0, 0, 0)
+    override var speed = 0
+    override var brightness = 0
 
     init {
         assignValuesFromChannel(initialValues)
     }
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
 class FanComponent(initialValues: ChannelValues) : BasicLedComponent {
-    override val channel: UByte get() = if (mode == LedMode.OFF) 0xFEu else 0x06u
+    @UseExperimental(ExperimentalUnsignedTypes::class)
+    override val channel: UByte = 0x06u
     override lateinit var mode: LedMode
-    override lateinit var color: Color
-    override var speed: UByte = 0u
-    override var brightness: UByte = 0u
-    var mirage: Boolean = false
+    override var color = Color(0, 0, 0)
+    override var speed = 0
+    override var brightness = 0
+    var mirage = false
 
     init {
         assignValuesFromChannel(initialValues)
@@ -65,8 +68,8 @@ enum class RotationDirection(val value: UByte) { CLOCKWISE(0u), COUNTERCLOCKWISE
 class RingComponent(initialValues: ChannelValues) : LedComponent {
     lateinit var mode: RingMode
     override lateinit var color: Color
-    override var speed: UByte = 0u
-    override var brightness: UByte = 0u
+    override var speed = 0
+    override var brightness = 0
     lateinit var direction: RotationDirection
 
     init {
@@ -76,8 +79,8 @@ class RingComponent(initialValues: ChannelValues) : LedComponent {
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
         mode = RingMode.values().first { it.channel == channelValues.channel && it.mode == channelValues.mode }
         color = channelValues.let { if (mode.supportsColor) it.color else Color(0u, 0u, 0u) }
-        speed = mode.speeds.indexOfOrNull(channelValues.speed)?.plus(1)?.toUByte() ?: 3u
-        brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1)?.toUByte() ?: 2u
+        speed = mode.speeds.indexOfOrNull(channelValues.speed)?.plus(1) ?: 3
+        brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1) ?: 2
         direction = if (mode.supportsDirection) {
             RotationDirection.values()[channelValues.colorSource.toInt()]
         } else {
@@ -87,12 +90,10 @@ class RingComponent(initialValues: ChannelValues) : LedComponent {
 
     override val values: UByteArray
         get() {
-            val brightness = mode.brightnesses.elementAtOrNull(brightness.toInt() - 1) ?: 0x99u
-            val speed = mode.speeds.elementAtOrNull(speed.toInt() - 1) ?: 0xFFu
+            val brightness = mode.brightnesses.elementAtOrNull(brightness - 1) ?: 0x99u
+            val speed = mode.speeds.elementAtOrNull(speed - 1) ?: 0xFFu
             val colorSource = if (mode.supportsDirection) direction.value else mode.colorSource
-            return ubyteArrayOf(
-                mode.channel, speed, colorSource, mode.mode, 0xFFu, brightness, color.r, color.g, color.b
-            )
+            return ubyteArrayOf(mode.channel, speed, colorSource, mode.mode, 0xFFu, brightness, *color.bytes)
         }
 }
 
@@ -138,14 +139,16 @@ enum class RingMode(
     BREATHE(0x01u, 0xFFu, speeds = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true)
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
-class Color(val r: UByte, val g: UByte, val b: UByte) {
-    constructor(r: Double, g: Double, b: Double) : this(
-        (255 * r).toInt().toUByte(),
-        (255 * g).toInt().toUByte(),
-        (255 * b).toInt().toUByte()
-    )
+class Color(val r: Int, val g: Int, val b: Int) {
+    @UseExperimental(ExperimentalUnsignedTypes::class)
+    constructor(r: UByte, g: UByte, b: UByte) : this(r.toInt(), g.toInt(), b.toInt())
+
+    constructor(r: Double, g: Double, b: Double) : this((255 * r).toInt(), (255 * g).toInt(), (255 * b).toInt())
 }
+
+@UseExperimental(ExperimentalUnsignedTypes::class)
+val Color.bytes
+    get() = ubyteArrayOf(r.toUByte(), g.toUByte(), b.toUByte())
 
 val LedMode.supportsBrightness get() = brightnesses.isNotEmpty()
 val LedMode.supportsSpeed get() = speeds.isNotEmpty()
