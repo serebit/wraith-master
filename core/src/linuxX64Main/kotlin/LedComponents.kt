@@ -122,7 +122,7 @@ enum class RingMode(
     val supportsDirection: Boolean = false,
     val colorSource: UByte = 0x20u
 ) {
-    OFF(0xFEu, 0xFFu, ubyteArrayOf(), ubyteArrayOf()),
+    OFF(0xFEu, 0x00u, ubyteArrayOf(), ubyteArrayOf()),
     STATIC(0x00u, 0xFFu, supportsColor = true),
     RAINBOW(0x07u, 0x05u, speeds = ubyteArrayOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u),
     SWIRL(
