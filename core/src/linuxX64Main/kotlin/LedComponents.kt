@@ -98,45 +98,45 @@ class RingComponent(initialValues: ChannelValues) : LedComponent {
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-private fun UByteArray.indexOfOrNull(value: UByte) = indexOf(value).let { if (it == -1) null else it }
+private fun List<UByte>.indexOfOrNull(value: UByte) = indexOf(value).let { if (it == -1) null else it }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 enum class LedMode(
     val mode: UByte,
-    val brightnesses: UByteArray = ubyteArrayOf(0x4Cu, 0x99u, 0xFFu),
-    val speeds: UByteArray = ubyteArrayOf(),
+    val brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
+    val speeds: List<UByte> = emptyList(),
     val supportsColor: Boolean = false
 ) {
-    OFF(0x00u, ubyteArrayOf()),
+    OFF(0x00u, emptyList()),
     STATIC(0x01u, supportsColor = true),
-    CYCLE(0x02u, ubyteArrayOf(0x10u, 0x40u, 0x7Fu), ubyteArrayOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u)),
-    BREATHE(0x03u, speeds = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true)
+    CYCLE(0x02u, listOf(0x10u, 0x40u, 0x7Fu), listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u)),
+    BREATHE(0x03u, speeds = listOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true)
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 enum class RingMode(
     val channel: UByte, val mode: UByte,
-    val brightnesses: UByteArray = ubyteArrayOf(0x4Cu, 0x99u, 0xFFu),
-    val speeds: UByteArray = ubyteArrayOf(),
+    val brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
+    val speeds: List<UByte> = emptyList(),
     val supportsColor: Boolean = false,
     val supportsDirection: Boolean = false,
     val colorSource: UByte = 0x20u
 ) {
-    OFF(0xFEu, 0x00u, ubyteArrayOf(), ubyteArrayOf()),
+    OFF(0xFEu, 0x00u, emptyList(), emptyList()),
     STATIC(0x00u, 0xFFu, supportsColor = true),
-    RAINBOW(0x07u, 0x05u, speeds = ubyteArrayOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u),
+    RAINBOW(0x07u, 0x05u, speeds = listOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u),
     SWIRL(
-        0x0Au, 0x4Au, speeds = ubyteArrayOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
+        0x0Au, 0x4Au, speeds = listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
         supportsColor = true, supportsDirection = true
     ),
     CHASE(
-        0x09u, 0xC3u, speeds = ubyteArrayOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
+        0x09u, 0xC3u, speeds = listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
         supportsColor = true, supportsDirection = true
     ),
-    BOUNCE(0x08u, 0xFFu, speeds = ubyteArrayOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u), colorSource = 0x80u),
+    BOUNCE(0x08u, 0xFFu, speeds = listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u), colorSource = 0x80u),
     MORSE(0x0Bu, 0x05u, supportsColor = true, colorSource = 0u),
-    CYCLE(0x02u, 0xFFu, ubyteArrayOf(0x10u, 0x40u, 0x7Fu), ubyteArrayOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u)),
-    BREATHE(0x01u, 0xFFu, speeds = ubyteArrayOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true)
+    CYCLE(0x02u, 0xFFu, listOf(0x10u, 0x40u, 0x7Fu), listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u)),
+    BREATHE(0x01u, 0xFFu, speeds = listOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), supportsColor = true)
 }
 
 class Color(val r: Int, val g: Int, val b: Int) {
