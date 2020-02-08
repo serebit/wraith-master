@@ -97,8 +97,8 @@ fun main(args: Array<KString>) {
             }
 
             color?.let { wraith.update(ledComponent) { this.color = it } }
-            brightness?.let { wraith.update(ledComponent) { this.brightness = it.toUByte() } }
-            speed?.let { wraith.update(ledComponent) { this.speed = it.toUByte() } }
+            brightness?.let { wraith.update(ledComponent) { this.brightness = it } }
+            speed?.let { wraith.update(ledComponent) { this.speed = it } }
 
             if (ledComponent is RingComponent) direction?.toUpperCase()?.let {
                 wraith.update(ledComponent) { this.direction = RotationDirection.valueOf(it) }
