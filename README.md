@@ -27,6 +27,7 @@ In addition to a Java Developer Kit (JDK) of version 8 or newer, Wraith Master r
 | Fedora             | `libusbx-devel`, `ncurses-compat-libs`            | `gtk3-devel`     |
 | OpenSUSE           | `libusb-1_0-devel`, `libncurses5`                 | `gtk3-devel`     |
 | Solus              | `libusb-devel`                                    | `libgtk-3-devel` |
+| Gentoo             | `dev-libs/libusb`, `ncurses-compat`               | `gtk+`           |
 
 ### Instructions
 
