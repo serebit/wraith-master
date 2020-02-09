@@ -21,10 +21,11 @@ If you're on Arch Linux or one of its derivatives, you can also install both fro
 In addition to a Java Developer Kit (JDK) of version 8 or newer, Wraith Master requires the following packages to build:
  
 | Distribution       | Shared Dependencies                               | GTK-Only         |
-|:------------------:|---------------------------------------------------|------------------|
+|--------------------|---------------------------------------------------|------------------|
 | Debian/Derivatives | `libusb-1.0-0-dev`, `gcc-multilib`, `libncurses5` | `libgtk-3-dev`   |
 | Arch/Derivatives   | `libusb`, `gcc`, `glibc`, `ncurses5-compat-libs`  | `gtk3`           |
 | Fedora             | `libusbx-devel`, `ncurses-compat-libs`            | `gtk3-devel`     |
+| OpenSUSE           | `libusb-1_0-devel`, `libncurses5`                 | `gtk3-devel`     |
 | Solus              | `libusb-devel`                                    | `libgtk-3-devel` |
 
 ### Instructions
