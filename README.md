@@ -16,13 +16,16 @@ If you're on Arch Linux or one of its derivatives, you can also install both fro
 
 ## Building from Source
 
-### Requirements
+### Build Dependencies
 
-Building Wraith Master requires the following to be installed on the system:
-- `libtinfo.so.5`, usually in a package called `ncurses-compat-libs`
-- `libusb` development libraries
-- A JDK, whether Open or Oracle, of at least version 8
-- If building the GTK frontend, the GTK3 development libraries
+In addition to a Java Developer Kit (JDK) of version 8 or newer, Wraith Master requires the following packages to build:
+ 
+| Distribution       | Shared Dependencies                               | GTK-Only         |
+|:------------------:|---------------------------------------------------|------------------|
+| Debian/Derivatives | `libusb-1.0-0-dev`, `gcc-multilib`, `libncurses5` | `libgtk-3-dev`   |
+| Arch/Derivatives   | `libusb`, `gcc`, `glibc`, `ncurses5-compat-libs`  | `gtk3`           |
+| Fedora             | `libusbx-devel`, `ncurses-compat-libs`            | `gtk3-devel`     |
+| Solus              | `libusb-devel`                                    | `libgtk-3-devel` |
 
 ### Instructions
 
