@@ -55,7 +55,7 @@ This will install the packages in `/usr/local` by default. To change the install
 | Arch/Derivatives   | None                          | `gtk3`   |
 | Fedora             | Untested                      | Untested |
 | OpenSUSE           | Untested                      | Untested |
-| Solus              | Untested                      | Untested |
+| Solus              | None                          | None     |
 | Gentoo             | Untested                      | Untested |
 
 ## Acknowledgements
