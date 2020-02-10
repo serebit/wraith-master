@@ -23,7 +23,7 @@ In addition to a Java Developer Kit (JDK) of version 8 or newer, Wraith Master r
 | Distribution       | Shared Dependencies                               | GTK-Only         |
 |--------------------|---------------------------------------------------|------------------|
 | Debian/Derivatives | `libusb-1.0-0-dev`, `gcc-multilib`, `libncurses5` | `libgtk-3-dev`   |
-| Arch/Derivatives   | `libusb`, `gcc`, `glibc`, `ncurses5-compat-libs`  | `gtk3`           |
+| Arch/Derivatives   | `ncurses5-compat-libs` (AUR)                      | `gtk3`           |
 | Fedora             | `libusbx-devel`, `ncurses-compat-libs`            | `gtk3-devel`     |
 | OpenSUSE           | `libusb-1_0-devel`, `libncurses5`                 | `gtk3-devel`     |
 | Solus              | `libusb-devel`                                    | `libgtk-3-devel` |
@@ -52,7 +52,7 @@ This will install the packages in `/usr/local` by default. To change the install
 | Distribution       | Shared Dependencies           | GTK-Only |
 |--------------------|-------------------------------|----------|
 | Debian/Derivatives | `libusb-1.0-0`, `libncurses5` | Untested |
-| Arch/Derivatives   | Untested                      | Untested |
+| Arch/Derivatives   | None                          | `gtk3`   |
 | Fedora             | Untested                      | Untested |
 | OpenSUSE           | Untested                      | Untested |
 | Solus              | Untested                      | Untested |
