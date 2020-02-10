@@ -47,16 +47,16 @@ To install the built artifacts, run the following:
 
 This will install the packages in `/usr/local` by default. To change the installation directory, pass a parameter to the above task in the format `-Pinstalldir="/your/install/dir"`.
 
-## Dependencies
+## Runtime Dependencies
 
-Both frontends require the following packages to run:
-- `glibc`
-- `libgcc`
-- `libusb`
-
-The GTK frontend also requires the following packages:
-- `libgtk-3`
-- `glib2`
+| Distribution       | Shared Dependencies           | GTK-Only |
+|--------------------|-------------------------------|----------|
+| Debian/Derivatives | `libusb-1.0-0`, `libncurses5` | Untested |
+| Arch/Derivatives   | Untested                      | Untested |
+| Fedora             | Untested                      | Untested |
+| OpenSUSE           | Untested                      | Untested |
+| Solus              | Untested                      | Untested |
+| Gentoo             | Untested                      | Untested |
 
 ## Acknowledgements
 
