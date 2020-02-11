@@ -49,14 +49,14 @@ This will install the packages in `/usr/local` by default. To change the install
 
 ## Runtime Dependencies
 
-| Distribution       | Shared Dependencies           | GTK-Only |
-|--------------------|-------------------------------|----------|
-| Debian/Derivatives | `libusb-1.0-0`, `libncurses5` | Untested |
-| Arch/Derivatives   | None                          | `gtk3`   |
-| Fedora             | Untested                      | Untested |
-| OpenSUSE           | Untested                      | Untested |
-| Solus              | None                          | None     |
-| Gentoo             | Untested                      | Untested |
+| Distribution       | Shared Dependencies           | GTK-Only        |
+|--------------------|-------------------------------|-----------------|
+| Debian/Derivatives | `libusb-1.0-0`, `libncurses5` | Untested        |
+| Arch/Derivatives   | None                          | `gtk3`          |
+| Fedora             | None                          | `gtk3`          |
+| OpenSUSE           | None                          | `glib2`, `gtk3` |
+| Solus              | None                          | None            |
+| Gentoo             | `dev-libs/libusb`             | Untested        |
 
 ## Acknowledgements
 
