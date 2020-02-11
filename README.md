@@ -45,7 +45,7 @@ To install the built artifacts and their associated resources, run the following
 ./gradlew install
 ```
 
-This will install the packages in `/usr/local` by default. To change the installation directory, pass a parameter to the above task in the format `-Pinstalldir="/your/install/dir"`. You can also change the directory that the udev rules will be installed in by passing the parameter `-Pinstalldir="/your/udev/dir"` (the rules are installed to `/etc/udev` by default). You can also disable the installation of udev rules entirely by passing the parameter `-Pnoudev`, although this argument is automatically applied on Linux distributions that don't use udev.
+This will install the packages in `/usr/local` by default. To change the installation directory, pass a parameter to the above task in the format `-Pinstalldir="/your/install/dir"`. You can also change the directory that the udev rules will be installed in by passing the parameter `-Pudevdir="/your/udev/dir"` (the rules are installed to `/etc/udev` by default). You can also disable the installation of udev rules entirely by passing the parameter `-Pnoudev`, although this argument is automatically applied on Linux distributions that don't use udev.
 
 ## Runtime Dependencies
 
