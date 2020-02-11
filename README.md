@@ -39,13 +39,13 @@ To build all artifacts and place them in the `build/package` directory, run the 
 ./gradlew package
 ```
 
-To install the built artifacts, run the following:
+To install the built artifacts and their associated resources, run the following:
 
 ```bash
 ./gradlew install
 ```
 
-This will install the packages in `/usr/local` by default. To change the installation directory, pass a parameter to the above task in the format `-Pinstalldir="/your/install/dir"`.
+This will install the packages in `/usr/local` by default. To change the installation directory, pass a parameter to the above task in the format `-Pinstalldir="/your/install/dir"`. You can also change the directory that the udev rules will be installed in by passing the parameter `-Pinstalldir="/your/udev/dir"` (the rules are installed to `/etc/udev` by default). You can also disable the installation of udev rules entirely by passing the parameter `-Pnoudev`, although this argument is automatically applied on Linux distributions that don't use udev.
 
 ## Runtime Dependencies
 
@@ -58,6 +58,10 @@ This will install the packages in `/usr/local` by default. To change the install
 | Solus              | None                          | None            |
 | Gentoo             | `dev-libs/libusb`             | Untested        |
 
+## License
+
+Wraith Master is open-sourced under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html).
+
 ## Acknowledgements
 
 - **gfduszynski**, for his work on [cm-rgb](https://github.com/gfduszynski/cm-rgb). Although I started Wraith Master before discovering cm-rgb, gfduszynski's work made it viable.
@@ -66,5 +70,5 @@ This will install the packages in `/usr/local` by default. To change the install
 
 [wraith-master-logo]: https://serebit.com/images/wraith-master-banner-nopad.svg "Wraith Master"
 [pipeline-status]: https://gitlab.com/serebit/wraith-master/badges/master/pipeline.svg "Pipeline Status"
-[license-badge]: https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg "License"
+[license-badge]: https://img.shields.io/badge/License-Apache%202.0.svg "License"
 [kofi-badge]: https://img.shields.io/badge/-ko--fi-ff5f5f?logo=ko-fi&logoColor=white "Ko-fi"
