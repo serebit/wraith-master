@@ -8,6 +8,8 @@
 
 Wraith Master is a graphical and command-line application for controlling the RGB LEDs on AMD's Wraith stock coolers. At the moment, the only supported cooler is the Wraith Prism, but there are plans to add other Wraith coolers as well.
 
+Designed for feature parity with the official Windows-only Cooler Master application, Wraith Master supports all modes and settings that the Wraith Prism is capable of handling. Only two settings remain to be fully implemented, those being mirage frequencies and morse text.
+
 ## Download
 
 There are precompiled binaries available for each release [here](https://gitlab.com/serebit/wraith-master/-/releases).
@@ -28,6 +30,8 @@ In addition to a Java Developer Kit (JDK) of version 8 or newer, Wraith Master r
 | OpenSUSE           | `libusb-1_0-devel`, `libncurses5`                 | `gtk3-devel`     |
 | Solus              | `libusb-devel`                                    | `libgtk-3-devel` |
 | Gentoo             | `dev-libs/libusb`, `ncurses-compat`               | `gtk+`           |
+
+You'll need the packages in Shared Dependencies to build Wraith Master, but if you're only building the command-line frontend, you don't need the packages in GTK-Only.
 
 ### Instructions
 
@@ -58,9 +62,17 @@ This will install the packages in `/usr/local` by default. To change the install
 | Solus              | None                          | None            |
 | Gentoo             | `dev-libs/libusb`             | Untested        |
 
+## Changelog
+
+See `CHANGELOG.md` for notes on previous releases, along with changes that are currently in staging for the next release.
+
+## Screenshots
+
+![Screenshot][wraith-master-screenshot]
+
 ## License
 
-Wraith Master is open-sourced under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html).
+Wraith Master is open-sourced under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html). In simple terms, this license allows you to do whatever you want with the software, so long as the required notices are included.
 
 ## Acknowledgements
 
@@ -72,3 +84,4 @@ Wraith Master is open-sourced under the [Apache License, Version 2.0](https://ww
 [pipeline-status]: https://gitlab.com/serebit/wraith-master/badges/master/pipeline.svg "Pipeline Status"
 [license-badge]: https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg "License"
 [kofi-badge]: https://img.shields.io/badge/-ko--fi-ff5f5f?logo=ko-fi&logoColor=white "Ko-fi"
+[wraith-master-screenshot]: https://serebit.com/images/wraith-master-screenshot.png "Screenshot"
