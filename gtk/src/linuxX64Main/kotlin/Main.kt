@@ -14,7 +14,8 @@ inline val ring get() = wraith.ring
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.activate() {
-    if (gtk_application_get_active_window(this) == null) {
+    val activeWindow = gtk_application_get_active_window(this)
+    if (activeWindow == null) {
         val windowWidget = gtk_application_window_new(this)!!
 
         val window = windowWidget.reinterpret<GtkWindow>()
@@ -117,6 +118,14 @@ fun CPointer<GtkApplication>.activate() {
         }
 
         gtk_widget_show_all(windowWidget)
+    } else {
+        gtk_message_dialog_new(
+            activeWindow, 0u, GtkMessageType.GTK_MESSAGE_INFO, GtkButtonsType.GTK_BUTTONS_OK, "%s",
+            "Cannot open extra Wraith Master windows."
+        )?.let {
+            gtk_dialog_run(it.reinterpret())
+            gtk_widget_destroy(it)
+        }
     }
 }
 
