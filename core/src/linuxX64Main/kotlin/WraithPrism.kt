@@ -5,7 +5,7 @@ import cnames.structs.libusb_device_handle
 import kotlinx.cinterop.*
 import libusb.*
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
     private val activeConfig = memScoped {
         val configPtr = allocPointerTo<libusb_config_descriptor>()
@@ -78,11 +78,11 @@ class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
     }
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UByte = 0x0u) =
     sendBytes(bytes.copyInto(UByteArray(bufferSize) { filler }))
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 class ChannelValues(private val array: UByteArray) {
     val channel get() = array[4]
     val speed get() = array[5]
@@ -92,16 +92,16 @@ class ChannelValues(private val array: UByteArray) {
     val color get() = Color(array[10], array[11], array[12])
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun WraithPrism.getChannelValues(channel: UByte) = ChannelValues(sendBytes(0x52u, 0x2Cu, 0x01u, 0u, channel))
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun WraithPrism.save() = sendBytes(0x50u, 0x55u)
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun WraithPrism.apply() = sendBytes(0x51u, 0x28u, 0u, 0u, 0xE0u)
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun WraithPrism.updateFanMirage() = if (fan.mirage) sendBytes(
     0x51u, 0x71u, 0u, 0u, 0x01u, 0u, 0xFFu, 0x4Au, 0x02u, 0x02u, 0x63u, 0xBDu, 0x03u, 0x02u, 0x63u, 0xBDu,
     0x04u, 0x02u, 0x63u, 0xBDu
@@ -110,7 +110,7 @@ fun WraithPrism.updateFanMirage() = if (fan.mirage) sendBytes(
     0x04u, 0u, 0xFFu, 0x4Au
 )
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun WraithPrism.reset() {
     // load
     sendBytes(0x50u)

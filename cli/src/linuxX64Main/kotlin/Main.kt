@@ -3,20 +3,19 @@ package com.serebit.wraith.cli
 import com.serebit.wraith.core.*
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
-import kotlinx.cli.failAssertion
 import kotlin.String as KString
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 object ColorArgType : ArgType<Color>(true) {
     private val commaSeparatedChannelPattern = "(\\d{1,3}),(\\d{1,3}),(\\d{1,3})".toRegex() // r,g,b
     private val hexColorPattern = "#?[\\da-fA-F]{6}".toRegex() // RRGGBB
 
     override val description = "{ Color with format r,g,b or RRGGBB }"
-    override val conversion: (value: KString, name: KString) -> Color = fun(value: KString, name: KString): Color {
+    override fun convert(value: KString, name: KString): Color {
         commaSeparatedChannelPattern.matchEntire(value)
             ?.groupValues
             ?.drop(1)
-            ?.map { it.toUByteOrNull() ?: failAssertion("Color channel value exceeded maximum of 255") }
+            ?.map { it.toUByteOrNull() ?: error("Color channel value exceeded maximum of 255") }
             ?.let { return Color(it.component1(), it.component2(), it.component3()) }
 
         hexColorPattern.matchEntire(value)
@@ -29,7 +28,7 @@ object ColorArgType : ArgType<Color>(true) {
                 return Color(r.toUByte(), g.toUByte(), b.toUByte())
             }
 
-        failAssertion(
+        error(
             """
                 |Option $name is expected to be a color, either represented by channel values separated by commas (such 
                 |as 255,128,0) or a hex color (such as 03A9F4).
@@ -40,7 +39,7 @@ object ColorArgType : ArgType<Color>(true) {
 
 private enum class Components { LOGO, FAN, RING }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun main(args: Array<KString>) {
     val parser = ArgParser("wraith-master")
 

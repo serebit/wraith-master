@@ -44,7 +44,7 @@ private fun MemScope.getUsbDeviceDescriptors(devices: List<CPointer<libusb_devic
 }
 
 private class UsbDevice(private val descriptor: libusb_device_descriptor, private val device: libusb_device) {
-    @UseExperimental(ExperimentalUnsignedTypes::class)
+    @OptIn(ExperimentalUnsignedTypes::class)
     val isWraithPrism
         get() = descriptor.idVendor == COOLER_MASTER_VENDOR_ID && descriptor.idProduct == WRAITH_PRISM_PRODUCT_ID
 
@@ -60,7 +60,7 @@ private class UsbDevice(private val descriptor: libusb_device_descriptor, privat
         }
     }
 
-    @UseExperimental(ExperimentalUnsignedTypes::class)
+    @OptIn(ExperimentalUnsignedTypes::class)
     companion object {
         private const val COOLER_MASTER_VENDOR_ID: UShort = 0x2516u
         private const val WRAITH_PRISM_PRODUCT_ID: UShort = 0x51u

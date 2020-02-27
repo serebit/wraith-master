@@ -7,11 +7,11 @@ import kotlin.math.roundToInt
 
 private typealias GtkCallbackFunction = CPointer<CFunction<(CPointer<GtkWidget>) -> Unit>>
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun <F : CFunction<*>> CPointer<*>.connectSignal(signal: String, action: CPointer<F>) =
     g_signal_connect_data(reinterpret(), signal, action.reinterpret(), null, null, 0u)
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
     red = color.r.toDouble() / 255
     green = color.g.toDouble() / 255
@@ -19,7 +19,7 @@ fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
     alpha = 1.0
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkWidget>.newSettingsPage(label: String): CPointer<GtkWidget> =
     gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.apply {
         gtk_container_set_border_width(reinterpret(), 24u)
@@ -27,7 +27,7 @@ fun CPointer<GtkWidget>.newSettingsPage(label: String): CPointer<GtkWidget> =
         gtk_notebook_append_page(this@newSettingsPage.reinterpret(), this, gtk_label_new(label))
     }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkWidget>.newSettingsGrid(): CPointer<GtkWidget> = gtk_grid_new()!!.apply {
     gtk_grid_set_row_homogeneous(reinterpret(), 1)
     gtk_grid_set_column_spacing(reinterpret(), 64u)
@@ -62,7 +62,7 @@ fun gridColorButton(color: Color, sensitive: Boolean, action: GtkCallbackFunctio
     connectSignal("color-set", action)
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun gridScale(default: Int, marks: Int, sensitive: Boolean, action: GtkCallbackFunction) =
     gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
         adjustment.connectSignal("value-changed", action)

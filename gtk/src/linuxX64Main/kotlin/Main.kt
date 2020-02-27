@@ -12,7 +12,7 @@ inline val logo get() = wraith.logo
 inline val fan get() = wraith.fan
 inline val ring get() = wraith.ring
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.activate() {
     val activeWindow = gtk_application_get_active_window(this)
     if (activeWindow == null) {
@@ -129,7 +129,7 @@ fun CPointer<GtkApplication>.activate() {
     }
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class)
 fun main(args: Array<String>) {
     val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
     val status: Int
