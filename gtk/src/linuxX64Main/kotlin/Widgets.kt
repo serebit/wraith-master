@@ -80,8 +80,9 @@ internal val morseReloadTextButton by lazy {
     }
 }
 
+@OptIn(ExperimentalUnsignedTypes::class)
 internal val ringMorseBox by lazy {
-    gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 2)!!.apply {
+    gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
         gtk_box_pack_end(reinterpret(), morseReloadTextButton, 0, 0, 0u)
         gtk_box_pack_end(reinterpret(), ringMorseTextBox, 0, 0, 0u)
         setSensitive(ring.mode == RingMode.MORSE)

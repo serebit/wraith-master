@@ -47,7 +47,7 @@ fun CPointer<GtkWidget>.addCss(css: String) = gtk_widget_get_style_context(this)
     memScoped {
         val err = allocPointerTo<GError>().ptr
         gtk_css_provider_load_from_data(provider, css, css.length.toLong(), err)
-        err.pointed.pointed?.message?.let { print("CSS Error: $it") }
+        err.pointed.pointed?.message?.toKString()?.let { println("CSS Error: $it") }
     }
     gtk_style_context_add_provider(this, provider.reinterpret(), GTK_STYLE_PROVIDER_PRIORITY_USER)
 }
