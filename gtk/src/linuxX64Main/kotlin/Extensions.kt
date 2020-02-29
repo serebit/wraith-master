@@ -22,7 +22,8 @@ fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
 @OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkWidget>.newSettingsPage(label: String): CPointer<GtkWidget> =
     gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.apply {
-        gtk_container_set_border_width(reinterpret(), 24u)
+        gtk_container_set_border_width(reinterpret(), 16u)
+        addCss("box { padding: 0 8px; }")
         gtk_widget_set_vexpand(this, 1)
         gtk_notebook_append_page(this@newSettingsPage.reinterpret(), this, gtk_label_new(label))
     }
@@ -40,6 +41,16 @@ fun CPointer<GtkWidget>.gridAttachRight(widget: CPointer<GtkWidget>, position: I
     gtk_grid_attach(reinterpret(), widget, 1, position, 1, 1)
 
 fun CPointer<GtkWidget>.setSensitive(boolean: Boolean) = gtk_widget_set_sensitive(this, boolean.toByte().toInt())
+
+fun CPointer<GtkWidget>.addCss(css: String) = gtk_widget_get_style_context(this)!!.apply {
+    val provider = gtk_css_provider_new()!!
+    memScoped {
+        val err = allocPointerTo<GError>().ptr
+        gtk_css_provider_load_from_data(provider, css, css.length.toLong(), err)
+        err.pointed.pointed?.message?.let { print("CSS Error: $it") }
+    }
+    gtk_style_context_add_provider(this, provider.reinterpret(), GTK_STYLE_PROVIDER_PRIORITY_USER)
+}
 
 fun <E : Enum<*>> gridComboBox(default: E, elements: Array<E>, sensitive: Boolean, action: GtkCallbackFunction) =
     gtk_combo_box_text_new()!!.apply {

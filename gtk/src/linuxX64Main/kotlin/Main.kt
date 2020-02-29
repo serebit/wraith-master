@@ -47,7 +47,8 @@ fun CPointer<GtkApplication>.activate() {
             it.gridLabel(3, "Speed")
         }
         fanGrid.gridLabel(4, "Mirage")
-        ringGrid.gridLabel(4, "Direction")
+        ringGrid.gridLabel(4, "Rotation Direction")
+        ringGrid.gridLabel(5, "Morse Text")
 
         gridComboBox(logo.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateMode(logo, it)
@@ -90,11 +91,13 @@ fun CPointer<GtkApplication>.activate() {
             ringBrightnessScale.setSensitive(ring.mode.supportsBrightness)
             ringSpeedScale.setSensitive(ring.mode.supportsSpeed)
             ringDirectionComboBox.setSensitive(ring.mode.supportsDirection)
+            ringMorseBox.setSensitive(ring.mode == RingMode.MORSE)
         }).also { ringGrid.gridAttachRight(it, 0) }
         ringGrid.gridAttachRight(ringColorButton, 1)
         ringGrid.gridAttachRight(ringBrightnessScale, 2)
         ringGrid.gridAttachRight(ringSpeedScale, 3)
         ringGrid.gridAttachRight(ringDirectionComboBox, 4)
+        ringGrid.gridAttachRight(ringMorseBox, 5)
 
         val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
             gtk_container_add(box.reinterpret(), this)

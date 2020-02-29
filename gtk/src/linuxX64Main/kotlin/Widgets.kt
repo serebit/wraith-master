@@ -1,13 +1,8 @@
 package com.serebit.wraith.gtk
 
 import com.serebit.wraith.core.*
-import gtk3.GtkWidget
-import gtk3.gtk_combo_box_text_get_active_text
-import gtk3.gtk_switch_new
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.reinterpret
-import kotlinx.cinterop.staticCFunction
-import kotlinx.cinterop.toKString
+import gtk3.*
+import kotlinx.cinterop.*
 
 internal val logoColorButton by lazy {
     gridColorButton(logo.color, logo.mode.supportsColor,
@@ -73,4 +68,22 @@ internal val ringDirectionComboBox by lazy {
             wraith.update(ring) { direction = RotationDirection.valueOf(text.toUpperCase()) }
         }
     )
+}
+
+internal val ringMorseTextBox by lazy {
+    gtk_entry_new()!!
+}
+
+internal val morseReloadTextButton by lazy {
+    gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
+        addCss("button { min-height: unset; }")
+    }
+}
+
+internal val ringMorseBox by lazy {
+    gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 2)!!.apply {
+        gtk_box_pack_end(reinterpret(), morseReloadTextButton, 0, 0, 0u)
+        gtk_box_pack_end(reinterpret(), ringMorseTextBox, 0, 0, 0u)
+        setSensitive(ring.mode == RingMode.MORSE)
+    }
 }
