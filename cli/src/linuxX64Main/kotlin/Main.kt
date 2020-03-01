@@ -61,6 +61,10 @@ fun main(args: Array<KString>) {
         shortName = "d", description = "Only supported by ring modes swirl and chase"
     )
     val mirage by parser.option(ArgType.Choice(listOf("on", "off")), description = "Enable or disable fan mirage")
+    val morseText by parser.option(
+        ArgType.String, "morse-text",
+        description = "Plaintext or morse code to apply to the morse code mode"
+    )
 
     parser.parse(args)
 
@@ -74,6 +78,10 @@ fun main(args: Array<KString>) {
         if (invalidRingMode || invalidLedMode) {
             parser.printError("Provided mode $it is not in valid modes for component $component.")
         }
+    }
+    morseText?.let {
+        if (!it.isMorseCode && !it.isValidMorseText)
+            error("Invalid chars in morse-text argument: ${it.invalidMorseChars}")
     }
 
     when (val result: WraithPrismResult = obtainWraithPrism()) {
@@ -99,8 +107,12 @@ fun main(args: Array<KString>) {
             brightness?.let { wraith.update(ledComponent) { this.brightness = it } }
             speed?.let { wraith.update(ledComponent) { this.speed = it } }
 
-            if (ledComponent is RingComponent) direction?.toUpperCase()?.let {
-                wraith.update(ledComponent) { this.direction = RotationDirection.valueOf(it) }
+            if (ledComponent is RingComponent) {
+                direction?.toUpperCase()?.let {
+                    wraith.update(ledComponent) { this.direction = RotationDirection.valueOf(it) }
+                }
+
+                morseText?.let { wraith.updateRingMorseText(it) }
             }
             if (ledComponent is FanComponent) mirage?.let {
                 wraith.fan.mirage = it == "on"
