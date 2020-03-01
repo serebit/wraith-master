@@ -94,6 +94,8 @@ fun CPointer<GtkApplication>.activate() {
             ringSpeedScale.setSensitive(ring.mode.supportsSpeed)
             ringDirectionComboBox.setSensitive(ring.mode.supportsDirection)
             ringMorseBox.setSensitive(ring.mode == RingMode.MORSE)
+            if (ring.mode != RingMode.MORSE)
+                ringMorseTextBoxHint?.let { gtk_widget_hide(ringMorseTextBoxHint) }
         }).also { ringGrid.gridAttachRight(it, 0) }
         ringGrid.gridAttachRight(ringColorButton, 1)
         ringGrid.gridAttachRight(ringBrightnessScale, 2)

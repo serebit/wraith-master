@@ -71,8 +71,8 @@ internal val ringDirectionComboBox by lazy {
     )
 }
 
-private var ringMorseTextBoxHintLabel: CPointer<GtkWidget>? = null
-private var ringMorseTextBoxHint: CPointer<GtkWidget>? = null
+internal var ringMorseTextBoxHintLabel: CPointer<GtkWidget>? = null
+internal var ringMorseTextBoxHint: CPointer<GtkWidget>? = null
 
 @OptIn(ExperimentalUnsignedTypes::class)
 private val String.hintText: String
@@ -110,18 +110,18 @@ internal val ringMorseTextBox by lazy {
         )
 
         connectSignal("icon-press", staticCFunction<CPointer<GtkWidget>, Unit> {
-            ringMorseTextBoxHint = if (ringMorseTextBoxHint == null) {
-                ringMorseTextBoxHintLabel = gtk_label_new(it.text.hintText)!!
-                gtk_popover_new(it)!!.apply {
-                    gtk_popover_set_modal(reinterpret(), 0)
-                    gtk_container_set_border_width(reinterpret(), 8u)
-                    gtk_container_add(reinterpret(), ringMorseTextBoxHintLabel)
-                    gtk_widget_show_all(this)
+            when {
+                ringMorseTextBoxHint == null -> {
+                    ringMorseTextBoxHintLabel = gtk_label_new(it.text.hintText)!!
+                    ringMorseTextBoxHint = gtk_popover_new(it)!!.apply {
+                        gtk_popover_set_modal(reinterpret(), 0)
+                        gtk_container_set_border_width(reinterpret(), 8u)
+                        gtk_container_add(reinterpret(), ringMorseTextBoxHintLabel)
+                        gtk_widget_show_all(this)
+                    }
                 }
-            } else {
-                gtk_widget_destroy(ringMorseTextBoxHint)
-                ringMorseTextBoxHintLabel = null
-                null
+                gtk_widget_is_visible(ringMorseTextBoxHint) == 1 -> gtk_widget_hide(ringMorseTextBoxHint)
+                else -> gtk_widget_show(ringMorseTextBoxHint)
             }
         })
     }
