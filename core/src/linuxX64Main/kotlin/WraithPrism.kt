@@ -111,6 +111,15 @@ fun WraithPrism.updateFanMirage() = if (fan.mirage) sendBytes(
 )
 
 @OptIn(ExperimentalUnsignedTypes::class)
+fun WraithPrism.updateRingMorseText(text: String) {
+    val chunks = text.parseMorseOrTextToBytes().chunked(60)
+    val firstChunk = chunks[0].toUByteArray()
+    val secondChunk = if (chunks.size > 1) chunks[1].toUByteArray() else ubyteArrayOf()
+    sendBytes(0x51u, 0x73u, 0u, 0u, *firstChunk)
+    sendBytes(0x51u, 0x73u, 0x01u, 0u, *secondChunk)
+}
+
+@OptIn(ExperimentalUnsignedTypes::class)
 fun WraithPrism.reset() {
     // load
     sendBytes(0x50u)

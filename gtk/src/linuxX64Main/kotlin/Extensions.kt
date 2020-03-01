@@ -19,6 +19,8 @@ fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
     alpha = 1.0
 }
 
+val CPointer<GtkWidget>.text get() = gtk_entry_get_text(reinterpret())!!.toKString()
+
 @OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkWidget>.newSettingsPage(label: String): CPointer<GtkWidget> =
     gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.apply {

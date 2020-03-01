@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+#### Added 
+- **Morse text setting**, which can parse plaintext along with literal morse code
+
 #### Changed 
 - "Direction" label to "Rotation Direction"
 - Adjust padding of main settings box

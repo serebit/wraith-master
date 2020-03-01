@@ -3,6 +3,7 @@ package com.serebit.wraith.gtk
 import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
+import kotlin.math.absoluteValue
 
 internal val logoColorButton by lazy {
     gridColorButton(logo.color, logo.mode.supportsColor,
@@ -70,13 +71,68 @@ internal val ringDirectionComboBox by lazy {
     )
 }
 
+private var ringMorseTextBoxHintLabel: CPointer<GtkWidget>? = null
+private var ringMorseTextBoxHint: CPointer<GtkWidget>? = null
+
+@OptIn(ExperimentalUnsignedTypes::class)
+private val String.hintText: String
+    get() = when {
+        isBlank() -> "Enter either morse code (dots and dashes) or text"
+        parseMorseOrTextToBytes().size > 120 -> "Maximum length exceeded"
+        isMorseCode -> "Parsing as morse code"
+        isValidMorseText -> "Parsing as text"
+        else -> "Invalid characters detected: $invalidMorseChars"
+    }
+
+private fun changeCallback(pointer: CPointer<GtkWidget>) {
+    ringMorseTextBoxHintLabel?.apply {
+        val entryText = pointer.text
+        gtk_label_set_text(reinterpret(), entryText.hintText)
+        val isInvalid = !entryText.isValidMorseText && !entryText.isMorseCode
+        if (entryText.parseMorseOrTextToBytes().size > 120 || isInvalid) {
+            gtk_widget_set_sensitive(morseReloadTextButton, 0)
+        } else {
+            gtk_widget_set_sensitive(morseReloadTextButton, 1)
+        }
+    }
+}
+
 internal val ringMorseTextBox by lazy {
-    gtk_entry_new()!!
+    gtk_entry_new()!!.apply {
+        connectSignal("changed", staticCFunction<CPointer<GtkWidget>, Unit> {
+            changeCallback(it)
+        })
+
+        gtk_entry_set_icon_from_icon_name(
+            reinterpret(),
+            GtkEntryIconPosition.GTK_ENTRY_ICON_SECONDARY,
+            "dialog-information"
+        )
+
+        connectSignal("icon-press", staticCFunction<CPointer<GtkWidget>, Unit> {
+            ringMorseTextBoxHint = if (ringMorseTextBoxHint == null) {
+                ringMorseTextBoxHintLabel = gtk_label_new(it.text.hintText)!!
+                gtk_popover_new(it)!!.apply {
+                    gtk_popover_set_modal(reinterpret(), 0)
+                    gtk_container_set_border_width(reinterpret(), 8u)
+                    gtk_container_add(reinterpret(), ringMorseTextBoxHintLabel)
+                    gtk_widget_show_all(this)
+                }
+            } else {
+                gtk_widget_destroy(ringMorseTextBoxHint)
+                ringMorseTextBoxHintLabel = null
+                null
+            }
+        })
+    }
 }
 
 internal val morseReloadTextButton by lazy {
     gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
         addCss("button { min-height: unset; }")
+        connectSignal("clicked", staticCFunction<CPointer<GtkWidget>, Unit> {
+            wraith.updateRingMorseText(ringMorseTextBox.text)
+        })
     }
 }
 

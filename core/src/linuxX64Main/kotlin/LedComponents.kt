@@ -91,7 +91,9 @@ class RingComponent(initialValues: ChannelValues) : LedComponent {
     override val values: UByteArray
         get() {
             val brightness = mode.brightnesses.elementAtOrNull(brightness - 1) ?: 0x99u
-            val speed = mode.speeds.elementAtOrNull(speed - 1) ?: 0xFFu
+            val speed = if (mode != RingMode.MORSE) {
+                mode.speeds.elementAtOrNull(speed - 1) ?: 0xFFu
+            } else 0x6Bu
             val colorSource = if (mode.supportsDirection) direction.value else mode.colorSource
             return ubyteArrayOf(mode.channel, speed, colorSource, mode.mode, 0xFFu, brightness, *color.bytes)
         }
