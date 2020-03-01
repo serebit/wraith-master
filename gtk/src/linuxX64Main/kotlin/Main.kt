@@ -20,6 +20,16 @@ fun CPointer<GtkApplication>.activate() {
     if (activeWindow == null) {
         val windowWidget = gtk_application_window_new(this)!!
 
+        // unset focus on left click with mouse button
+        windowWidget.connectSignal(
+            "button-press-event",
+            staticCFunction<CPointer<GtkWidget>, CPointer<GdkEventButton>, Unit> { it, event ->
+                if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
+                    gtk_window_set_focus(it.reinterpret(), null)
+                    gtk_window_set_focus_visible(it.reinterpret(), 0)
+                }
+            })
+
         val window = windowWidget.reinterpret<GtkWindow>()
         gtk_window_set_title(window, "Wraith Master")
         gtk_window_set_default_size(window, 480, -1)
