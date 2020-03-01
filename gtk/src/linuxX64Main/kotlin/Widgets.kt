@@ -38,6 +38,8 @@ internal val fanSpeedScale by lazy {
 internal val fanMirageToggle by lazy {
     gtk_switch_new()!!.apply {
         setSensitive(fan.mode != LedMode.OFF)
+        gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
+        gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         connectSignal("state-set", staticCFunction<CPointer<GtkWidget>, Int, Boolean> { _, state ->
             fan.mirage = state != 0
             wraith.updateFanMirage()
@@ -71,7 +73,7 @@ internal val ringDirectionComboBox by lazy {
     )
 }
 
-internal var ringMorseTextBoxHintLabel: CPointer<GtkWidget>? = null
+private var ringMorseTextBoxHintLabel: CPointer<GtkWidget>? = null
 internal var ringMorseTextBoxHint: CPointer<GtkWidget>? = null
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -99,16 +101,14 @@ private fun changeCallback(pointer: CPointer<GtkWidget>) {
 
 internal val ringMorseTextBox by lazy {
     gtk_entry_new()!!.apply {
-        connectSignal("changed", staticCFunction<CPointer<GtkWidget>, Unit> {
-            changeCallback(it)
-        })
-
+        gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         gtk_entry_set_icon_from_icon_name(
             reinterpret(),
             GtkEntryIconPosition.GTK_ENTRY_ICON_SECONDARY,
             "dialog-information"
         )
 
+        connectSignal("changed", staticCFunction<CPointer<GtkWidget>, Unit> { changeCallback(it) })
         connectSignal("icon-press", staticCFunction<CPointer<GtkWidget>, Unit> {
             when {
                 ringMorseTextBoxHint == null -> {
@@ -129,7 +129,7 @@ internal val ringMorseTextBox by lazy {
 
 internal val morseReloadTextButton by lazy {
     gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
-        addCss("button { min-height: unset; }")
+        gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         connectSignal("clicked", staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateRingMorseText(ringMorseTextBox.text)
         })

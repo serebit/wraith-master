@@ -39,6 +39,7 @@ fun CPointer<GtkApplication>.activate() {
         fun CPointer<GtkWidget>?.gridLabel(position: Int, text: String) = gtk_label_new(text)?.apply {
             gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
             gtk_widget_set_hexpand(this, 1)
+            gtk_widget_set_size_request(this, -1, 36)
             gtk_grid_attach(this@gridLabel?.reinterpret(), this, 0, position, 1, 1)
         }
 

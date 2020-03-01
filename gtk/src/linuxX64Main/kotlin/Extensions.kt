@@ -63,6 +63,7 @@ fun <E : Enum<*>> gridComboBox(default: E, elements: Array<E>, sensitive: Boolea
         setSensitive(sensitive)
         gtk_widget_set_size_request(this, 96, -1)
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
+        gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         connectSignal("changed", action)
     }
 
@@ -71,6 +72,7 @@ fun gridColorButton(color: Color, sensitive: Boolean, action: GtkCallbackFunctio
     memScoped { gtk_color_button_set_rgba(reinterpret(), gdkRgba(color).ptr) }
     gtk_widget_set_size_request(this, 96, -1)
     gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
+    gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
     setSensitive(sensitive)
     connectSignal("color-set", action)
 }
@@ -84,6 +86,7 @@ fun gridScale(default: Int, marks: Int, sensitive: Boolean, action: GtkCallbackF
             gtk_scale_set_draw_value(reinterpret(), 0)
             gtk_widget_set_size_request(this, 96, -1)
             gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
+            gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
             for (i in 1..marks) {
                 gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
             }

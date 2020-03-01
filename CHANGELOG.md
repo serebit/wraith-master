@@ -10,8 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Morse text setting**, which can parse plaintext along with literal morse code
 
 #### Changed 
-- "Direction" label to "Rotation Direction"
+- Changed "Direction" label to "Rotation Direction" for clarity
 - Adjust padding of main settings box
+
+#### Fixed 
+- Modified style to be more consistent across GTK themes while maintaining that theme's look and feel
 
 ## 0.4.2 (2020-01-21)
 
