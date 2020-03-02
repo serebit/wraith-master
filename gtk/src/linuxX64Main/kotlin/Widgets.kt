@@ -5,8 +5,28 @@ import gtk3.*
 import kotlinx.cinterop.*
 import kotlin.math.absoluteValue
 
+internal val logoColorBox by lazy {
+    gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
+        gtk_box_pack_end(reinterpret(), logoColorButton, 0, 0, 0u)
+        gtk_box_pack_end(reinterpret(), logoRandomColorCheckbox, 0, 0, 0u)
+    }
+}
+
+internal val logoRandomColorCheckbox by lazy {
+    gtk_check_button_new_with_label("Randomize?")!!.apply {
+        setSensitive(logo.mode.colorSupport == ColorSupport.ALL)
+        gtk_toggle_button_set_active(reinterpret(), logo.useRandomColor.toByte().toInt())
+        connectSignal("toggled", staticCFunction<CPointer<GtkWidget>, Unit> {
+            val isActive = gtk_toggle_button_get_active(it.reinterpret())
+            if (logo.mode.colorSupport == ColorSupport.ALL)
+                wraith.update(logo) { useRandomColor = isActive == 1 }
+            gtk_widget_set_sensitive(logoColorButton, (isActive - 1).absoluteValue)
+        })
+    }
+}
+
 internal val logoColorButton by lazy {
-    gridColorButton(logo.color, logo.mode.supportsColor,
+    gridColorButton(logo.color, logo.mode.colorSupport != ColorSupport.NONE,
         staticCFunction<CPointer<GtkWidget>, Unit> { wraith.updateColor(logo, it) })
 }
 
@@ -20,8 +40,28 @@ internal val logoSpeedScale by lazy {
         staticCFunction<CPointer<GtkWidget>, Unit> { wraith.updateSpeed(logo, it) })
 }
 
+internal val fanColorBox by lazy {
+    gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
+        gtk_box_pack_end(reinterpret(), fanColorButton, 0, 0, 0u)
+        gtk_box_pack_end(reinterpret(), fanRandomColorCheckbox, 0, 0, 0u)
+    }
+}
+
+internal val fanRandomColorCheckbox by lazy {
+    gtk_check_button_new_with_label("Randomize?")!!.apply {
+        setSensitive(fan.mode.colorSupport == ColorSupport.ALL)
+        gtk_toggle_button_set_active(reinterpret(), fan.useRandomColor.toByte().toInt())
+        connectSignal("toggled", staticCFunction<CPointer<GtkWidget>, Unit> {
+            val isActive = gtk_toggle_button_get_active(it.reinterpret())
+            if (fan.mode.colorSupport == ColorSupport.ALL)
+                wraith.update(fan) { useRandomColor = isActive == 1 }
+            gtk_widget_set_sensitive(fanColorButton, (isActive - 1).absoluteValue)
+        })
+    }
+}
+
 internal val fanColorButton by lazy {
-    gridColorButton(fan.color, fan.mode.supportsColor,
+    gridColorButton(fan.color, fan.mode.colorSupport != ColorSupport.NONE,
         staticCFunction<CPointer<GtkWidget>, Unit> { wraith.updateColor(fan, it) })
 }
 
@@ -48,8 +88,28 @@ internal val fanMirageToggle by lazy {
     }
 }
 
+internal val ringColorBox by lazy {
+    gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
+        gtk_box_pack_end(reinterpret(), ringColorButton, 0, 0, 0u)
+        gtk_box_pack_end(reinterpret(), ringRandomColorCheckbox, 0, 0, 0u)
+    }
+}
+
+internal val ringRandomColorCheckbox by lazy {
+    gtk_check_button_new_with_label("Randomize?")!!.apply {
+        setSensitive(ring.mode.colorSupport == ColorSupport.ALL)
+        gtk_toggle_button_set_active(reinterpret(), ring.useRandomColor.toByte().toInt())
+        connectSignal("toggled", staticCFunction<CPointer<GtkWidget>, Unit> {
+            val isActive = gtk_toggle_button_get_active(it.reinterpret())
+            if (ring.mode.colorSupport == ColorSupport.ALL)
+                wraith.update(ring) { useRandomColor = isActive == 1 }
+            gtk_widget_set_sensitive(ringColorButton, (isActive - 1).absoluteValue)
+        })
+    }
+}
+
 internal val ringColorButton by lazy {
-    gridColorButton(ring.color, ring.mode.supportsColor,
+    gridColorButton(ring.color, ring.mode.colorSupport != ColorSupport.NONE,
         staticCFunction<CPointer<GtkWidget>, Unit> { wraith.updateColor(ring, it) })
 }
 
@@ -71,6 +131,15 @@ internal val ringDirectionComboBox by lazy {
             wraith.update(ring) { direction = RotationDirection.valueOf(text.toUpperCase()) }
         }
     )
+}
+
+@OptIn(ExperimentalUnsignedTypes::class)
+internal val ringMorseBox by lazy {
+    gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
+        gtk_box_pack_end(reinterpret(), morseReloadTextButton, 0, 0, 0u)
+        gtk_box_pack_end(reinterpret(), ringMorseTextBox, 0, 0, 0u)
+        setSensitive(ring.mode == RingMode.MORSE)
+    }
 }
 
 private var ringMorseTextBoxHintLabel: CPointer<GtkWidget>? = null
@@ -133,14 +202,5 @@ internal val morseReloadTextButton by lazy {
         connectSignal("clicked", staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateRingMorseText(ringMorseTextBox.text)
         })
-    }
-}
-
-@OptIn(ExperimentalUnsignedTypes::class)
-internal val ringMorseBox by lazy {
-    gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
-        gtk_box_pack_end(reinterpret(), morseReloadTextButton, 0, 0, 0u)
-        gtk_box_pack_end(reinterpret(), ringMorseTextBox, 0, 0, 0u)
-        setSensitive(ring.mode == RingMode.MORSE)
     }
 }

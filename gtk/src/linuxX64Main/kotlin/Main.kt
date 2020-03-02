@@ -3,8 +3,6 @@ package com.serebit.wraith.gtk
 import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
-import platform.posix.uintVar
-import platform.zlib.uByteVar
 import kotlin.system.exitProcess
 
 val result = obtainWraithPrism()
@@ -65,26 +63,34 @@ fun CPointer<GtkApplication>.activate() {
 
         gridComboBox(logo.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateMode(logo, it)
-            val color = if (logo.mode.supportsColor) logo.color else Color(0, 0, 0)
-            memScoped { gtk_color_button_set_rgba(logoColorButton.reinterpret(), gdkRgba(color).ptr) }
-            logoColorButton.setSensitive(logo.mode.supportsColor)
+            memScoped { gtk_color_button_set_rgba(logoColorButton.reinterpret(), gdkRgba(logo.colorOrBlack).ptr) }
+
+            val useRandomColor = logo.mode.colorSupport == ColorSupport.ALL && logo.useRandomColor
+            gtk_toggle_button_set_active(logoRandomColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+
+            logoRandomColorCheckbox.setSensitive(logo.mode.colorSupport == ColorSupport.ALL)
+            logoColorButton.setSensitive(logo.mode.colorSupport != ColorSupport.NONE)
             logoBrightnessScale.setSensitive(logo.mode.supportsBrightness)
             logoSpeedScale.setSensitive(logo.mode.supportsSpeed)
         }).also { logoGrid.gridAttachRight(it, 0) }
-        logoGrid.gridAttachRight(logoColorButton, 1)
+        logoGrid.gridAttachRight(logoColorBox, 1)
         logoGrid.gridAttachRight(logoBrightnessScale, 2)
         logoGrid.gridAttachRight(logoSpeedScale, 3)
 
         gridComboBox(fan.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateMode(fan, it)
-            val color = if (fan.mode.supportsColor) fan.color else Color(0, 0, 0)
-            memScoped { gtk_color_button_set_rgba(fanColorButton.reinterpret(), gdkRgba(color).ptr) }
-            fanColorButton.setSensitive(fan.mode.supportsColor)
+            memScoped { gtk_color_button_set_rgba(fanColorButton.reinterpret(), gdkRgba(fan.colorOrBlack).ptr) }
+
+            val useRandomColor = fan.mode.colorSupport == ColorSupport.ALL && fan.useRandomColor
+            gtk_toggle_button_set_active(fanRandomColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+
+            fanRandomColorCheckbox.setSensitive(fan.mode.colorSupport == ColorSupport.ALL)
+            fanColorButton.setSensitive(fan.mode.colorSupport != ColorSupport.NONE)
             fanBrightnessScale.setSensitive(fan.mode.supportsBrightness)
             fanSpeedScale.setSensitive(fan.mode.supportsSpeed)
             fanMirageToggle.setSensitive(fan.mode != LedMode.OFF)
         }).also { fanGrid.gridAttachRight(it, 0) }
-        fanGrid.gridAttachRight(fanColorButton, 1)
+        fanGrid.gridAttachRight(fanColorBox, 1)
         fanGrid.gridAttachRight(fanBrightnessScale, 2)
         fanGrid.gridAttachRight(fanSpeedScale, 3)
         fanGrid.gridAttachRight(fanMirageToggle, 4)
@@ -95,12 +101,16 @@ fun CPointer<GtkApplication>.activate() {
 
             ring.assignValuesFromChannel(wraith.getChannelValues(mode.channel))
             wraith.update(ring) { this.mode = mode }
-            memScoped { gtk_color_button_set_rgba(ringColorButton.reinterpret(), gdkRgba(ring.color).ptr) }
+            memScoped { gtk_color_button_set_rgba(ringColorButton.reinterpret(), gdkRgba(ring.colorOrBlack).ptr) }
             gtk_range_set_value(ringBrightnessScale.reinterpret(), ring.brightness.toDouble())
             gtk_range_set_value(ringSpeedScale.reinterpret(), ring.speed.toDouble())
             gtk_combo_box_set_active(ringDirectionComboBox.reinterpret(), ring.direction.value.toInt())
 
-            ringColorButton.setSensitive(ring.mode.supportsColor)
+            val useRandomColor = ring.mode.colorSupport == ColorSupport.ALL && ring.useRandomColor
+            gtk_toggle_button_set_active(ringRandomColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+
+            ringRandomColorCheckbox.setSensitive(ring.mode.colorSupport == ColorSupport.ALL)
+            ringColorButton.setSensitive(ring.mode.colorSupport != ColorSupport.NONE)
             ringBrightnessScale.setSensitive(ring.mode.supportsBrightness)
             ringSpeedScale.setSensitive(ring.mode.supportsSpeed)
             ringDirectionComboBox.setSensitive(ring.mode.supportsDirection)
@@ -108,7 +118,7 @@ fun CPointer<GtkApplication>.activate() {
             if (ring.mode != RingMode.MORSE)
                 ringMorseTextBoxHint?.let { gtk_widget_hide(ringMorseTextBoxHint) }
         }).also { ringGrid.gridAttachRight(it, 0) }
-        ringGrid.gridAttachRight(ringColorButton, 1)
+        ringGrid.gridAttachRight(ringColorBox, 1)
         ringGrid.gridAttachRight(ringBrightnessScale, 2)
         ringGrid.gridAttachRight(ringSpeedScale, 3)
         ringGrid.gridAttachRight(ringDirectionComboBox, 4)

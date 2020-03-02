@@ -114,3 +114,9 @@ fun WraithPrism.updateMode(component: BasicLedComponent, comboBox: CPointer<GtkW
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
     wraith.update(component) { mode = LedMode.valueOf(text.toUpperCase()) }
 }
+
+val BasicLedComponent.colorOrBlack
+    get() = if (mode.colorSupport != ColorSupport.NONE) color else Color(0, 0, 0)
+
+val RingComponent.colorOrBlack
+    get() = if (mode.colorSupport != ColorSupport.NONE) color else Color(0, 0, 0)

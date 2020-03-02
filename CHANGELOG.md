@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added 
 - **Morse text setting**, which can parse plaintext along with literal morse code
+- Randomized color option for supported modes
 
 #### Changed 
 - Changed "Direction" label to "Rotation Direction" for clarity
@@ -15,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Fixed 
 - Modified style to be more consistent across GTK themes while maintaining that theme's look and feel
+- Fixed occasional crash on setting ring mode to "Breathe", not sure what caused it
+- Fixed crash on swapping ring mode to a mode that supports both random colors and rotation direction if the random colors option was selected for that mode outside of Wraith Master
 
 ## 0.4.2 (2020-01-21)
 

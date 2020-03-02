@@ -60,6 +60,7 @@ fun main(args: Array<KString>) {
         ArgType.Choice(listOf("clockwise", "counterclockwise")),
         shortName = "d", description = "Only supported by ring modes swirl and chase"
     )
+    val randomColor by parser.option(ArgType.Boolean, fullName = "random-color")
     val mirage by parser.option(ArgType.Choice(listOf("on", "off")), description = "Enable or disable fan mirage")
     val morseText by parser.option(
         ArgType.String, "morse-text",
@@ -103,7 +104,16 @@ fun main(args: Array<KString>) {
                 }
             }
 
-            color?.let { wraith.update(ledComponent) { this.color = it } }
+            if (randomColor != null) {
+                randomColor?.let { wraith.update(ledComponent) { this.useRandomColor = it } }
+            } else if (color != null) {
+                color?.let {
+                    wraith.update(ledComponent) {
+                        this.color = it
+                        this.useRandomColor = false
+                    }
+                }
+            }
             brightness?.let { wraith.update(ledComponent) { this.brightness = it } }
             speed?.let { wraith.update(ledComponent) { this.speed = it } }
 
