@@ -82,7 +82,7 @@ class RingComponent(initialValues: ChannelValues) : LedComponent {
         speed = mode.speeds.indexOfOrNull(channelValues.speed)?.plus(1) ?: 3
         brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1) ?: 2
         direction = if (mode.supportsDirection) {
-            RotationDirection.values()[channelValues.colorSource.toInt()]
+            RotationDirection.values()[channelValues.colorSource.toInt() and 1]
         } else {
             RotationDirection.CLOCKWISE
         }
