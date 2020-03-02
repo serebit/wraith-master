@@ -12,12 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Changed 
 - Changed "Direction" label to "Rotation Direction" for clarity
-- Adjust padding of main settings box
+- Adjusted padding of main settings box
 
 #### Fixed 
 - Modified style to be more consistent across GTK themes while maintaining that theme's look and feel
 - Fixed occasional crash on setting ring mode to "Breathe", not sure what caused it
 - Fixed crash on swapping ring mode to a mode that supports both random colors and rotation direction if the random colors option was selected for that mode outside of Wraith Master
+- Clicking on the window now clears the keyboard focus
+- Color buttons now have the correct colors set on startup for modes that don't support color
 
 ## 0.4.2 (2020-01-21)
 

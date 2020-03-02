@@ -26,7 +26,7 @@ internal val logoRandomColorCheckbox by lazy {
 }
 
 internal val logoColorButton by lazy {
-    gridColorButton(logo.color, logo.mode.colorSupport != ColorSupport.NONE,
+    gridColorButton(logo.colorOrBlack, logo.mode.colorSupport != ColorSupport.NONE,
         staticCFunction<CPointer<GtkWidget>, Unit> { wraith.updateColor(logo, it) })
 }
 
@@ -61,7 +61,7 @@ internal val fanRandomColorCheckbox by lazy {
 }
 
 internal val fanColorButton by lazy {
-    gridColorButton(fan.color, fan.mode.colorSupport != ColorSupport.NONE,
+    gridColorButton(fan.colorOrBlack, fan.mode.colorSupport != ColorSupport.NONE,
         staticCFunction<CPointer<GtkWidget>, Unit> { wraith.updateColor(fan, it) })
 }
 
@@ -109,7 +109,7 @@ internal val ringRandomColorCheckbox by lazy {
 }
 
 internal val ringColorButton by lazy {
-    gridColorButton(ring.color, ring.mode.colorSupport != ColorSupport.NONE,
+    gridColorButton(ring.colorOrBlack, ring.mode.colorSupport != ColorSupport.NONE,
         staticCFunction<CPointer<GtkWidget>, Unit> { wraith.updateColor(ring, it) })
 }
 
