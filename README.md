@@ -10,11 +10,15 @@ Wraith Master is a graphical and command-line application for controlling the RG
 
 Designed for feature parity with the official Windows-only Cooler Master application, Wraith Master supports all modes and settings that the Wraith Prism is capable of handling. Only one feature remains to be implemented (fan mirage color frequencies).
 
-## Download
+## Installing
 
-There are precompiled binaries available for each release [here](https://gitlab.com/serebit/wraith-master/-/releases).
+There are precompiled binaries available for each release [here](https://gitlab.com/serebit/wraith-master/-/releases). Some Linux distributions have alternate installation methods, which are detailed below.
 
-If you're on Arch Linux or one of its derivatives, you can also install both frontends from the AUR, under `wraith-master-cli` for the CLI frontend and `wraith-master-gtk` for the GTK frontend. 
+#### Arch/Derivatives
+If you're on Arch Linux or one of its derivatives, you can install both frontends [from the AUR](https://aur.archlinux.org/packages/?K=wraith%2Dmaster), under `wraith-master-cli` for the CLI frontend and `wraith-master-gtk` for the GTK frontend. 
+
+#### Solus
+Solus has both frontends in the official repository. They can be installed either by running `sudo eopkg it wraith-master` in the terminal, or searching for the package in the Software Center.
 
 ## Building from Source
 
@@ -77,6 +81,7 @@ Wraith Master is open-sourced under the [Apache License, Version 2.0](https://ww
 ## Acknowledgements
 
 - **gfduszynski**, for his work on [cm-rgb](https://github.com/gfduszynski/cm-rgb). Although I started Wraith Master before discovering cm-rgb, gfduszynski's work made it viable.
+- **Adam Honse**, for his work on [OpenRGB](https://gitlab.com/CalcProgrammer1/OpenRGB). This had some extra documentation on specific functions that I was lacking.
 - **Cooler Master**, for manufacturing these great stock coolers, and forwarding me to AMD when I inquired about how the Wraith Prism's USB interface worked.
 - **AMD**, for telling me I'd need to sign an NDA to get that information. Sorry, but that's not really my style. Thanks for the great product though!
 
