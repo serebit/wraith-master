@@ -69,15 +69,15 @@ fun main(args: Array<KString>) {
 
     parser.parse(args)
 
-    brightness?.let { if (it !in 1..3) parser.printError("Brightness must be within the range of 1 to 3") }
-    speed?.let { if (it !in 1..5) parser.printError("Speed must be within the range of 1 to 5") }
+    brightness?.let { if (it !in 1..3) error("Brightness must be within the range of 1 to 3") }
+    speed?.let { if (it !in 1..5) error("Speed must be within the range of 1 to 5") }
     mode?.let { it ->
         val invalidRingMode = component.toLowerCase() == "ring"
                 && it.toUpperCase() !in RingMode.values().map { it.name }
         val invalidLedMode = component.toLowerCase() in listOf("fan", "logo")
                 && it.toUpperCase() !in LedMode.values().map { it.name }
         if (invalidRingMode || invalidLedMode) {
-            parser.printError("Provided mode $it is not in valid modes for component $component.")
+            error("Provided mode $it is not in valid modes for component $component.")
         }
     }
     morseText?.let {
@@ -86,7 +86,7 @@ fun main(args: Array<KString>) {
     }
 
     when (val result: WraithPrismResult = obtainWraithPrism()) {
-        is WraithPrismResult.Failure -> parser.printError(result.message)
+        is WraithPrismResult.Failure -> error(result.message)
 
         is WraithPrismResult.Success -> {
             val wraith = result.device

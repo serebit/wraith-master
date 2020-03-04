@@ -3,12 +3,12 @@ plugins {
 }
 
 kotlin.linuxX64 {
-    compilations["main"].apply {
-        defaultSourceSet {
-            dependencies { implementation(project(":core")) }
-            languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+    compilations["main"].defaultSourceSet {
+        dependencies { 
+            implementation(project(":core"))
+            implementation("org.jetbrains.kotlinx:kotlinx-cli-linuxx64:0.2.1") 
         }
-        enableEndorsedLibs = true
+        languageSettings.useExperimentalAnnotation("kotlin.Experimental")
     }
 
     binaries.executable { entryPoint = "com.serebit.wraith.cli.main" }
