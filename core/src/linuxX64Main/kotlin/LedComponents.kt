@@ -3,6 +3,7 @@ package com.serebit.wraith.core
 interface LedComponent {
     @OptIn(ExperimentalUnsignedTypes::class)
     val values: UByteArray
+    val mode: Mode
     var color: Color
     var speed: Int
     var brightness: Int
@@ -14,7 +15,7 @@ interface LedComponent {
 interface BasicLedComponent : LedComponent {
     @OptIn(ExperimentalUnsignedTypes::class)
     val channel: UByte
-    var mode: LedMode
+    override var mode: LedMode
 
     @OptIn(ExperimentalUnsignedTypes::class)
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
@@ -73,7 +74,7 @@ enum class RotationDirection(val value: UByte) { CLOCKWISE(0u), COUNTERCLOCKWISE
 
 @OptIn(ExperimentalUnsignedTypes::class)
 class RingComponent(initialValues: ChannelValues) : LedComponent {
-    lateinit var mode: RingMode
+    override lateinit var mode: RingMode
     override lateinit var color: Color
     override var useRandomColor = false
     override var speed = 0
@@ -196,8 +197,5 @@ class Color(val r: Int, val g: Int, val b: Int) {
 val Color.bytes
     get() = ubyteArrayOf(r.toUByte(), g.toUByte(), b.toUByte())
 
-val LedMode.supportsBrightness get() = brightnesses.isNotEmpty()
-val LedMode.supportsSpeed get() = speeds.isNotEmpty()
-
-val RingMode.supportsBrightness get() = brightnesses.isNotEmpty()
-val RingMode.supportsSpeed get() = speeds.isNotEmpty()
+val Mode.supportsBrightness get() = brightnesses.isNotEmpty()
+val Mode.supportsSpeed get() = speeds.isNotEmpty()

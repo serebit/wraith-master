@@ -3,9 +3,11 @@ package com.serebit.wraith.gtk
 import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
+import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
-private typealias GtkCallbackFunction = CPointer<CFunction<(CPointer<GtkWidget>) -> Unit>>
+typealias Widget = CPointer<GtkWidget>
+typealias GtkCallbackFunction = CPointer<CFunction<(Widget) -> Unit>>
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun <F : CFunction<*>> CPointer<*>.connectSignal(signal: String, action: CPointer<F>) =
@@ -19,10 +21,10 @@ fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
     alpha = 1.0
 }
 
-val CPointer<GtkWidget>.text get() = gtk_entry_get_text(reinterpret())!!.toKString()
+val Widget.text get() = gtk_entry_get_text(reinterpret())!!.toKString()
 
 @OptIn(ExperimentalUnsignedTypes::class)
-fun CPointer<GtkWidget>.newSettingsPage(label: String): CPointer<GtkWidget> =
+fun Widget.newSettingsPage(label: String): Widget =
     gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.apply {
         gtk_container_set_border_width(reinterpret(), 16u)
         addCss("box { padding: 0 8px; }")
@@ -31,7 +33,7 @@ fun CPointer<GtkWidget>.newSettingsPage(label: String): CPointer<GtkWidget> =
     }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-fun CPointer<GtkWidget>.newSettingsGrid(): CPointer<GtkWidget> = gtk_grid_new()!!.apply {
+fun Widget.newSettingsGrid(): Widget = gtk_grid_new()!!.apply {
     gtk_grid_set_row_homogeneous(reinterpret(), 1)
     gtk_grid_set_column_spacing(reinterpret(), 64u)
     gtk_grid_set_row_spacing(reinterpret(), 8u)
@@ -39,12 +41,12 @@ fun CPointer<GtkWidget>.newSettingsGrid(): CPointer<GtkWidget> = gtk_grid_new()!
     gtk_container_add(this@newSettingsGrid.reinterpret(), this)
 }
 
-fun CPointer<GtkWidget>.gridAttachRight(widget: CPointer<GtkWidget>, position: Int) =
+fun Widget.gridAttachRight(widget: Widget, position: Int) =
     gtk_grid_attach(reinterpret(), widget, 1, position, 1, 1)
 
-fun CPointer<GtkWidget>.setSensitive(boolean: Boolean) = gtk_widget_set_sensitive(this, boolean.toByte().toInt())
+fun Widget.setSensitive(boolean: Boolean) = gtk_widget_set_sensitive(this, boolean.toByte().toInt())
 
-fun CPointer<GtkWidget>.addCss(css: String) = gtk_widget_get_style_context(this)!!.apply {
+fun Widget.addCss(css: String) = gtk_widget_get_style_context(this)!!.apply {
     val provider = gtk_css_provider_new()!!
     memScoped {
         val err = allocPointerTo<GError>().ptr
@@ -94,7 +96,7 @@ fun gridScale(default: Int, marks: Int, sensitive: Boolean, action: GtkCallbackF
         }
     }
 
-fun WraithPrism.updateColor(component: LedComponent, colorButton: CPointer<GtkWidget>) = update(component) {
+fun WraithPrism.updateColor(component: LedComponent, colorButton: Widget) = update(component) {
     color = memScoped {
         alloc<GdkRGBA>()
             .apply { gtk_color_button_get_rgba(colorButton.reinterpret(), ptr) }
@@ -102,21 +104,23 @@ fun WraithPrism.updateColor(component: LedComponent, colorButton: CPointer<GtkWi
     }
 }
 
-fun WraithPrism.updateSpeed(component: LedComponent, adjustment: CPointer<GtkWidget>) = update(component) {
+fun WraithPrism.updateRandomize(component: LedComponent, checkButton: Widget, colorButton: Widget) {
+    val isActive = gtk_toggle_button_get_active(checkButton.reinterpret())
+    if (component.mode.colorSupport == ColorSupport.ALL) update(component) { useRandomColor = isActive == 1 }
+    gtk_widget_set_sensitive(colorButton, (isActive - 1).absoluteValue)
+}
+
+fun WraithPrism.updateSpeed(component: LedComponent, adjustment: Widget) = update(component) {
     speed = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt()
 }
 
-fun WraithPrism.updateBrightness(component: LedComponent, adjustment: CPointer<GtkWidget>) = update(component) {
+fun WraithPrism.updateBrightness(component: LedComponent, adjustment: Widget) = update(component) {
     brightness = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt()
 }
 
-fun WraithPrism.updateMode(component: BasicLedComponent, comboBox: CPointer<GtkWidget>) = update(component) {
+fun WraithPrism.updateMode(component: BasicLedComponent, comboBox: Widget) = update(component) {
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
     wraith.update(component) { mode = LedMode[text.toUpperCase()] }
 }
 
-val BasicLedComponent.colorOrBlack
-    get() = if (mode.colorSupport != ColorSupport.NONE) color else Color(0, 0, 0)
-
-val RingComponent.colorOrBlack
-    get() = if (mode.colorSupport != ColorSupport.NONE) color else Color(0, 0, 0)
+val LedComponent.colorOrBlack get() = if (mode.colorSupport != ColorSupport.NONE) color else Color(0, 0, 0)
