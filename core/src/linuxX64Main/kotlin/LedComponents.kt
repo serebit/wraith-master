@@ -121,13 +121,22 @@ private fun List<UByte>.indexOfOrNull(value: UByte) = indexOf(value).let { if (i
 enum class ColorSupport { NONE, SPECIFIC, ALL }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-sealed class LedMode(
+sealed class Mode constructor(
     val name: String,
     val mode: UByte,
-    val speeds: List<UByte> = emptyList(),
-    val brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
-    val colorSupport: ColorSupport = ColorSupport.NONE
-) {
+    val speeds: List<UByte>,
+    val brightnesses: List<UByte>,
+    val colorSupport: ColorSupport
+)
+
+@OptIn(ExperimentalUnsignedTypes::class)
+sealed class LedMode(
+    name: String,
+    mode: UByte,
+    speeds: List<UByte> = emptyList(),
+    brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
+    colorSupport: ColorSupport = ColorSupport.NONE
+) : Mode(name, mode, speeds, brightnesses, colorSupport) {
     object OFF : LedMode("OFF", 0u, brightnesses = emptyList())
     object STATIC : LedMode("STATIC", 1u, colorSupport = ColorSupport.SPECIFIC)
     object CYCLE : LedMode("CYCLE", 2u, listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u), listOf(0x10u, 0x40u, 0x7Fu))
@@ -141,14 +150,14 @@ sealed class LedMode(
 
 @OptIn(ExperimentalUnsignedTypes::class)
 sealed class RingMode(
-    val name: String,
-    val channel: UByte, val mode: UByte,
-    val speeds: List<UByte> = emptyList(),
-    val brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
-    val colorSupport: ColorSupport = ColorSupport.NONE,
+    name: String,
+    val channel: UByte, mode: UByte,
+    speeds: List<UByte> = emptyList(),
+    brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
+    colorSupport: ColorSupport = ColorSupport.NONE,
     val supportsDirection: Boolean = false,
     val colorSource: UByte = 0x20u
-) {
+) : Mode(name, mode, speeds, brightnesses, colorSupport) {
     object OFF : RingMode("OFF", 0xFEu, 0u, emptyList(), emptyList())
     object STATIC : RingMode("STATIC", 0u, 0xFFu, colorSupport = ColorSupport.SPECIFIC)
     object RAINBOW : RingMode("RAINBOW", 7u, 5u, listOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u)
