@@ -125,7 +125,7 @@ internal val ringSpeedScale by lazy {
 
 internal val ringDirectionComboBox by lazy {
     gridComboBox(
-        ring.direction, RotationDirection.values(), ring.mode.supportsDirection,
+        ring.direction.name, RotationDirection.values().map { it.name }, ring.mode.supportsDirection,
         staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
             wraith.update(ring) { direction = RotationDirection.valueOf(text.toUpperCase()) }

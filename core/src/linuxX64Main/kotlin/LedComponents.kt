@@ -18,7 +18,7 @@ interface BasicLedComponent : LedComponent {
 
     @OptIn(ExperimentalUnsignedTypes::class)
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
-        mode = LedMode.values().first { it.mode == channelValues.mode }
+        mode = LedMode.values.first { it.mode == channelValues.mode }
         if (mode != LedMode.CYCLE) {
             color = channelValues.color
         }
@@ -85,7 +85,7 @@ class RingComponent(initialValues: ChannelValues) : LedComponent {
     }
 
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
-        mode = RingMode.values().first { it.channel == channelValues.channel }
+        mode = RingMode.values.first { it.channel == channelValues.channel }
         color = channelValues.let { if (mode.colorSupport != ColorSupport.NONE) it.color else Color(0u, 0u, 0u) }
         speed = mode.speeds.indexOfOrNull(channelValues.speed)?.plus(1) ?: 3
         brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1) ?: 2
@@ -121,42 +121,59 @@ private fun List<UByte>.indexOfOrNull(value: UByte) = indexOf(value).let { if (i
 enum class ColorSupport { NONE, SPECIFIC, ALL }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-enum class LedMode(
+sealed class LedMode(
+    val name: String,
     val mode: UByte,
-    val brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
     val speeds: List<UByte> = emptyList(),
+    val brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
     val colorSupport: ColorSupport = ColorSupport.NONE
 ) {
-    OFF(0x00u, emptyList()),
-    STATIC(0x01u, colorSupport = ColorSupport.SPECIFIC),
-    CYCLE(0x02u, listOf(0x10u, 0x40u, 0x7Fu), listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u)),
-    BREATHE(0x03u, speeds = listOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), colorSupport = ColorSupport.ALL)
+    object OFF : LedMode("OFF", 0u, brightnesses = emptyList())
+    object STATIC : LedMode("STATIC", 1u, colorSupport = ColorSupport.SPECIFIC)
+    object CYCLE : LedMode("CYCLE", 2u, listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u), listOf(0x10u, 0x40u, 0x7Fu))
+    object BREATHE : LedMode("BREATHE", 3u, listOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), colorSupport = ColorSupport.ALL)
+
+    companion object {
+        val values = listOf(OFF, STATIC, CYCLE, BREATHE)
+        operator fun get(name: String) = values.first { it.name == name }
+    }
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-enum class RingMode(
+sealed class RingMode(
+    val name: String,
     val channel: UByte, val mode: UByte,
-    val brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
     val speeds: List<UByte> = emptyList(),
+    val brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
     val colorSupport: ColorSupport = ColorSupport.NONE,
     val supportsDirection: Boolean = false,
     val colorSource: UByte = 0x20u
 ) {
-    OFF(0xFEu, 0x00u, emptyList(), emptyList()),
-    STATIC(0x00u, 0xFFu, colorSupport = ColorSupport.SPECIFIC),
-    RAINBOW(0x07u, 0x05u, speeds = listOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u),
-    SWIRL(
-        0x0Au, 0x4Au, speeds = listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
+    object OFF : RingMode("OFF", 0xFEu, 0u, emptyList(), emptyList())
+    object STATIC : RingMode("STATIC", 0u, 0xFFu, colorSupport = ColorSupport.SPECIFIC)
+    object RAINBOW : RingMode("RAINBOW", 7u, 5u, listOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u)
+    object SWIRL : RingMode(
+        "SWIRL", 0xAu, 0x4Au, listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
         colorSupport = ColorSupport.ALL, supportsDirection = true
-    ),
-    CHASE(
-        0x09u, 0xC3u, speeds = listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
+    )
+
+    object CHASE : RingMode(
+        "CHASE", 9u, 0xC3u, listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
         colorSupport = ColorSupport.ALL, supportsDirection = true
-    ),
-    BOUNCE(0x08u, 0xFFu, speeds = listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u), colorSource = 0x80u),
-    MORSE(0x0Bu, 0x05u, colorSupport = ColorSupport.ALL, colorSource = 0u),
-    CYCLE(0x02u, 0xFFu, listOf(0x10u, 0x40u, 0x7Fu), listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u)),
-    BREATHE(0x01u, 0xFFu, speeds = listOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), colorSupport = ColorSupport.ALL)
+    )
+
+    object BOUNCE : RingMode("BOUNCE", 8u, 0xFFu, listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u), colorSource = 0x80u)
+    object MORSE : RingMode("MORSE", 0xBu, 0x05u, colorSupport = ColorSupport.ALL, colorSource = 0u)
+    object CYCLE : RingMode("CYCLE", 2u, 0xFFu, listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u), listOf(0x10u, 0x40u, 0x7Fu))
+    object BREATHE : RingMode(
+        "BREATHE", 1u, 0xFFu, listOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u),
+        colorSupport = ColorSupport.ALL
+    )
+
+    companion object {
+        val values = listOf(OFF, STATIC, RAINBOW, SWIRL, CHASE, BOUNCE, MORSE, CYCLE, BREATHE)
+        operator fun get(name: String) = values.first { it.name == name }
+    }
 }
 
 class Color(val r: Int, val g: Int, val b: Int) {

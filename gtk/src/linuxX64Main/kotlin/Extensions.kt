@@ -54,10 +54,10 @@ fun CPointer<GtkWidget>.addCss(css: String) = gtk_widget_get_style_context(this)
     gtk_style_context_add_provider(this, provider.reinterpret(), GTK_STYLE_PROVIDER_PRIORITY_USER)
 }
 
-fun <E : Enum<*>> gridComboBox(default: E, elements: Array<E>, sensitive: Boolean, action: GtkCallbackFunction) =
+fun gridComboBox(default: String, elements: List<String>, sensitive: Boolean, action: GtkCallbackFunction) =
     gtk_combo_box_text_new()!!.apply {
         elements.forEach {
-            gtk_combo_box_text_append_text(reinterpret(), it.name.toLowerCase().capitalize())
+            gtk_combo_box_text_append_text(reinterpret(), it.toLowerCase().capitalize())
         }
         gtk_combo_box_set_active(reinterpret(), elements.indexOf(default))
         setSensitive(sensitive)
@@ -112,7 +112,7 @@ fun WraithPrism.updateBrightness(component: LedComponent, adjustment: CPointer<G
 
 fun WraithPrism.updateMode(component: BasicLedComponent, comboBox: CPointer<GtkWidget>) = update(component) {
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
-    wraith.update(component) { mode = LedMode.valueOf(text.toUpperCase()) }
+    wraith.update(component) { mode = LedMode[text.toUpperCase()] }
 }
 
 val BasicLedComponent.colorOrBlack

@@ -61,7 +61,7 @@ fun CPointer<GtkApplication>.activate() {
         ringGrid.gridLabel(4, "Rotation Direction")
         ringGrid.gridLabel(5, "Morse Text")
 
-        gridComboBox(logo.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridComboBox(logo.mode.name, LedMode.values.map { it.name }, true, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateMode(logo, it)
             memScoped { gtk_color_button_set_rgba(logoColorButton.reinterpret(), gdkRgba(logo.colorOrBlack).ptr) }
 
@@ -77,7 +77,7 @@ fun CPointer<GtkApplication>.activate() {
         logoGrid.gridAttachRight(logoBrightnessScale, 2)
         logoGrid.gridAttachRight(logoSpeedScale, 3)
 
-        gridComboBox(fan.mode, LedMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridComboBox(logo.mode.name, LedMode.values.map { it.name }, true, staticCFunction<CPointer<GtkWidget>, Unit> {
             wraith.updateMode(fan, it)
             memScoped { gtk_color_button_set_rgba(fanColorButton.reinterpret(), gdkRgba(fan.colorOrBlack).ptr) }
 
@@ -95,9 +95,9 @@ fun CPointer<GtkApplication>.activate() {
         fanGrid.gridAttachRight(fanSpeedScale, 3)
         fanGrid.gridAttachRight(fanMirageToggle, 4)
 
-        gridComboBox(ring.mode, RingMode.values(), true, staticCFunction<CPointer<GtkWidget>, Unit> {
+        gridComboBox(ring.mode.name, RingMode.values.map { it.name }, true, staticCFunction<CPointer<GtkWidget>, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            val mode = RingMode.valueOf(text.toUpperCase())
+            val mode = RingMode[text.toUpperCase()]
 
             ring.assignValuesFromChannel(wraith.getChannelValues(mode.channel))
             wraith.update(ring) { this.mode = mode }

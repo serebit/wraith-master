@@ -45,8 +45,8 @@ fun main(args: Array<KString>) {
 
     val component by parser.argument(ArgType.Choice(Components.values().map { it.name.toLowerCase() }))
 
-    val ringModes = RingMode.values().map { it.name.toLowerCase() }
-    val ledModes = LedMode.values().map { it.name.toLowerCase() }
+    val ringModes = RingMode.values.map { it.name.toLowerCase() }
+    val ledModes = LedMode.values.map { it.name.toLowerCase() }
     val modes = ringModes.plus(ledModes).distinct()
 
     val mode by parser.option(
@@ -73,9 +73,9 @@ fun main(args: Array<KString>) {
     speed?.let { if (it !in 1..5) error("Speed must be within the range of 1 to 5") }
     mode?.let { it ->
         val invalidRingMode = component.toLowerCase() == "ring"
-                && it.toUpperCase() !in RingMode.values().map { it.name }
+                && it.toUpperCase() !in RingMode.values.map { it.name }
         val invalidLedMode = component.toLowerCase() in listOf("fan", "logo")
-                && it.toUpperCase() !in LedMode.values().map { it.name }
+                && it.toUpperCase() !in LedMode.values.map { it.name }
         if (invalidRingMode || invalidLedMode) {
             error("Provided mode $it is not in valid modes for component $component.")
         }
@@ -99,8 +99,8 @@ fun main(args: Array<KString>) {
 
             mode?.toUpperCase()?.let {
                 when (ledComponent) {
-                    is BasicLedComponent -> wraith.update(ledComponent) { this.mode = LedMode.valueOf(it) }
-                    is RingComponent -> wraith.update(ledComponent) { this.mode = RingMode.valueOf(it) }
+                    is BasicLedComponent -> wraith.update(ledComponent) { this.mode = LedMode[it] }
+                    is RingComponent -> wraith.update(ledComponent) { this.mode = RingMode[it] }
                 }
             }
 
