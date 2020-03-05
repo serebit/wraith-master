@@ -6,6 +6,7 @@ import kotlinx.cinterop.*
 
 sealed class ComponentWidgets<C : LedComponent> {
     abstract val component: C
+    open val widgets by lazy { listOf(colorBox, brightnessScale, speedScale) }
 
     @OptIn(ExperimentalUnsignedTypes::class)
     val colorBox by lazy {
@@ -48,6 +49,7 @@ object LogoWidgets : ComponentWidgets<LogoComponent>() {
 
 object FanWidgets : ComponentWidgets<FanComponent>() {
     override val component get() = wraith.fan
+    override val widgets by lazy { listOf(colorBox, brightnessScale, speedScale, mirageToggle) }
     val mirageToggle by lazy {
         gtk_switch_new()!!.apply {
             setSensitive(fan.mode != LedMode.OFF)
@@ -70,6 +72,7 @@ object FanWidgets : ComponentWidgets<FanComponent>() {
 
 object RingWidgets : ComponentWidgets<RingComponent>() {
     override val component get() = wraith.ring
+    override val widgets by lazy { listOf(colorBox, brightnessScale, speedScale, morseContainer) }
     private var ringMorseTextBoxHintLabel: Widget? = null
     var morseTextBoxHint: Widget? = null
 
