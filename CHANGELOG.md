@@ -6,9 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-#### Meta
+#### Meta 
 - Updated Kotlin to 1.3.70
 - Updated kotlinx-cli to 0.2.1
+
+#### Changed 
+- Reduced code complexity and duplication
+
+#### Fixed 
+- Eliminated (tiny) memory leaks in core setup caused by unfreed libusb resources
+- Eliminated some (tiny) memory leaks in GTK setup
 
 ## 0.5.0 (2020-03-01)
 

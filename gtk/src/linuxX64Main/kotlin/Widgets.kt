@@ -2,11 +2,14 @@ package com.serebit.wraith.gtk
 
 import com.serebit.wraith.core.*
 import gtk3.*
-import kotlinx.cinterop.*
+import kotlinx.cinterop.reinterpret
+import kotlinx.cinterop.staticCFunction
+import kotlinx.cinterop.toByte
+import kotlinx.cinterop.toKString
 
 sealed class ComponentWidgets<C : LedComponent> {
     abstract val component: C
-    open val widgets by lazy { listOf(colorBox, brightnessScale, speedScale) }
+    open val widgets get() = listOf(colorBox, brightnessScale, speedScale)
 
     @OptIn(ExperimentalUnsignedTypes::class)
     val colorBox by lazy {
@@ -40,16 +43,16 @@ sealed class ComponentWidgets<C : LedComponent> {
 
 object LogoWidgets : ComponentWidgets<LogoComponent>() {
     override val component get() = wraith.logo
-    override val onColorChange = staticCFunction<Widget, Unit> { wraith.updateColor(logo, it) }
-    override val onBrightnessChange = staticCFunction<Widget, Unit> { wraith.updateBrightness(logo, it) }
-    override val onSpeedChange = staticCFunction<Widget, Unit> { wraith.updateSpeed(logo, it) }
-    override val onRandomizeChange =
-        staticCFunction<Widget, Unit> { wraith.updateRandomize(logo, it, colorButton) }
+    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(logo, it) }
+    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(logo, it) }
+    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(logo, it) }
+    override val onRandomizeChange
+        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(logo, it, colorButton) }
 }
 
 object FanWidgets : ComponentWidgets<FanComponent>() {
     override val component get() = wraith.fan
-    override val widgets by lazy { listOf(colorBox, brightnessScale, speedScale, mirageToggle) }
+    override val widgets get() = listOf(colorBox, brightnessScale, speedScale, mirageToggle)
     val mirageToggle by lazy {
         gtk_switch_new()!!.apply {
             setSensitive(fan.mode != LedMode.OFF)
@@ -63,16 +66,16 @@ object FanWidgets : ComponentWidgets<FanComponent>() {
         }
     }
 
-    override val onColorChange = staticCFunction<Widget, Unit> { wraith.updateColor(fan, it) }
-    override val onBrightnessChange = staticCFunction<Widget, Unit> { wraith.updateBrightness(fan, it) }
-    override val onSpeedChange = staticCFunction<Widget, Unit> { wraith.updateSpeed(fan, it) }
-    override val onRandomizeChange =
-        staticCFunction<Widget, Unit> { wraith.updateRandomize(fan, it, colorButton) }
+    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(fan, it) }
+    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(fan, it) }
+    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(fan, it) }
+    override val onRandomizeChange
+        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(fan, it, colorButton) }
 }
 
 object RingWidgets : ComponentWidgets<RingComponent>() {
     override val component get() = wraith.ring
-    override val widgets by lazy { listOf(colorBox, brightnessScale, speedScale, morseContainer) }
+    override val widgets get() = listOf(colorBox, brightnessScale, speedScale, directionComboBox, morseContainer)
     private var ringMorseTextBoxHintLabel: Widget? = null
     var morseTextBoxHint: Widget? = null
 
@@ -155,9 +158,9 @@ object RingWidgets : ComponentWidgets<RingComponent>() {
         }
     }
 
-    override val onColorChange = staticCFunction<Widget, Unit> { wraith.updateColor(ring, it) }
-    override val onBrightnessChange = staticCFunction<Widget, Unit> { wraith.updateBrightness(ring, it) }
-    override val onSpeedChange = staticCFunction<Widget, Unit> { wraith.updateSpeed(ring, it) }
-    override val onRandomizeChange =
-        staticCFunction<Widget, Unit> { wraith.updateRandomize(ring, it, colorButton) }
+    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(ring, it) }
+    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(ring, it) }
+    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(ring, it) }
+    override val onRandomizeChange
+        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(ring, it, colorButton) }
 }

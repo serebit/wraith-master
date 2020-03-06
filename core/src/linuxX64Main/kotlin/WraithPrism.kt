@@ -1,32 +1,17 @@
 package com.serebit.wraith.core
 
-import cnames.structs.libusb_device
 import cnames.structs.libusb_device_handle
 import kotlinx.cinterop.*
 import libusb.*
 
 @OptIn(ExperimentalUnsignedTypes::class)
-class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
-    private val activeConfig = memScoped {
-        val configPtr = allocPointerTo<libusb_config_descriptor>()
-        val err = libusb_get_active_config_descriptor(device.ptr, configPtr.ptr)
-
-        check(err == 0) { "Failed to fetch active configuration for USB device with error code $err" }
-        configPtr.value!!.pointed
-    }
-    private val handle = memScoped {
-        val handlePtr = allocPointerTo<libusb_device_handle>()
-        val err = libusb_open(device.ptr, handlePtr.ptr)
-
-        check(err == 0) { "Failed to open Cooler Master device with error code $err" }
-        handlePtr.value!!.pointed
-    }
+class WraithPrism(val handle: CPointer<libusb_device_handle>, private val numInterfaces: Int) {
     val logo: LogoComponent
     val fan: FanComponent
     val ring: RingComponent
 
     init {
-        libusb_reset_device(handle.ptr)
+        libusb_reset_device(handle)
         claimInterfaces()
         // turn on
         sendBytes(0x41u, 0x80u)
@@ -40,17 +25,17 @@ class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
         ring = RingComponent(getChannelValues(channels[10]))
     }
 
-    private fun claimInterfaces() = memScoped {
-        libusb_set_auto_detach_kernel_driver(handle.ptr, 1)
-        for (i in 0 until activeConfig.bNumInterfaces.toInt()) {
-            val err3 = libusb_claim_interface(handle.ptr, i)
+    private fun claimInterfaces() {
+        libusb_set_auto_detach_kernel_driver(handle, 1)
+        for (i in 0 until numInterfaces) {
+            val err3 = libusb_claim_interface(handle, i)
             check(err3 == 0) { "Failed to claim interface $i with error $err3." }
         }
     }
 
     private fun transfer(endpoint: UByte, bytes: UByteArray, timeout: UInt) = memScoped {
         val byteValues = bytes.toCValues().ptr
-        libusb_interrupt_transfer(handle.ptr, endpoint, byteValues, bytes.size, null, timeout).let { err ->
+        libusb_interrupt_transfer(handle, endpoint, byteValues, bytes.size, null, timeout).let { err ->
             check(err == 0) { "Failed to transfer to device endpoint $endpoint with error code $err." }
         }
         byteValues.pointed.readValues(bytes.size).getBytes().toUByteArray()
@@ -68,7 +53,10 @@ class WraithPrism(handle: libusb_device_handle, device: libusb_device) {
         *UByteArray(15) { ring.mode.channel })
 
     fun close() {
-        libusb_close(handle.ptr)
+        for (i in 0 until numInterfaces) {
+            libusb_release_interface(handle, i)
+        }
+        libusb_close(handle)
         libusb_exit(null)
     }
 
