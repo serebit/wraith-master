@@ -17,10 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced code complexity and duplication
 
 #### Fixed 
-- Eliminated (tiny) memory leaks in core setup caused by unfreed libusb resources
+- Color button in GTK frontend no longer stays sensitive to input on mode change or startup when color randomization is enabled
+- Reset button in GTK frontend updates widgets to the device's saved values
+- Significantly reduced number of transfers to device in CLI frontend
+- Eliminated (tiny) memory leaks in setup caused by unfreed libusb resources
 - Eliminated some (tiny) memory leaks in GTK setup
-- Color button no longer stays sensitive to input on mode change or startup when color randomization is enabled
-- Significantly reduced number of transfers to device in CLI frontend 
 
 ## 0.5.0 (2020-03-01)
 

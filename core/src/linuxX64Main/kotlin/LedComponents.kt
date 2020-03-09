@@ -126,7 +126,9 @@ sealed class Mode constructor(
     val speeds: List<UByte>,
     val brightnesses: List<UByte>,
     val colorSupport: ColorSupport
-)
+) {
+    abstract val index: Int
+}
 
 @OptIn(ExperimentalUnsignedTypes::class)
 sealed class LedMode(
@@ -136,6 +138,8 @@ sealed class LedMode(
     brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
     colorSupport: ColorSupport = ColorSupport.NONE
 ) : Mode(name, mode, speeds, brightnesses, colorSupport) {
+    override val index get() = values.indexOf(this)
+
     object OFF : LedMode("OFF", 0u, brightnesses = emptyList())
     object STATIC : LedMode("STATIC", 1u, colorSupport = ColorSupport.SPECIFIC)
     object CYCLE : LedMode("CYCLE", 2u, listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u), listOf(0x10u, 0x40u, 0x7Fu))
@@ -147,6 +151,8 @@ sealed class LedMode(
     }
 }
 
+val LedMode.index get() = LedMode.values.indexOf(this)
+
 @OptIn(ExperimentalUnsignedTypes::class)
 sealed class RingMode(
     name: String,
@@ -157,6 +163,8 @@ sealed class RingMode(
     val supportsDirection: Boolean = false,
     val colorSource: UByte = 0x20u
 ) : Mode(name, mode, speeds, brightnesses, colorSupport) {
+    override val index get() = values.indexOf(this)
+
     object OFF : RingMode("OFF", 0xFEu, 0u, emptyList(), emptyList())
     object STATIC : RingMode("STATIC", 0u, 0xFFu, colorSupport = ColorSupport.SPECIFIC)
     object RAINBOW : RingMode("RAINBOW", 7u, 5u, listOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u)

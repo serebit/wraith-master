@@ -125,8 +125,8 @@ fun WraithPrism.reset() {
     ring.assignValuesFromChannel(getChannelValues(channels[10]))
 }
 
-inline fun <C : LedComponent> WraithPrism.update(component: C, update: C.() -> Unit) {
-    component.update()
+inline fun <C : LedComponent> WraithPrism.update(component: C, task: C.() -> Unit) {
+    component.task()
     setChannelValues(component)
     assignChannels()
     apply()

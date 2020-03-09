@@ -118,9 +118,12 @@ fun WraithPrism.updateBrightness(component: LedComponent, adjustment: Widget) = 
     brightness = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt()
 }
 
-fun WraithPrism.updateMode(component: BasicLedComponent, comboBox: Widget) = update(component) {
+fun WraithPrism.updateMode(component: LedComponent, comboBox: Widget) = update(component) {
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
-    wraith.update(component) { mode = LedMode[text.toUpperCase()] }
+    when (this) {
+        is BasicLedComponent -> mode = LedMode[text.toUpperCase()]
+        is RingComponent -> mode = RingMode[text.toUpperCase()]
+    }
 }
 
 val LedComponent.colorOrBlack get() = if (mode.colorSupport != ColorSupport.NONE) color else Color(0, 0, 0)

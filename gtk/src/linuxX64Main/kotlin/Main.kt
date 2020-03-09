@@ -8,10 +8,6 @@ import kotlin.system.exitProcess
 val result = obtainWraithPrism()
 val wraith: WraithPrism get() = (result as? WraithPrismResult.Success)!!.device
 
-inline val logo get() = wraith.logo
-inline val fan get() = wraith.fan
-inline val ring get() = wraith.ring
-
 @OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.activate() {
     val activeWindow = gtk_application_get_active_window(this)
@@ -51,11 +47,6 @@ fun CPointer<GtkApplication>.activate() {
             gtk_grid_attach(this@gridLabel?.reinterpret(), this, 0, position, 1, 1)
         }
 
-        fun ComponentWidgets<*>.attachWidgetsToGrid(grid: Widget, modeBox: Widget) {
-            grid.gridAttachRight(modeBox, 0)
-            widgets.forEachIndexed { i, it -> grid.gridAttachRight(it, i + 1) }
-        }
-
         listOf(logoGrid, fanGrid, ringGrid).forEach {
             it.gridLabel(0, "Mode")
             it.gridLabel(1, "Color")
@@ -66,24 +57,13 @@ fun CPointer<GtkApplication>.activate() {
         ringGrid.gridLabel(4, "Rotation Direction")
         ringGrid.gridLabel(5, "Morse Text")
 
-        gridComboBox(logo.mode.name, LedMode.values.map { it.name }, true, staticCFunction<Widget, Unit> {
-            wraith.updateMode(logo, it)
-            LogoWidgets.fullReload()
-        }).also { LogoWidgets.attachWidgetsToGrid(logoGrid, it) }
+        fun ComponentWidgets<*>.attachWidgetsToGrid(grid: Widget) {
+            widgets.forEachIndexed { i, it -> grid.gridAttachRight(it, i) }
+        }
 
-        gridComboBox(fan.mode.name, LedMode.values.map { it.name }, true, staticCFunction<Widget, Unit> {
-            wraith.updateMode(fan, it)
-            FanWidgets.fullReload()
-        }).also { FanWidgets.attachWidgetsToGrid(fanGrid, it) }
-
-        gridComboBox(ring.mode.name, RingMode.values.map { it.name }, true, staticCFunction<Widget, Unit> {
-            val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            val mode = RingMode[text.toUpperCase()]
-
-            ring.assignValuesFromChannel(wraith.getChannelValues(mode.channel))
-            wraith.update(ring) { this.mode = mode }
-            RingWidgets.fullReload()
-        }).also { RingWidgets.attachWidgetsToGrid(ringGrid, it) }
+        LogoWidgets.attachWidgetsToGrid(logoGrid)
+        FanWidgets.attachWidgetsToGrid(fanGrid)
+        RingWidgets.attachWidgetsToGrid(ringGrid)
 
         val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
             gtk_container_add(box.reinterpret(), this)
@@ -98,6 +78,8 @@ fun CPointer<GtkApplication>.activate() {
             connectSignal("clicked", staticCFunction<Widget, Unit> {
                 wraith.reset()
                 LogoWidgets.fullReload(); FanWidgets.fullReload(); RingWidgets.fullReload()
+                gtk_combo_box_set_active(LogoWidgets.modeBox.reinterpret(), LogoWidgets.component.mode.index)
+                gtk_combo_box_set_active(FanWidgets.modeBox.reinterpret(), FanWidgets.component.mode.index)
             })
             gtk_container_add(saveOptionBox?.reinterpret(), this)
         }

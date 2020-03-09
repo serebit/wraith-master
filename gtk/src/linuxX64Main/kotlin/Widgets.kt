@@ -6,7 +6,11 @@ import kotlinx.cinterop.*
 
 sealed class ComponentWidgets<C : LedComponent> {
     abstract val component: C
-    open val widgets get() = listOf(colorBox, brightnessScale, speedScale)
+    open val widgets get() = listOf(modeBox, colorBox, brightnessScale, speedScale)
+
+    open val modeBox by lazy {
+        gridComboBox(component.mode.name, LedMode.values.map { it.name }, true, onModeChange)
+    }
 
     @OptIn(ExperimentalUnsignedTypes::class)
     val colorBox by lazy {
@@ -36,6 +40,7 @@ sealed class ComponentWidgets<C : LedComponent> {
     }
 
     protected inline fun basicReload(additional: () -> Unit = {}) {
+        gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.index)
         memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(component.colorOrBlack).ptr) }
 
         val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
@@ -54,6 +59,7 @@ sealed class ComponentWidgets<C : LedComponent> {
     abstract val onBrightnessChange: GtkCallbackFunction
     abstract val onSpeedChange: GtkCallbackFunction
     abstract val onRandomizeChange: GtkCallbackFunction
+    abstract val onModeChange: GtkCallbackFunction
 }
 
 object LogoWidgets : ComponentWidgets<LogoComponent>() {
@@ -63,11 +69,12 @@ object LogoWidgets : ComponentWidgets<LogoComponent>() {
     override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(component, it) }
     override val onRandomizeChange
         get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(component, it, colorButton) }
+    override val onModeChange get() = staticCFunction<Widget, Unit> { wraith.updateMode(component, it); fullReload() }
 }
 
 object FanWidgets : ComponentWidgets<FanComponent>() {
     override val component get() = wraith.fan
-    override val widgets get() = listOf(colorBox, brightnessScale, speedScale, mirageToggle)
+    override val widgets get() = listOf(modeBox, colorBox, brightnessScale, speedScale, mirageToggle)
     val mirageToggle by lazy {
         gtk_switch_new()!!.apply {
             setSensitive(component.mode != LedMode.OFF)
@@ -88,14 +95,20 @@ object FanWidgets : ComponentWidgets<FanComponent>() {
     override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(component, it) }
     override val onRandomizeChange
         get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(component, it, colorButton) }
+    override val onModeChange get() = staticCFunction<Widget, Unit> { wraith.updateMode(component, it); fullReload() }
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
 object RingWidgets : ComponentWidgets<RingComponent>() {
     override val component get() = wraith.ring
-    override val widgets get() = listOf(colorBox, brightnessScale, speedScale, directionComboBox, morseContainer)
+    override val widgets
+        get() = listOf(modeBox, colorBox, brightnessScale, speedScale, directionComboBox, morseContainer)
     private var morseTextBoxHintLabel: Widget? = null
     var morseTextBoxHint: Widget? = null
+
+    override val modeBox by lazy {
+        gridComboBox(component.mode.name, RingMode.values.map { it.name }, true, onModeChange)
+    }
 
     val directionComboBox by lazy {
         gridComboBox(
@@ -186,4 +199,5 @@ object RingWidgets : ComponentWidgets<RingComponent>() {
     override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(component, it) }
     override val onRandomizeChange
         get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(component, it, colorButton) }
+    override val onModeChange get() = staticCFunction<Widget, Unit> { wraith.updateMode(component, it); fullReload() }
 }
