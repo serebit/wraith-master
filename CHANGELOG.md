@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Meta 
 - Updated Kotlin to 1.3.70
-- Updated kotlinx-cli to 0.2.1
 
 #### Added 
 - Significantly more checks to ensure parameter validity in CLI frontend
