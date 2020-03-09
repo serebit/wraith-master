@@ -12,20 +12,6 @@ inline val logo get() = wraith.logo
 inline val fan get() = wraith.fan
 inline val ring get() = wraith.ring
 
-inline fun <C : LedComponent, W : ComponentWidgets<C>> onModeChange(widgets: W, additional: W.() -> Unit = {}) {
-    val component = widgets.component
-    memScoped { gtk_color_button_set_rgba(widgets.colorButton.reinterpret(), gdkRgba(component.colorOrBlack).ptr) }
-
-    val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
-    gtk_toggle_button_set_active(widgets.randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
-
-    widgets.randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
-    widgets.colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor)
-    widgets.brightnessScale.setSensitive(component.mode.supportsBrightness)
-    widgets.speedScale.setSensitive(component.mode.supportsSpeed)
-    widgets.additional()
-}
-
 @OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.activate() {
     val activeWindow = gtk_application_get_active_window(this)
@@ -82,14 +68,12 @@ fun CPointer<GtkApplication>.activate() {
 
         gridComboBox(logo.mode.name, LedMode.values.map { it.name }, true, staticCFunction<Widget, Unit> {
             wraith.updateMode(logo, it)
-            onModeChange(LogoWidgets)
+            LogoWidgets.fullReload()
         }).also { LogoWidgets.attachWidgetsToGrid(logoGrid, it) }
 
         gridComboBox(fan.mode.name, LedMode.values.map { it.name }, true, staticCFunction<Widget, Unit> {
             wraith.updateMode(fan, it)
-            onModeChange(FanWidgets) {
-                mirageToggle.setSensitive(fan.mode != LedMode.OFF)
-            }
+            FanWidgets.fullReload()
         }).also { FanWidgets.attachWidgetsToGrid(fanGrid, it) }
 
         gridComboBox(ring.mode.name, RingMode.values.map { it.name }, true, staticCFunction<Widget, Unit> {
@@ -98,15 +82,7 @@ fun CPointer<GtkApplication>.activate() {
 
             ring.assignValuesFromChannel(wraith.getChannelValues(mode.channel))
             wraith.update(ring) { this.mode = mode }
-
-            onModeChange(RingWidgets) {
-                gtk_range_set_value(brightnessScale.reinterpret(), ring.brightness.toDouble())
-                gtk_range_set_value(speedScale.reinterpret(), ring.speed.toDouble())
-                gtk_combo_box_set_active(directionComboBox.reinterpret(), ring.direction.value.toInt())
-                directionComboBox.setSensitive(ring.mode.supportsDirection)
-                morseContainer.setSensitive(ring.mode == RingMode.MORSE)
-                if (ring.mode != RingMode.MORSE) morseTextBoxHint?.let { hint -> gtk_widget_hide(hint) }
-            }
+            RingWidgets.fullReload()
         }).also { RingWidgets.attachWidgetsToGrid(ringGrid, it) }
 
         val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {

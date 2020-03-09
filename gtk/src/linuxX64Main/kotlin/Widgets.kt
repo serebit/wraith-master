@@ -2,10 +2,7 @@ package com.serebit.wraith.gtk
 
 import com.serebit.wraith.core.*
 import gtk3.*
-import kotlinx.cinterop.reinterpret
-import kotlinx.cinterop.staticCFunction
-import kotlinx.cinterop.toByte
-import kotlinx.cinterop.toKString
+import kotlinx.cinterop.*
 
 sealed class ComponentWidgets<C : LedComponent> {
     abstract val component: C
@@ -38,6 +35,21 @@ sealed class ComponentWidgets<C : LedComponent> {
         gridScale(component.speed, 5, component.mode.supportsSpeed, onSpeedChange)
     }
 
+    protected inline fun basicReload(additional: () -> Unit = {}) {
+        memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(component.colorOrBlack).ptr) }
+
+        val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
+        gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+
+        randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
+        colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor)
+        brightnessScale.setSensitive(component.mode.supportsBrightness)
+        speedScale.setSensitive(component.mode.supportsSpeed)
+        additional()
+    }
+
+    open fun fullReload() = basicReload()
+
     abstract val onColorChange: GtkCallbackFunction
     abstract val onBrightnessChange: GtkCallbackFunction
     abstract val onSpeedChange: GtkCallbackFunction
@@ -46,11 +58,11 @@ sealed class ComponentWidgets<C : LedComponent> {
 
 object LogoWidgets : ComponentWidgets<LogoComponent>() {
     override val component get() = wraith.logo
-    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(logo, it) }
-    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(logo, it) }
-    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(logo, it) }
+    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(component, it) }
+    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(component, it) }
+    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(component, it) }
     override val onRandomizeChange
-        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(logo, it, colorButton) }
+        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(component, it, colorButton) }
 }
 
 object FanWidgets : ComponentWidgets<FanComponent>() {
@@ -58,50 +70,51 @@ object FanWidgets : ComponentWidgets<FanComponent>() {
     override val widgets get() = listOf(colorBox, brightnessScale, speedScale, mirageToggle)
     val mirageToggle by lazy {
         gtk_switch_new()!!.apply {
-            setSensitive(fan.mode != LedMode.OFF)
+            setSensitive(component.mode != LedMode.OFF)
             gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
             gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
             connectSignal("state-set", staticCFunction<Widget, Int, Boolean> { _, state ->
-                fan.mirage = state != 0
+                component.mirage = state != 0
                 wraith.updateFanMirage()
                 false
             })
         }
     }
 
-    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(fan, it) }
-    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(fan, it) }
-    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(fan, it) }
+    override fun fullReload() = basicReload { mirageToggle.setSensitive(component.mode != LedMode.OFF) }
+
+    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(component, it) }
+    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(component, it) }
+    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(component, it) }
     override val onRandomizeChange
-        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(fan, it, colorButton) }
+        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(component, it, colorButton) }
 }
 
+@OptIn(ExperimentalUnsignedTypes::class)
 object RingWidgets : ComponentWidgets<RingComponent>() {
     override val component get() = wraith.ring
     override val widgets get() = listOf(colorBox, brightnessScale, speedScale, directionComboBox, morseContainer)
-    private var ringMorseTextBoxHintLabel: Widget? = null
+    private var morseTextBoxHintLabel: Widget? = null
     var morseTextBoxHint: Widget? = null
 
     val directionComboBox by lazy {
         gridComboBox(
-            ring.direction.name, RotationDirection.values().map { it.name }, ring.mode.supportsDirection,
+            component.direction.name, RotationDirection.values().map { it.name }, component.mode.supportsDirection,
             staticCFunction<Widget, Unit> {
                 val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-                wraith.update(ring) { direction = RotationDirection.valueOf(text.toUpperCase()) }
+                wraith.update(component) { direction = RotationDirection.valueOf(text.toUpperCase()) }
             }
         )
     }
 
-    @OptIn(ExperimentalUnsignedTypes::class)
     val morseContainer by lazy {
         gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
             gtk_box_pack_end(reinterpret(), morseReloadButton, 0, 0, 0u)
             gtk_box_pack_end(reinterpret(), morseTextBox, 0, 0, 0u)
-            setSensitive(ring.mode == RingMode.MORSE)
+            setSensitive(component.mode == RingMode.MORSE)
         }
     }
 
-    @OptIn(ExperimentalUnsignedTypes::class)
     private val String.hintText: String
         get() = when {
             isBlank() -> "Enter either morse code (dots and dashes) or text"
@@ -124,11 +137,11 @@ object RingWidgets : ComponentWidgets<RingComponent>() {
             connectSignal("icon-press", staticCFunction<Widget, Unit> {
                 when {
                     morseTextBoxHint == null -> {
-                        ringMorseTextBoxHintLabel = gtk_label_new(it.text.hintText)!!
+                        morseTextBoxHintLabel = gtk_label_new(it.text.hintText)!!
                         morseTextBoxHint = gtk_popover_new(it)!!.apply {
                             gtk_popover_set_modal(reinterpret(), 0)
                             gtk_container_set_border_width(reinterpret(), 8u)
-                            gtk_container_add(reinterpret(), ringMorseTextBoxHintLabel)
+                            gtk_container_add(reinterpret(), morseTextBoxHintLabel)
                             gtk_widget_show_all(this)
                         }
                     }
@@ -147,7 +160,7 @@ object RingWidgets : ComponentWidgets<RingComponent>() {
     }
 
     private fun changeCallback(pointer: Widget) {
-        ringMorseTextBoxHintLabel?.apply {
+        morseTextBoxHintLabel?.apply {
             val entryText = pointer.text
             gtk_label_set_text(reinterpret(), entryText.hintText)
             val isInvalid = !entryText.isValidMorseText && !entryText.isMorseCode
@@ -159,9 +172,18 @@ object RingWidgets : ComponentWidgets<RingComponent>() {
         }
     }
 
-    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(ring, it) }
-    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(ring, it) }
-    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(ring, it) }
+    override fun fullReload() = basicReload {
+        gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.toDouble())
+        gtk_range_set_value(speedScale.reinterpret(), component.speed.toDouble())
+        gtk_combo_box_set_active(directionComboBox.reinterpret(), component.direction.value.toInt())
+        directionComboBox.setSensitive(component.mode.supportsDirection)
+        morseContainer.setSensitive(component.mode == RingMode.MORSE)
+        if (component.mode != RingMode.MORSE) morseTextBoxHint?.let { hint -> gtk_widget_hide(hint) }
+    }
+
+    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(component, it) }
+    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(component, it) }
+    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(component, it) }
     override val onRandomizeChange
-        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(ring, it, colorButton) }
+        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(component, it, colorButton) }
 }
