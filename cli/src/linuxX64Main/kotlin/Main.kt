@@ -77,28 +77,6 @@ fun main(args: Array<KString>) {
 
     parser.parse(args)
 
-    mode?.let { it ->
-        val invalidRingMode = component.toLowerCase() == "ring"
-                && it.toUpperCase() !in RingMode.values.map { it.name }
-        val invalidLedMode = component.toLowerCase() in listOf("fan", "logo")
-                && it.toUpperCase() !in LedMode.values.map { it.name }
-        if (invalidRingMode || invalidLedMode) {
-            error("Provided mode $it is not in valid modes for component $component.")
-        }
-    }
-    brightness?.let { if (it !in 1..3) error("Brightness must be within the range of 1 to 3") }
-    speed?.let { if (it !in 1..5) error("Speed must be within the range of 1 to 5") }
-    morseText?.let {
-        if (!it.isMorseCode && !it.isValidMorseText)
-            error("Invalid chars in morse-text argument: ${it.invalidMorseChars}")
-    }
-    mirage?.let {
-        if (component != "fan") error("Only the fan component supports the mirage setting")
-    }
-    randomColor?.let {
-        if (color != null) error("Cannot set color randomness along with a specific color")
-    }
-
     if (verbose == true) print("Opening interface to device... ")
     when (val result: WraithPrismResult = obtainWraithPrism()) {
         is WraithPrismResult.Failure -> error(result.message)
@@ -106,6 +84,29 @@ fun main(args: Array<KString>) {
         is WraithPrismResult.Success -> {
             if (verbose == true) println("Done.")
             val wraith = result.device
+
+            // parameter validation
+            mode?.let { it ->
+                val invalidRingMode = component.toLowerCase() == "ring"
+                        && it.toUpperCase() !in RingMode.values.map { it.name }
+                val invalidLedMode = component.toLowerCase() in listOf("fan", "logo")
+                        && it.toUpperCase() !in LedMode.values.map { it.name }
+                if (invalidRingMode || invalidLedMode) {
+                    error("Provided mode $it is not in valid modes for component $component.")
+                }
+            }
+            brightness?.let { if (it !in 1..3) error("Brightness must be within the range of 1 to 3") }
+            speed?.let { if (it !in 1..5) error("Speed must be within the range of 1 to 5") }
+            morseText?.let {
+                if (!it.isMorseCode && !it.isValidMorseText)
+                    error("Invalid chars in morse-text argument: ${it.invalidMorseChars}")
+            }
+            mirage?.let {
+                if (component != "fan") error("Only the fan component supports the mirage setting")
+            }
+            randomColor?.let {
+                if (color != null) error("Cannot set color randomness along with a specific color")
+            }
 
             val ledComponent = when (component) {
                 "logo" -> wraith.logo
