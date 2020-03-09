@@ -10,13 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Kotlin to 1.3.70
 - Updated kotlinx-cli to 0.2.1
 
+#### Added 
+- Significantly more checks to ensure parameter validity in CLI frontend
+- `verbose` flag to show program status in CLI frontend
+
 #### Changed 
 - Reduced code complexity and duplication
 
 #### Fixed 
 - Eliminated (tiny) memory leaks in core setup caused by unfreed libusb resources
 - Eliminated some (tiny) memory leaks in GTK setup
-- Color button staying sensitive to input on mode change or startup when color randomization is enabled
+- Color button no longer stays sensitive to input on mode change or startup when color randomization is enabled
+- Significantly reduced number of transfers to device in CLI frontend 
 
 ## 0.5.0 (2020-03-01)
 
