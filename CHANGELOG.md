@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Fixed 
 - Eliminated (tiny) memory leaks in core setup caused by unfreed libusb resources
 - Eliminated some (tiny) memory leaks in GTK setup
+- Color button staying sensitive to input on mode change or startup when color randomization is enabled
 
 ## 0.5.0 (2020-03-01)
 

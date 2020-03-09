@@ -12,12 +12,11 @@ interface LedComponent {
     fun assignValuesFromChannel(channelValues: ChannelValues)
 }
 
+@OptIn(ExperimentalUnsignedTypes::class)
 interface BasicLedComponent : LedComponent {
-    @OptIn(ExperimentalUnsignedTypes::class)
     val channel: UByte
     override var mode: LedMode
 
-    @OptIn(ExperimentalUnsignedTypes::class)
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
         mode = LedMode.values.first { it.mode == channelValues.mode }
         if (mode != LedMode.CYCLE) {
@@ -30,7 +29,6 @@ interface BasicLedComponent : LedComponent {
         brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1) ?: 2
     }
 
-    @OptIn(ExperimentalUnsignedTypes::class)
     override val values: UByteArray
         get() {
             val brightness = mode.brightnesses.elementAtOrNull(brightness - 1) ?: 0u

@@ -5,7 +5,7 @@ import kotlinx.cinterop.*
 import libusb.*
 
 @OptIn(ExperimentalUnsignedTypes::class)
-class WraithPrism(val handle: CPointer<libusb_device_handle>, private val numInterfaces: Int) {
+class WraithPrism(private val handle: CPointer<libusb_device_handle>, private val numInterfaces: Int) {
     val logo: LogoComponent
     val fan: FanComponent
     val ring: RingComponent
@@ -53,9 +53,7 @@ class WraithPrism(val handle: CPointer<libusb_device_handle>, private val numInt
         *UByteArray(15) { ring.mode.channel })
 
     fun close() {
-        for (i in 0 until numInterfaces) {
-            libusb_release_interface(handle, i)
-        }
+        (0 until numInterfaces).forEach { libusb_release_interface(handle, it) }
         libusb_close(handle)
         libusb_exit(null)
     }

@@ -20,7 +20,7 @@ inline fun <C : LedComponent, W : ComponentWidgets<C>> onModeChange(widgets: W, 
     gtk_toggle_button_set_active(widgets.randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
 
     widgets.randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
-    widgets.colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE)
+    widgets.colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor)
     widgets.brightnessScale.setSensitive(component.mode.supportsBrightness)
     widgets.speedScale.setSensitive(component.mode.supportsSpeed)
     widgets.additional()
@@ -65,6 +65,11 @@ fun CPointer<GtkApplication>.activate() {
             gtk_grid_attach(this@gridLabel?.reinterpret(), this, 0, position, 1, 1)
         }
 
+        fun ComponentWidgets<*>.attachWidgetsToGrid(grid: Widget, modeBox: Widget) {
+            grid.gridAttachRight(modeBox, 0)
+            widgets.forEachIndexed { i, it -> grid.gridAttachRight(it, i + 1) }
+        }
+
         listOf(logoGrid, fanGrid, ringGrid).forEach {
             it.gridLabel(0, "Mode")
             it.gridLabel(1, "Color")
@@ -78,16 +83,14 @@ fun CPointer<GtkApplication>.activate() {
         gridComboBox(logo.mode.name, LedMode.values.map { it.name }, true, staticCFunction<Widget, Unit> {
             wraith.updateMode(logo, it)
             onModeChange(LogoWidgets)
-        }).also { logoGrid.gridAttachRight(it, 0) }
-        LogoWidgets.widgets.forEachIndexed { index, it -> logoGrid.gridAttachRight(it, index + 1) }
+        }).also { LogoWidgets.attachWidgetsToGrid(logoGrid, it) }
 
-        gridComboBox(logo.mode.name, LedMode.values.map { it.name }, true, staticCFunction<Widget, Unit> {
+        gridComboBox(fan.mode.name, LedMode.values.map { it.name }, true, staticCFunction<Widget, Unit> {
             wraith.updateMode(fan, it)
             onModeChange(FanWidgets) {
                 mirageToggle.setSensitive(fan.mode != LedMode.OFF)
             }
-        }).also { fanGrid.gridAttachRight(it, 0) }
-        FanWidgets.widgets.forEachIndexed { index, it -> fanGrid.gridAttachRight(it, index + 1) }
+        }).also { FanWidgets.attachWidgetsToGrid(fanGrid, it) }
 
         gridComboBox(ring.mode.name, RingMode.values.map { it.name }, true, staticCFunction<Widget, Unit> {
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
@@ -104,8 +107,7 @@ fun CPointer<GtkApplication>.activate() {
                 morseContainer.setSensitive(ring.mode == RingMode.MORSE)
                 if (ring.mode != RingMode.MORSE) morseTextBoxHint?.let { hint -> gtk_widget_hide(hint) }
             }
-        }).also { ringGrid.gridAttachRight(it, 0) }
-        RingWidgets.widgets.forEachIndexed { index, it -> ringGrid.gridAttachRight(it, index + 1) }
+        }).also { RingWidgets.attachWidgetsToGrid(ringGrid, it) }
 
         val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
             gtk_container_add(box.reinterpret(), this)

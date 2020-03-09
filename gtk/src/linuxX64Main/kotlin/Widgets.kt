@@ -26,7 +26,10 @@ sealed class ComponentWidgets<C : LedComponent> {
         }
     }
     val colorButton by lazy {
-        gridColorButton(component.colorOrBlack, component.mode.colorSupport != ColorSupport.NONE, onColorChange)
+        gridColorButton(
+            component.colorOrBlack, component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor,
+            onColorChange
+        )
     }
     val brightnessScale by lazy {
         gridScale(component.brightness, 3, component.mode.supportsBrightness, onBrightnessChange)
@@ -139,9 +142,7 @@ object RingWidgets : ComponentWidgets<RingComponent>() {
     private val morseReloadButton by lazy {
         gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
             gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-            connectSignal("clicked", staticCFunction<Widget, Unit> {
-                wraith.updateRingMorseText(morseTextBox.text)
-            })
+            connectSignal("clicked", staticCFunction<Widget, Unit> { wraith.updateRingMorseText(morseTextBox.text) })
         }
     }
 
