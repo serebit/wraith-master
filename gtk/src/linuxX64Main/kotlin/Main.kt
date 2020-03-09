@@ -95,7 +95,10 @@ fun CPointer<GtkApplication>.activate() {
 
         gtk_button_new()?.apply {
             gtk_button_set_label(reinterpret(), "Reset")
-            connectSignal("clicked", staticCFunction<Widget, Unit> { wraith.reset() })
+            connectSignal("clicked", staticCFunction<Widget, Unit> {
+                wraith.reset()
+                LogoWidgets.fullReload(); FanWidgets.fullReload(); RingWidgets.fullReload()
+            })
             gtk_container_add(saveOptionBox?.reinterpret(), this)
         }
 

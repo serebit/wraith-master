@@ -117,6 +117,12 @@ fun WraithPrism.reset() {
     sendBytes(0x41u, 0x80u)
     // apply changes
     apply()
+
+    // update existing components with reset values
+    val channels = sendBytes(0x52u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u)
+    logo.assignValuesFromChannel(getChannelValues(channels[8]))
+    fan.assignValuesFromChannel(getChannelValues(channels[9]))
+    ring.assignValuesFromChannel(getChannelValues(channels[10]))
 }
 
 inline fun <C : LedComponent> WraithPrism.update(component: C, update: C.() -> Unit) {
