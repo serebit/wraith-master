@@ -7,7 +7,6 @@ import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 typealias Widget = CPointer<GtkWidget>
-typealias GtkCallbackFunction = CPointer<CFunction<(Widget) -> Unit>>
 typealias CmpCallbackFunction = CPointer<CFunction<(Widget, COpaquePointer) -> Unit>>
 
 @OptIn(ExperimentalUnsignedTypes::class)

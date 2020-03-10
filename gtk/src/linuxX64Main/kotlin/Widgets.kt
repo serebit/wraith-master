@@ -97,13 +97,15 @@ class FanWidgets : ComponentWidgets<FanComponent>(wraith.fan) {
             setSensitive(component.mode != LedMode.OFF)
             gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
             gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-            connectSignalWithData("state-set", ptr, staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
-                ptr.useWith<FanWidgets> {
-                    component.mirage = state != 0
-                    wraith.updateFanMirage()
-                }
-                false
-            })
+            connectSignalWithData(
+                "state-set", ptr,
+                staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
+                    ptr.useWith<FanWidgets> {
+                        component.mirage = state != 0
+                        wraith.updateFanMirage()
+                    }
+                    false
+                })
         }
     }
 
