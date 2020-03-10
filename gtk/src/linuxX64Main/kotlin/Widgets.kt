@@ -4,11 +4,13 @@ import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
 
-private inline fun COpaquePointer.use(task: ComponentWidgets<*>.() -> Unit) {
-    val ref = asStableRef<ComponentWidgets<*>>()
+private inline fun <reified C : ComponentWidgets<*>> COpaquePointer.useWith(task: C.() -> Unit) {
+    val ref = asStableRef<C>()
     ref.get().task()
     ref.dispose()
 }
+
+private fun COpaquePointer.use(task: ComponentWidgets<*>.() -> Unit) = useWith(task)
 
 private inline fun ComponentWidgets<*>.basicReload(additional: () -> Unit = {}) {
     gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.index)
@@ -30,7 +32,7 @@ sealed class ComponentWidgets<C : LedComponent>(val component: C) {
 
     open val modeBox by lazy {
         gridComboBox(component.mode.name, LedMode.values.map { it.name }, true).apply {
-            connectSignal("changed", ptr, onModeChange)
+            connectSignalWithData("changed", ptr, onModeChange)
         }
     }
 
@@ -45,14 +47,14 @@ sealed class ComponentWidgets<C : LedComponent>(val component: C) {
         gtk_check_button_new_with_label("Randomize?")!!.apply {
             setSensitive(component.mode.colorSupport == ColorSupport.ALL)
             gtk_toggle_button_set_active(reinterpret(), component.useRandomColor.toByte().toInt())
-            connectSignal("toggled", ptr, onRandomizeChange)
+            connectSignalWithData("toggled", ptr, onRandomizeChange)
         }
     }
     val colorButton by lazy {
         gridColorButton(
             component.colorOrBlack, component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor
         ).apply {
-            connectSignal("color-set", ptr, onColorChange)
+            connectSignalWithData("color-set", ptr, onColorChange)
         }
     }
     val brightnessScale by lazy {
@@ -95,10 +97,9 @@ class FanWidgets : ComponentWidgets<FanComponent>(wraith.fan) {
             setSensitive(component.mode != LedMode.OFF)
             gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
             gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-            val callback =
-            connectSignal("state-set", ptr, staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
-                ptr.use {
-                    (component as FanComponent).mirage = state != 0
+            connectSignalWithData("state-set", ptr, staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
+                ptr.useWith<FanWidgets> {
+                    component.mirage = state != 0
                     wraith.updateFanMirage()
                 }
                 false
@@ -120,7 +121,7 @@ class RingWidgets : ComponentWidgets<RingComponent>(wraith.ring) {
 
     override val modeBox by lazy {
         gridComboBox(component.mode.name, RingMode.values.map { it.name }, true).apply {
-            connectSignal("changed", ptr, onModeChange)
+            connectSignalWithData("changed", ptr, onModeChange)
         }
     }
 
@@ -128,10 +129,10 @@ class RingWidgets : ComponentWidgets<RingComponent>(wraith.ring) {
         gridComboBox(
             component.direction.name, RotationDirection.values().map { it.name }, component.mode.supportsDirection
         ).apply {
-            connectSignal("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
+            connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
                 val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-                ptr.use {
-                    wraith.update(component as RingComponent) { direction = RotationDirection.valueOf(text.toUpperCase()) }
+                ptr.useWith<RingWidgets> {
+                    wraith.update(component) { direction = RotationDirection.valueOf(text.toUpperCase()) }
                 }
             })
         }
@@ -163,20 +164,24 @@ class RingWidgets : ComponentWidgets<RingComponent>(wraith.ring) {
                 "dialog-information"
             )
 
-            connectSignal("changed", staticCFunction<Widget, Unit> { changeCallback(it) })
-            connectSignal("icon-press", staticCFunction<Widget, Unit> {
-                when {
-                    morseTextBoxHint == null -> {
-                        morseTextBoxHintLabel = gtk_label_new(it.text.hintText)!!
-                        morseTextBoxHint = gtk_popover_new(it)!!.apply {
-                            gtk_popover_set_modal(reinterpret(), 0)
-                            gtk_container_set_border_width(reinterpret(), 8u)
-                            gtk_container_add(reinterpret(), morseTextBoxHintLabel)
-                            gtk_widget_show_all(this)
+            connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
+                ptr.useWith<RingWidgets> { this.changeCallback(it) }
+            })
+            connectSignalWithData("icon-press", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
+                ptr.useWith<RingWidgets> {
+                    when {
+                        morseTextBoxHint == null -> {
+                            morseTextBoxHintLabel = gtk_label_new(it.text.hintText)!!
+                            morseTextBoxHint = gtk_popover_new(it)!!.apply {
+                                gtk_popover_set_modal(reinterpret(), 0)
+                                gtk_container_set_border_width(reinterpret(), 8u)
+                                gtk_container_add(reinterpret(), morseTextBoxHintLabel)
+                                gtk_widget_show_all(this)
+                            }
                         }
+                        gtk_widget_is_visible(morseTextBoxHint) == 1 -> gtk_widget_hide(morseTextBoxHint)
+                        else -> gtk_widget_show(morseTextBoxHint)
                     }
-                    gtk_widget_is_visible(morseTextBoxHint) == 1 -> gtk_widget_hide(morseTextBoxHint)
-                    else -> gtk_widget_show(morseTextBoxHint)
                 }
             })
         }
@@ -185,7 +190,9 @@ class RingWidgets : ComponentWidgets<RingComponent>(wraith.ring) {
     private val morseReloadButton by lazy {
         gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
             gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-            connectSignal("clicked", staticCFunction<Widget, Unit> { wraith.updateRingMorseText(morseTextBox.text) })
+            connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+                ptr.useWith<RingWidgets> { wraith.updateRingMorseText(morseTextBox.text) }
+            })
         }
     }
 

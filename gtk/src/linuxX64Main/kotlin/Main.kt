@@ -8,8 +8,6 @@ import kotlin.system.exitProcess
 val result = obtainWraithPrism()
 val wraith: WraithPrism get() = (result as? WraithPrismResult.Success)!!.device
 
-data class AllWidgets(val logoWidgets: LogoWidgets, val fanWidgets: FanWidgets, val ringWidgets: RingWidgets)
-
 @OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.activate() {
     val activeWindow = gtk_application_get_active_window(this)
@@ -79,18 +77,22 @@ fun CPointer<GtkApplication>.activate() {
             gtk_box_set_child_packing(box.reinterpret(), this, 0, 1, 0u, GtkPackType.GTK_PACK_END)
         }
 
-//        gtk_button_new()?.apply {
-//            gtk_button_set_label(reinterpret(), "Reset")
-//            val ref = StableRef.create(AllWidgets(logoWidgets, fanWidgets, ringWidgets))
-//            connectSignal("clicked", ref, staticCFunction<Widget, StableRef<AllWidgets>, Unit> { it, ref ->
-//                val (logoWidgets, fanWidgets, ringWidgets) = ref.get()
-//                wraith.reset()
-//                logoWidgets.fullReload(); fanWidgets.fullReload(); ringWidgets.fullReload()
-//                gtk_combo_box_set_active(logoWidgets.modeBox.reinterpret(), logoWidgets.component.mode.index)
-//                gtk_combo_box_set_active(logoWidgets.modeBox.reinterpret(), fanWidgets.component.mode.index)
-//            })
-//            gtk_container_add(saveOptionBox?.reinterpret(), this)
-//        }
+        gtk_button_new()?.apply {
+            data class AllWidgets(val logo: LogoWidgets, val fan: FanWidgets, val ring: RingWidgets)
+
+            gtk_button_set_label(reinterpret(), "Reset")
+            val widgets = StableRef.create(AllWidgets(logoWidgets, fanWidgets, ringWidgets)).asCPointer()
+            connectSignalWithData("clicked", widgets, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
+                val ref = ptr.asStableRef<AllWidgets>()
+                val (logo, fan, ring) = ref.get()
+                wraith.reset()
+                logo.fullReload(); fan.fullReload(); ring.fullReload()
+                gtk_combo_box_set_active(logo.modeBox.reinterpret(), logo.component.mode.index)
+                gtk_combo_box_set_active(logo.modeBox.reinterpret(), fan.component.mode.index)
+                ref.dispose()
+            })
+            gtk_container_add(saveOptionBox?.reinterpret(), this)
+        }
 
         gtk_button_new()?.apply {
             gtk_button_set_label(reinterpret(), "Save")

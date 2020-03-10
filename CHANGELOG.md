@@ -21,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reset button in GTK frontend updates widgets to the device's saved values
 - Significantly reduced number of transfers to device in CLI frontend
 - Eliminated (tiny) memory leaks in setup caused by unfreed libusb resources
-- Eliminated some (tiny) memory leaks in GTK setup
 
 ## 0.5.0 (2020-03-01)
 

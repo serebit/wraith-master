@@ -11,11 +11,11 @@ typealias GtkCallbackFunction = CPointer<CFunction<(Widget) -> Unit>>
 typealias CmpCallbackFunction = CPointer<CFunction<(Widget, COpaquePointer) -> Unit>>
 
 @OptIn(ExperimentalUnsignedTypes::class)
-fun <F : CFunction<*>> CPointer<*>.connectSignal(signal: String, data: COpaquePointer?, action: CPointer<F>) =
+fun <F : CFunction<*>> CPointer<*>.connectSignalWithData(signal: String, data: COpaquePointer?, action: CPointer<F>) =
     g_signal_connect_data(reinterpret(), signal, action.reinterpret(), data, null, 0u)
 
 fun <F : CFunction<*>> CPointer<*>.connectSignal(signal: String, action: CPointer<F>) =
-    connectSignal(signal, null, action)
+    connectSignalWithData(signal, null, action)
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
@@ -84,7 +84,7 @@ fun gridColorButton(color: Color, sensitive: Boolean) = gtk_color_button_new()!!
 @OptIn(ExperimentalUnsignedTypes::class)
 fun gridScale(default: Int, marks: Int, sensitive: Boolean, data: COpaquePointer, action: CmpCallbackFunction) =
     gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
-        adjustment.connectSignal("value-changed", data, action)
+        adjustment.connectSignalWithData("value-changed", data, action)
         gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {
             gtk_scale_set_digits(reinterpret(), 0)
             gtk_scale_set_draw_value(reinterpret(), 0)
