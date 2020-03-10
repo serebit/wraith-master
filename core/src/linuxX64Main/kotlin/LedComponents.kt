@@ -151,8 +151,6 @@ sealed class LedMode(
     }
 }
 
-val LedMode.index get() = LedMode.values.indexOf(this)
-
 @OptIn(ExperimentalUnsignedTypes::class)
 sealed class RingMode(
     name: String,

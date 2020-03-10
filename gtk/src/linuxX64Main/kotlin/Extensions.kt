@@ -8,10 +8,14 @@ import kotlin.math.roundToInt
 
 typealias Widget = CPointer<GtkWidget>
 typealias GtkCallbackFunction = CPointer<CFunction<(Widget) -> Unit>>
+typealias CmpCallbackFunction = CPointer<CFunction<(Widget, COpaquePointer) -> Unit>>
 
 @OptIn(ExperimentalUnsignedTypes::class)
+fun <F : CFunction<*>> CPointer<*>.connectSignal(signal: String, data: COpaquePointer?, action: CPointer<F>) =
+    g_signal_connect_data(reinterpret(), signal, action.reinterpret(), data, null, 0u)
+
 fun <F : CFunction<*>> CPointer<*>.connectSignal(signal: String, action: CPointer<F>) =
-    g_signal_connect_data(reinterpret(), signal, action.reinterpret(), null, null, 0u)
+    connectSignal(signal, null, action)
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
@@ -56,7 +60,7 @@ fun Widget.addCss(css: String) = gtk_widget_get_style_context(this)!!.apply {
     gtk_style_context_add_provider(this, provider.reinterpret(), GTK_STYLE_PROVIDER_PRIORITY_USER)
 }
 
-fun gridComboBox(default: String, elements: List<String>, sensitive: Boolean, action: GtkCallbackFunction) =
+fun gridComboBox(default: String, elements: List<String>, sensitive: Boolean) =
     gtk_combo_box_text_new()!!.apply {
         elements.forEach {
             gtk_combo_box_text_append_text(reinterpret(), it.toLowerCase().capitalize())
@@ -66,23 +70,21 @@ fun gridComboBox(default: String, elements: List<String>, sensitive: Boolean, ac
         gtk_widget_set_size_request(this, 96, -1)
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-        connectSignal("changed", action)
     }
 
-fun gridColorButton(color: Color, sensitive: Boolean, action: GtkCallbackFunction) = gtk_color_button_new()!!.apply {
+fun gridColorButton(color: Color, sensitive: Boolean) = gtk_color_button_new()!!.apply {
     gtk_color_button_set_use_alpha(reinterpret(), 0)
     memScoped { gtk_color_button_set_rgba(reinterpret(), gdkRgba(color).ptr) }
     gtk_widget_set_size_request(this, 96, -1)
     gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
     gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
     setSensitive(sensitive)
-    connectSignal("color-set", action)
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-fun gridScale(default: Int, marks: Int, sensitive: Boolean, action: GtkCallbackFunction) =
+fun gridScale(default: Int, marks: Int, sensitive: Boolean, data: COpaquePointer, action: CmpCallbackFunction) =
     gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
-        adjustment.connectSignal("value-changed", action)
+        adjustment.connectSignal("value-changed", data, action)
         gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {
             gtk_scale_set_digits(reinterpret(), 0)
             gtk_scale_set_draw_value(reinterpret(), 0)

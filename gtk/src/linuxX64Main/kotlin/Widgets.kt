@@ -4,12 +4,34 @@ import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
 
-sealed class ComponentWidgets<C : LedComponent> {
-    abstract val component: C
+private inline fun COpaquePointer.use(task: ComponentWidgets<*>.() -> Unit) {
+    val ref = asStableRef<ComponentWidgets<*>>()
+    ref.get().task()
+    ref.dispose()
+}
+
+private inline fun ComponentWidgets<*>.basicReload(additional: () -> Unit = {}) {
+    gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.index)
+    memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(component.colorOrBlack).ptr) }
+
+    val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
+    gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+
+    randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
+    colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor)
+    brightnessScale.setSensitive(component.mode.supportsBrightness)
+    speedScale.setSensitive(component.mode.supportsSpeed)
+    additional()
+}
+
+sealed class ComponentWidgets<C : LedComponent>(val component: C) {
+    protected val ptr: COpaquePointer get() = StableRef.create(this).asCPointer()
     open val widgets get() = listOf(modeBox, colorBox, brightnessScale, speedScale)
 
     open val modeBox by lazy {
-        gridComboBox(component.mode.name, LedMode.values.map { it.name }, true, onModeChange)
+        gridComboBox(component.mode.name, LedMode.values.map { it.name }, true).apply {
+            connectSignal("changed", ptr, onModeChange)
+        }
     }
 
     @OptIn(ExperimentalUnsignedTypes::class)
@@ -23,101 +45,96 @@ sealed class ComponentWidgets<C : LedComponent> {
         gtk_check_button_new_with_label("Randomize?")!!.apply {
             setSensitive(component.mode.colorSupport == ColorSupport.ALL)
             gtk_toggle_button_set_active(reinterpret(), component.useRandomColor.toByte().toInt())
-            connectSignal("toggled", onRandomizeChange)
+            connectSignal("toggled", ptr, onRandomizeChange)
         }
     }
     val colorButton by lazy {
         gridColorButton(
-            component.colorOrBlack, component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor,
-            onColorChange
-        )
+            component.colorOrBlack, component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor
+        ).apply {
+            connectSignal("color-set", ptr, onColorChange)
+        }
     }
     val brightnessScale by lazy {
-        gridScale(component.brightness, 3, component.mode.supportsBrightness, onBrightnessChange)
+        gridScale(component.brightness, 3, component.mode.supportsBrightness, ptr, onBrightnessChange)
     }
     val speedScale by lazy {
-        gridScale(component.speed, 5, component.mode.supportsSpeed, onSpeedChange)
-    }
-
-    protected inline fun basicReload(additional: () -> Unit = {}) {
-        gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.index)
-        memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(component.colorOrBlack).ptr) }
-
-        val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
-        gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
-
-        randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
-        colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor)
-        brightnessScale.setSensitive(component.mode.supportsBrightness)
-        speedScale.setSensitive(component.mode.supportsSpeed)
-        additional()
+        gridScale(component.speed, 5, component.mode.supportsSpeed, ptr, onSpeedChange)
     }
 
     open fun fullReload() = basicReload()
 
-    abstract val onColorChange: GtkCallbackFunction
-    abstract val onBrightnessChange: GtkCallbackFunction
-    abstract val onSpeedChange: GtkCallbackFunction
-    abstract val onRandomizeChange: GtkCallbackFunction
-    abstract val onModeChange: GtkCallbackFunction
+    protected val onModeChange: CmpCallbackFunction
+        get() = staticCFunction { it, ptr ->
+            ptr.use { wraith.updateMode(component, it); fullReload() }
+        }
+    private val onColorChange: CmpCallbackFunction
+        get() = staticCFunction { it, ptr ->
+            ptr.use { wraith.updateColor(component, it) }
+        }
+    private val onBrightnessChange: CmpCallbackFunction
+        get() = staticCFunction { it, ptr ->
+            ptr.use { wraith.updateBrightness(component, it) }
+        }
+    private val onSpeedChange: CmpCallbackFunction
+        get() = staticCFunction { it, ptr ->
+            ptr.use { wraith.updateSpeed(component, it) }
+        }
+    private val onRandomizeChange: CmpCallbackFunction
+        get() = staticCFunction { it, ptr ->
+            ptr.use { wraith.updateRandomize(component, randomizeColorCheckbox, it) }
+        }
 }
 
-object LogoWidgets : ComponentWidgets<LogoComponent>() {
-    override val component get() = wraith.logo
-    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(component, it) }
-    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(component, it) }
-    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(component, it) }
-    override val onRandomizeChange
-        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(component, it, colorButton) }
-    override val onModeChange get() = staticCFunction<Widget, Unit> { wraith.updateMode(component, it); fullReload() }
-}
+class LogoWidgets : ComponentWidgets<LogoComponent>(wraith.logo)
 
-object FanWidgets : ComponentWidgets<FanComponent>() {
-    override val component get() = wraith.fan
+class FanWidgets : ComponentWidgets<FanComponent>(wraith.fan) {
     override val widgets get() = listOf(modeBox, colorBox, brightnessScale, speedScale, mirageToggle)
     val mirageToggle by lazy {
         gtk_switch_new()!!.apply {
             setSensitive(component.mode != LedMode.OFF)
             gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
             gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-            connectSignal("state-set", staticCFunction<Widget, Int, Boolean> { _, state ->
-                component.mirage = state != 0
-                wraith.updateFanMirage()
+            val callback =
+            connectSignal("state-set", ptr, staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
+                ptr.use {
+                    (component as FanComponent).mirage = state != 0
+                    wraith.updateFanMirage()
+                }
                 false
             })
         }
     }
 
-    override fun fullReload() = basicReload { mirageToggle.setSensitive(component.mode != LedMode.OFF) }
-
-    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(component, it) }
-    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(component, it) }
-    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(component, it) }
-    override val onRandomizeChange
-        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(component, it, colorButton) }
-    override val onModeChange get() = staticCFunction<Widget, Unit> { wraith.updateMode(component, it); fullReload() }
+    override fun fullReload() = basicReload {
+        mirageToggle.setSensitive(component.mode != LedMode.OFF)
+    }
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-object RingWidgets : ComponentWidgets<RingComponent>() {
-    override val component get() = wraith.ring
+class RingWidgets : ComponentWidgets<RingComponent>(wraith.ring) {
     override val widgets
         get() = listOf(modeBox, colorBox, brightnessScale, speedScale, directionComboBox, morseContainer)
     private var morseTextBoxHintLabel: Widget? = null
     var morseTextBoxHint: Widget? = null
 
     override val modeBox by lazy {
-        gridComboBox(component.mode.name, RingMode.values.map { it.name }, true, onModeChange)
+        gridComboBox(component.mode.name, RingMode.values.map { it.name }, true).apply {
+            connectSignal("changed", ptr, onModeChange)
+        }
     }
 
     val directionComboBox by lazy {
         gridComboBox(
-            component.direction.name, RotationDirection.values().map { it.name }, component.mode.supportsDirection,
-            staticCFunction<Widget, Unit> {
+            component.direction.name, RotationDirection.values().map { it.name }, component.mode.supportsDirection
+        ).apply {
+            connectSignal("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
                 val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-                wraith.update(component) { direction = RotationDirection.valueOf(text.toUpperCase()) }
-            }
-        )
+                ptr.use {
+                    wraith.update(component as RingComponent) { direction = RotationDirection.valueOf(text.toUpperCase()) }
+                }
+            })
+        }
     }
 
     val morseContainer by lazy {
@@ -193,11 +210,4 @@ object RingWidgets : ComponentWidgets<RingComponent>() {
         morseContainer.setSensitive(component.mode == RingMode.MORSE)
         if (component.mode != RingMode.MORSE) morseTextBoxHint?.let { hint -> gtk_widget_hide(hint) }
     }
-
-    override val onColorChange get() = staticCFunction<Widget, Unit> { wraith.updateColor(component, it) }
-    override val onBrightnessChange get() = staticCFunction<Widget, Unit> { wraith.updateBrightness(component, it) }
-    override val onSpeedChange get() = staticCFunction<Widget, Unit> { wraith.updateSpeed(component, it) }
-    override val onRandomizeChange
-        get() = staticCFunction<Widget, Unit> { wraith.updateRandomize(component, it, colorButton) }
-    override val onModeChange get() = staticCFunction<Widget, Unit> { wraith.updateMode(component, it); fullReload() }
 }
