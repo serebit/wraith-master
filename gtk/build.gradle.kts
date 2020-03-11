@@ -73,3 +73,15 @@ tasks.register("install") {
             .copyTo(installDir.resolve("share/applications/wraith-master.desktop"), overwrite = true)
     }
 }
+
+tasks.register("valgrind") {
+    dependsOn("build")
+
+    doLast {
+        exec {
+            isIgnoreExitValue = true
+            workingDir = buildDir.resolve("bin/linuxX64/debugExecutable")
+            commandLine("valgrind", "./gtk.kexe")
+        }
+    }
+}
