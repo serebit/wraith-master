@@ -22,7 +22,7 @@ private inline fun ComponentWidgets<*>.basicReload(additional: () -> Unit = {}) 
     gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
 
     randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
-    colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor)
+    colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !useRandomColor)
     brightnessScale.setSensitive(component.mode.supportsBrightness)
     speedScale.setSensitive(component.mode.supportsSpeed)
     additional()

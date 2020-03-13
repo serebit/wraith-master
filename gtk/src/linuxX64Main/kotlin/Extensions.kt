@@ -123,7 +123,10 @@ fun WraithPrism.updateMode(component: LedComponent, comboBox: Widget) = update(c
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
     when (this) {
         is BasicLedComponent -> mode = LedMode[text.toUpperCase()]
-        is RingComponent -> mode = RingMode[text.toUpperCase()]
+        is RingComponent -> {
+            mode = RingMode[text.toUpperCase()]
+            assignValuesFromChannel(getChannelValues(mode.channel))
+        }
     }
 }
 
