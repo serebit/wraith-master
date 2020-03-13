@@ -5,18 +5,16 @@ import gtk3.*
 import kotlinx.cinterop.*
 import kotlin.system.exitProcess
 
-val result = obtainWraithPrism()
-val wraith: WraithPrism get() = (result as? WraithPrismResult.Success)!!.device
-
 @OptIn(ExperimentalUnsignedTypes::class)
-fun CPointer<GtkApplication>.activate() {
+fun CPointer<GtkApplication>.activate(wraithPtr: COpaquePointer) {
+    val wraith = wraithPtr.asStableRef<WraithPrism>().get()
     val activeWindow = gtk_application_get_active_window(this)
     if (activeWindow == null) {
         val windowWidget = gtk_application_window_new(this)!!
 
-        val logoWidgets = LogoWidgets()
-        val fanWidgets = FanWidgets()
-        val ringWidgets = RingWidgets()
+        val logoWidgets = LogoWidgets(wraith)
+        val fanWidgets = FanWidgets(wraith)
+        val ringWidgets = RingWidgets(wraith)
 
         // unset focus on left click with mouse button
         windowWidget.connectSignal(
@@ -78,26 +76,30 @@ fun CPointer<GtkApplication>.activate() {
         }
 
         gtk_button_new()?.apply {
-            data class AllWidgets(val logo: LogoWidgets, val fan: FanWidgets, val ring: RingWidgets)
-
             gtk_button_set_label(reinterpret(), "Reset")
-            val widgets = StableRef.create(AllWidgets(logoWidgets, fanWidgets, ringWidgets)).asCPointer()
-            connectSignalWithData("clicked", widgets, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
-                val ref = ptr.asStableRef<AllWidgets>()
-                val (logo, fan, ring) = ref.get()
-                wraith.reset()
-                logo.fullReload(); fan.fullReload(); ring.fullReload()
-                gtk_combo_box_set_active(logo.modeBox.reinterpret(), logo.component.mode.index)
-                gtk_combo_box_set_active(logo.modeBox.reinterpret(), fan.component.mode.index)
-                ref.dispose()
-            })
+            val data = StableRef.create(wraith to listOf(logoWidgets, fanWidgets, ringWidgets))
+            connectSignalWithData(
+                "clicked", StableRef.create(data).asCPointer(),
+                staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+                    val ref = ptr.asStableRef<Pair<WraithPrism, List<ComponentWidgets<*>>>>()
+                    val (device, widgets) = ref.get()
+                    val (logo, fan, ring) = widgets
+                    device.reset()
+                    logo.fullReload(); fan.fullReload(); ring.fullReload()
+                    gtk_combo_box_set_active(logo.modeBox.reinterpret(), logo.component.mode.index)
+                    gtk_combo_box_set_active(logo.modeBox.reinterpret(), fan.component.mode.index)
+                    ref.dispose()
+                }
+            )
             gtk_container_add(saveOptionBox?.reinterpret(), this)
         }
 
         gtk_button_new()?.apply {
             gtk_button_set_label(reinterpret(), "Save")
             gtk_style_context_add_class(gtk_widget_get_style_context(this), "suggested-action")
-            connectSignal("clicked", staticCFunction<Widget, Unit> { wraith.save(); Unit })
+            connectSignalWithData("clicked", wraithPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+                ptr.asStableRef<WraithPrism>().get().save(); Unit
+            })
             gtk_container_add(saveOptionBox?.reinterpret(), this)
         }
 
@@ -117,20 +119,32 @@ fun CPointer<GtkApplication>.activate() {
 fun main(args: Array<String>) {
     val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
     val status: Int
+    val result = obtainWraithPrism()
 
-    app.connectSignal("activate", when (result) {
-        is WraithPrismResult.Success -> staticCFunction<CPointer<GtkApplication>, Unit> { it.activate() }
-        is WraithPrismResult.Failure -> staticCFunction<CPointer<GtkApplication>, Unit> {
-            val dialog = gtk_message_dialog_new(
-                null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK, "%s", result.message
-            )
+    when (result) {
+        is WraithPrismResult.Success -> app.connectSignalWithData(
+            "activate", StableRef.create(result.device).asCPointer(),
+            staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
+                it.activate(ptr)
+                ptr.asStableRef<WraithPrism>().dispose()
+            }
+        )
 
-            gtk_dialog_run(dialog?.reinterpret())
-        }
-    })
+        is WraithPrismResult.Failure -> app.connectSignalWithData(
+            "activate", StableRef.create(result.message).asCPointer(),
+            staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { _, ptr ->
+                val ref = ptr.asStableRef<String>()
+                val dialog = gtk_message_dialog_new(
+                    null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK, "%s", ref.get()
+                )
+                ref.dispose()
+
+                gtk_dialog_run(dialog?.reinterpret())
+            })
+    }
 
     status = memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
-    if (result is WraithPrismResult.Success) wraith.close()
+    if (result is WraithPrismResult.Success) result.device.close()
 
     g_object_unref(app)
     if (status != 0) exitProcess(status)

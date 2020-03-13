@@ -7,7 +7,7 @@ import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 typealias Widget = CPointer<GtkWidget>
-typealias CmpCallbackFunction = CPointer<CFunction<(Widget, COpaquePointer) -> Unit>>
+typealias CallbackCFunction = CPointer<CFunction<(Widget, COpaquePointer) -> Unit>>
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun <F : CFunction<*>> CPointer<*>.connectSignalWithData(signal: String, data: COpaquePointer?, action: CPointer<F>) =
@@ -81,7 +81,7 @@ fun gridColorButton(color: Color, sensitive: Boolean) = gtk_color_button_new()!!
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-fun gridScale(default: Int, marks: Int, sensitive: Boolean, data: COpaquePointer, action: CmpCallbackFunction) =
+fun gridScale(default: Int, marks: Int, sensitive: Boolean, data: COpaquePointer, action: CallbackCFunction) =
     gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
         adjustment.connectSignalWithData("value-changed", data, action)
         gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {

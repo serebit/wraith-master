@@ -4,13 +4,15 @@ import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
 
-private inline fun <reified C : ComponentWidgets<*>> COpaquePointer.useWith(task: C.() -> Unit) {
-    val ref = asStableRef<C>()
-    ref.get().task()
+private data class CallbackData<W : ComponentWidgets<*>>(val wraith: WraithPrism, val widgets: W)
+
+private inline fun <reified W : ComponentWidgets<*>> COpaquePointer.useWith(task: (CallbackData<W>) -> Unit) {
+    val ref = asStableRef<CallbackData<W>>()
+    task(ref.get())
     ref.dispose()
 }
 
-private fun COpaquePointer.use(task: ComponentWidgets<*>.() -> Unit) = useWith(task)
+private fun COpaquePointer.use(task: (CallbackData<*>) -> Unit) = useWith<ComponentWidgets<*>>(task)
 
 private inline fun ComponentWidgets<*>.basicReload(additional: () -> Unit = {}) {
     gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.index)
@@ -26,8 +28,17 @@ private inline fun ComponentWidgets<*>.basicReload(additional: () -> Unit = {}) 
     additional()
 }
 
-sealed class ComponentWidgets<C : LedComponent>(val component: C) {
-    protected val ptr: COpaquePointer by lazy { StableRef.create(this).asCPointer() }
+private val String.hintText: String
+    get() = when {
+        isBlank() -> "Enter either morse code (dots and dashes) or text"
+        parseMorseOrTextToBytes().size > 120 -> "Maximum length exceeded"
+        isMorseCode -> "Parsing as morse code"
+        isValidMorseText -> "Parsing as text"
+        else -> "Invalid characters detected: $invalidMorseChars"
+    }
+
+sealed class ComponentWidgets<C : LedComponent>(device: WraithPrism, val component: C) {
+    protected val ptr: COpaquePointer by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
     open val widgets by lazy { listOf(modeBox, colorBox, brightnessScale, speedScale) }
 
     open val modeBox = gridComboBox(component.mode.name, LedMode.values.map { it.name }, true).apply {
@@ -44,6 +55,7 @@ sealed class ComponentWidgets<C : LedComponent>(val component: C) {
     ).apply {
         connectSignalWithData("color-set", ptr, onColorChange)
     }
+
     @OptIn(ExperimentalUnsignedTypes::class)
     val colorBox = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
         gtk_box_pack_end(reinterpret(), colorButton, 0, 0, 0u)
@@ -54,31 +66,33 @@ sealed class ComponentWidgets<C : LedComponent>(val component: C) {
 
     open fun fullReload() = basicReload()
 
-    protected val onModeChange: CmpCallbackFunction
+    protected val onModeChange: CallbackCFunction
         get() = staticCFunction { it, ptr ->
-            ptr.use { wraith.updateMode(component, it); fullReload() }
+            ptr.use { data -> data.wraith.updateMode(data.widgets.component, it); data.widgets.fullReload() }
         }
-    private val onColorChange: CmpCallbackFunction
+    private val onColorChange: CallbackCFunction
         get() = staticCFunction { it, ptr ->
-            ptr.use { wraith.updateColor(component, it) }
+            ptr.use { data -> data.wraith.updateColor(data.widgets.component, it) }
         }
-    private val onBrightnessChange: CmpCallbackFunction
+    private val onBrightnessChange: CallbackCFunction
         get() = staticCFunction { it, ptr ->
-            ptr.use { wraith.updateBrightness(component, it) }
+            ptr.use { data -> data.wraith.updateBrightness(data.widgets.component, it) }
         }
-    private val onSpeedChange: CmpCallbackFunction
+    private val onSpeedChange: CallbackCFunction
         get() = staticCFunction { it, ptr ->
-            ptr.use { wraith.updateSpeed(component, it) }
+            ptr.use { data -> data.wraith.updateSpeed(data.widgets.component, it) }
         }
-    private val onRandomizeChange: CmpCallbackFunction
+    private val onRandomizeChange: CallbackCFunction
         get() = staticCFunction { it, ptr ->
-            ptr.use { wraith.updateRandomize(component, randomizeColorCheckbox, it) }
+            ptr.use { (wraith, widgets) ->
+                wraith.updateRandomize(widgets.component, widgets.randomizeColorCheckbox, it)
+            }
         }
 }
 
-class LogoWidgets : ComponentWidgets<LogoComponent>(wraith.logo)
+class LogoWidgets(wraith: WraithPrism) : ComponentWidgets<LogoComponent>(wraith, wraith.logo)
 
-class FanWidgets : ComponentWidgets<FanComponent>(wraith.fan) {
+class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, wraith.fan) {
     private val mirageToggle = gtk_switch_new()!!.apply {
         setSensitive(component.mode != LedMode.OFF)
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
@@ -86,8 +100,8 @@ class FanWidgets : ComponentWidgets<FanComponent>(wraith.fan) {
         connectSignalWithData(
             "state-set", ptr,
             staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
-                ptr.useWith<FanWidgets> {
-                    component.mirage = state != 0
+                ptr.useWith<FanWidgets> { (wraith, widgets) ->
+                    widgets.component.mirage = state != 0
                     wraith.updateFanMirage()
                 }
                 false
@@ -102,9 +116,10 @@ class FanWidgets : ComponentWidgets<FanComponent>(wraith.fan) {
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-class RingWidgets : ComponentWidgets<RingComponent>(wraith.ring) {
-    private var morseTextBoxHintLabel: Widget? = null
+class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, prism.ring) {
+    var morseTextBoxHintLabel: Widget? = null
     var morseTextBoxHint: Widget? = null
+
     override val modeBox = gridComboBox(component.mode.name, RingMode.values.map { it.name }, true).apply {
         connectSignalWithData("changed", ptr, onModeChange)
     }
@@ -114,20 +129,12 @@ class RingWidgets : ComponentWidgets<RingComponent>(wraith.ring) {
     ).apply {
         connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            ptr.useWith<RingWidgets> {
-                wraith.update(component) { direction = RotationDirection.valueOf(text.toUpperCase()) }
+            ptr.useWith<RingWidgets> { data ->
+                data.wraith.update(data.widgets.component) { direction = RotationDirection.valueOf(text.toUpperCase()) }
             }
         })
     }
 
-    private val String.hintText: String
-        get() = when {
-            isBlank() -> "Enter either morse code (dots and dashes) or text"
-            parseMorseOrTextToBytes().size > 120 -> "Maximum length exceeded"
-            isMorseCode -> "Parsing as morse code"
-            isValidMorseText -> "Parsing as text"
-            else -> "Invalid characters detected: $invalidMorseChars"
-        }
 
     private val morseTextBox = gtk_entry_new()!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
@@ -138,22 +145,22 @@ class RingWidgets : ComponentWidgets<RingComponent>(wraith.ring) {
         )
 
         connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
-            ptr.useWith<RingWidgets> { this.changeCallback(it) }
+            ptr.useWith<RingWidgets> { (_, widgets) -> widgets.changeCallback(it) }
         })
         connectSignalWithData("icon-press", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
-            ptr.useWith<RingWidgets> {
+            ptr.useWith<RingWidgets> { (_, widgets) ->
                 when {
-                    morseTextBoxHint == null -> {
-                        morseTextBoxHintLabel = gtk_label_new(it.text.hintText)!!
-                        morseTextBoxHint = gtk_popover_new(it)!!.apply {
+                    widgets.morseTextBoxHint == null -> {
+                        widgets.morseTextBoxHintLabel = gtk_label_new(it.text.hintText)!!
+                        widgets.morseTextBoxHint = gtk_popover_new(it)!!.apply {
                             gtk_popover_set_modal(reinterpret(), 0)
                             gtk_container_set_border_width(reinterpret(), 8u)
-                            gtk_container_add(reinterpret(), morseTextBoxHintLabel)
+                            gtk_container_add(reinterpret(), widgets.morseTextBoxHintLabel)
                             gtk_widget_show_all(this)
                         }
                     }
-                    gtk_widget_is_visible(morseTextBoxHint) == 1 -> gtk_widget_hide(morseTextBoxHint)
-                    else -> gtk_widget_show(morseTextBoxHint)
+                    gtk_widget_is_visible(widgets.morseTextBoxHint) == 1 -> gtk_widget_hide(widgets.morseTextBoxHint)
+                    else -> gtk_widget_show(widgets.morseTextBoxHint)
                 }
             }
         })
@@ -162,7 +169,7 @@ class RingWidgets : ComponentWidgets<RingComponent>(wraith.ring) {
     private val morseReloadButton = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-            ptr.useWith<RingWidgets> { wraith.updateRingMorseText(morseTextBox.text) }
+            ptr.useWith<RingWidgets> { (wraith, widgets) -> wraith.updateRingMorseText(widgets.morseTextBox.text) }
         })
     }
 
