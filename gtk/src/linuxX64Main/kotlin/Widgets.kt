@@ -133,7 +133,6 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, p
         })
     }
 
-
     private val morseTextBox = gtk_entry_new()!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         gtk_entry_set_icon_from_icon_name(
