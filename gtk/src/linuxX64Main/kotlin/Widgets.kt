@@ -84,9 +84,7 @@ sealed class ComponentWidgets<C : LedComponent>(device: WraithPrism, val compone
         }
     private val onRandomizeChange: CallbackCFunction
         get() = staticCFunction { it, ptr ->
-            ptr.use { (wraith, widgets) ->
-                wraith.updateRandomize(widgets.component, widgets.randomizeColorCheckbox, it)
-            }
+            ptr.use { (wraith, widgets) -> wraith.updateRandomize(widgets.component, it, widgets.colorButton) }
         }
 }
 
