@@ -52,8 +52,8 @@ class LogoComponent(initialValues: ChannelValues) : BasicLedComponent {
     }
 }
 
+@OptIn(ExperimentalUnsignedTypes::class)
 class FanComponent(initialValues: ChannelValues) : BasicLedComponent {
-    @OptIn(ExperimentalUnsignedTypes::class)
     override val channel: UByte = 0x06u
     override lateinit var mode: LedMode
     override var color = Color(0, 0, 0)

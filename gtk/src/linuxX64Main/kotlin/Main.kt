@@ -59,10 +59,6 @@ fun CPointer<GtkApplication>.activate(wraithPtr: COpaquePointer) {
         ringGrid.gridLabel(4, "Rotation Direction")
         ringGrid.gridLabel(5, "Morse Text")
 
-        fun ComponentWidgets<*>.attachWidgetsToGrid(grid: Widget) {
-            widgets.forEachIndexed { i, it -> grid.gridAttachRight(it, i) }
-        }
-
         logoWidgets.attachWidgetsToGrid(logoGrid)
         fanWidgets.attachWidgetsToGrid(fanGrid)
         ringWidgets.attachWidgetsToGrid(ringGrid)

@@ -39,7 +39,7 @@ private val String.hintText: String
 
 sealed class ComponentWidgets<C : LedComponent>(device: WraithPrism, val component: C) {
     protected val ptr: COpaquePointer by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
-    open val widgets by lazy { listOf(modeBox, colorBox, brightnessScale, speedScale) }
+    protected open val widgets by lazy { listOf(modeBox, colorBox, brightnessScale, speedScale) }
 
     open val modeBox = gridComboBox(component.mode.name, LedMode.values.map { it.name }, true).apply {
         connectSignalWithData("changed", ptr, onModeChange)
@@ -66,6 +66,8 @@ sealed class ComponentWidgets<C : LedComponent>(device: WraithPrism, val compone
 
     open fun fullReload() = basicReload()
 
+    fun attachWidgetsToGrid(grid: Widget) = widgets.forEachIndexed { i, it -> grid.gridAttachRight(it, i) }
+
     protected val onModeChange: CallbackCFunction
         get() = staticCFunction { it, ptr ->
             ptr.use { data -> data.wraith.updateMode(data.widgets.component, it); data.widgets.fullReload() }
@@ -90,33 +92,72 @@ sealed class ComponentWidgets<C : LedComponent>(device: WraithPrism, val compone
 
 class LogoWidgets(wraith: WraithPrism) : ComponentWidgets<LogoComponent>(wraith, wraith.logo)
 
+@OptIn(ExperimentalUnsignedTypes::class)
 class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, wraith.fan) {
+    private val mirageFrequencies = listOf("300Hz", "2000Hz")
+
     private val mirageToggle = gtk_switch_new()!!.apply {
         setSensitive(component.mode != LedMode.OFF)
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-        connectSignalWithData(
-            "state-set", ptr,
-            staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
-                ptr.useWith<FanWidgets> { (wraith, widgets) ->
-                    widgets.component.mirage = state != 0
-                    wraith.updateFanMirage()
-                }
-                false
-            })
+        connectSignalWithData("state-set", ptr, staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
+            ptr.useWith<FanWidgets> { (_, widgets) ->
+                widgets.component.mirage = state != 0
+                widgets.mirageRedFrequency.setSensitive(state == 1)
+                widgets.mirageGreenFrequency.setSensitive(state == 1)
+                widgets.mirageBlueFrequency.setSensitive(state == 1)
+            }
+            false
+        })
     }
 
-    override val widgets = listOf(modeBox, colorBox, brightnessScale, speedScale, mirageToggle)
+    private val mirageRedFrequency =
+        gridComboBox(mirageFrequencies.first(), mirageFrequencies, component.mode != LedMode.OFF).apply {
+            setSensitive(component.mode != LedMode.OFF && component.mirage)
+            gtk_widget_set_size_request(this, -1, -1)
+        }
+
+    private val mirageGreenFrequency =
+        gridComboBox(mirageFrequencies.first(), mirageFrequencies, component.mode != LedMode.OFF).apply {
+            setSensitive(component.mode != LedMode.OFF && component.mirage)
+            gtk_widget_set_size_request(this, -1, -1)
+        }
+
+    private val mirageBlueFrequency =
+        gridComboBox(mirageFrequencies.first(), mirageFrequencies, component.mode != LedMode.OFF).apply {
+            setSensitive(component.mode != LedMode.OFF && component.mirage)
+            gtk_widget_set_size_request(this, -1, -1)
+        }
+
+    private val mirageReload = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
+        setSensitive(component.mode != LedMode.OFF)
+        gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
+        connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+            ptr.useWith<FanWidgets> { (wraith, _) -> wraith.updateFanMirage() }
+        })
+    }
+
+    private val mirageBox = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
+        listOf(mirageToggle, mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency, mirageReload)
+            .asReversed()
+            .forEach { gtk_box_pack_end(reinterpret(), it, 0, 0, 0u) }
+    }
+
+    override val widgets = listOf(modeBox, colorBox, brightnessScale, speedScale, mirageBox)
 
     override fun fullReload() = basicReload {
         mirageToggle.setSensitive(component.mode != LedMode.OFF)
+        mirageRedFrequency.setSensitive(component.mode != LedMode.OFF && component.mirage)
+        mirageGreenFrequency.setSensitive(component.mode != LedMode.OFF && component.mirage)
+        mirageBlueFrequency.setSensitive(component.mode != LedMode.OFF && component.mirage)
+        mirageReload.setSensitive(component.mode != LedMode.OFF)
     }
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
 class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, prism.ring) {
-    var morseTextBoxHintLabel: Widget? = null
-    var morseTextBoxHint: Widget? = null
+    private var morseTextBoxHintLabel: Widget? = null
+    private var morseTextBoxHint: Widget? = null
 
     override val modeBox = gridComboBox(component.mode.name, RingMode.values.map { it.name }, true).apply {
         connectSignalWithData("changed", ptr, onModeChange)
