@@ -6,6 +6,7 @@ import libusb.*
 
 @OptIn(ExperimentalUnsignedTypes::class)
 class WraithPrism(private val handle: CPointer<libusb_device_handle>, private val numInterfaces: Int) {
+    val components get() = listOf(logo, fan, ring)
     val logo: LogoComponent
     val fan: FanComponent
     val ring: RingComponent
@@ -74,9 +75,14 @@ class ChannelValues(private val values: List<Int>) {
     val color get() = Color(values[10], values[11], values[12])
 }
 
-fun WraithPrism.getChannelValues(channel: Int) = ChannelValues(sendBytes(0x52, 0x2C, 1, 0, channel))
 fun WraithPrism.save() = sendBytes(0x50, 0x55)
 fun WraithPrism.apply() = sendBytes(0x51, 0x28, 0, 0, 0xE0)
+fun WraithPrism.load() = sendBytes(0x50)
+fun WraithPrism.restore() = sendBytes(0, 0x41)
+fun WraithPrism.powerOff() = sendBytes(0x41, 3)
+fun WraithPrism.powerOn() = sendBytes(0x41, 0x80)
+fun WraithPrism.getChannels() = sendBytes(0x52, 0xA0, 1, 0, 0, 3, 0, 0)
+fun WraithPrism.getChannelValues(channel: Int) = ChannelValues(sendBytes(0x52, 0x2C, 1, 0, channel))
 
 fun WraithPrism.updateFanMirage() = if (fan.mirage)
     sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, 2, 0x63, 0xBD, 3, 2, 0x63, 0xBD, 4, 2, 0x63, 0xBD)
@@ -91,12 +97,6 @@ fun WraithPrism.updateRingMorseText(text: String) {
     sendBytes(0x51, 0x73, 1, 0, *secondChunk)
 }
 
-fun WraithPrism.load() = sendBytes(0x50)
-fun WraithPrism.restore() = sendBytes(0, 0x41)
-fun WraithPrism.powerOff() = sendBytes(0x41, 3)
-fun WraithPrism.powerOn() = sendBytes(0x41, 0x80)
-fun WraithPrism.getChannels() = sendBytes(0x52, 0xA0, 1, 0, 0, 3, 0, 0)
-
 fun WraithPrism.reset() {
     load()
     powerOff()
@@ -106,9 +106,7 @@ fun WraithPrism.reset() {
 
     // update existing components with reset values
     val channels = getChannels()
-    logo.assignValuesFromChannel(getChannelValues(channels[8]))
-    fan.assignValuesFromChannel(getChannelValues(channels[9]))
-    ring.assignValuesFromChannel(getChannelValues(channels[10]))
+    components.forEachIndexed { i, it -> it.assignValuesFromChannel(getChannelValues(channels[i + 8])) }
 }
 
 inline fun <C : LedComponent> WraithPrism.update(component: C, task: C.() -> Unit) {
