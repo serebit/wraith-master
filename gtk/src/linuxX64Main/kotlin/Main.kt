@@ -10,14 +10,14 @@ fun CPointer<GtkApplication>.activate(wraithPtr: COpaquePointer) {
     val wraith = wraithPtr.asStableRef<WraithPrism>().get()
     val activeWindow = gtk_application_get_active_window(this)
     if (activeWindow == null) {
-        val windowWidget = gtk_application_window_new(this)!!
+        val window = gtk_application_window_new(this)!!
 
-        val logoWidgets = LogoWidgets(wraith)
-        val fanWidgets = FanWidgets(wraith)
-        val ringWidgets = RingWidgets(wraith)
+        val logoWidgets = LogoWidgets(wraith).apply { fullReload() }
+        val fanWidgets = FanWidgets(wraith).apply { fullReload() }
+        val ringWidgets = RingWidgets(wraith).apply { fullReload() }
 
         // unset focus on left click with mouse button
-        windowWidget.connectSignal(
+        window.connectSignal(
             "button-press-event",
             staticCFunction<Widget, CPointer<GdkEventButton>, Unit> { it, event ->
                 if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
@@ -26,42 +26,26 @@ fun CPointer<GtkApplication>.activate(wraithPtr: COpaquePointer) {
                 }
             })
 
-        val window = windowWidget.reinterpret<GtkWindow>()
-        gtk_window_set_title(window, "Wraith Master")
-        gtk_window_set_default_size(window, 480, -1)
+        gtk_window_set_title(window.reinterpret(), "Wraith Master")
+        gtk_window_set_default_size(window.reinterpret(), 480, -1)
         gtk_window_set_default_icon_name("applications-games")
-        gtk_window_set_icon_name(window, "wraith-master")
+        gtk_window_set_icon_name(window.reinterpret(), "wraith-master")
 
-        val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!
-        gtk_container_add(window.reinterpret(), box)
-
-        val mainNotebook = gtk_notebook_new()!!
-        gtk_container_add(box.reinterpret(), mainNotebook)
+        val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.also { window.addChild(it) }
+        val mainNotebook = gtk_notebook_new()!!.also { box.addChild(it) }
 
         val logoGrid = mainNotebook.newSettingsPage("Logo").newSettingsGrid()
         val fanGrid = mainNotebook.newSettingsPage("Fan").newSettingsGrid()
         val ringGrid = mainNotebook.newSettingsPage("Ring").newSettingsGrid()
 
-        fun Widget?.gridLabel(position: Int, text: String) = gtk_label_new(text)?.apply {
-            gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
-            gtk_widget_set_hexpand(this, 1)
-            gtk_widget_set_size_request(this, -1, 36)
-            gtk_grid_attach(this@gridLabel?.reinterpret(), this, 0, position, 1, 1)
-        }
+        listOf(logoGrid, fanGrid, ringGrid).forEach { it.newGridLabels("Mode", "Color", "Brightness", "Speed") }
+        fanGrid.newGridLabel(4, "Mirage")
+        ringGrid.newGridLabel(4, "Rotation Direction")
+        ringGrid.newGridLabel(5, "Morse Text")
 
-        listOf(logoGrid, fanGrid, ringGrid).forEach {
-            it.gridLabel(0, "Mode")
-            it.gridLabel(1, "Color")
-            it.gridLabel(2, "Brightness")
-            it.gridLabel(3, "Speed")
-        }
-        fanGrid.gridLabel(4, "Mirage")
-        ringGrid.gridLabel(4, "Rotation Direction")
-        ringGrid.gridLabel(5, "Morse Text")
-
-        logoWidgets.attachWidgetsToGrid(logoGrid)
-        fanWidgets.attachWidgetsToGrid(fanGrid)
-        ringWidgets.attachWidgetsToGrid(ringGrid)
+        logoWidgets.widgets.forEachIndexed { i, it -> logoGrid.gridAttachRight(it, i) }
+        fanWidgets.widgets.forEachIndexed { i, it -> fanGrid.gridAttachRight(it, i) }
+        ringWidgets.widgets.forEachIndexed { i, it -> ringGrid.gridAttachRight(it, i) }
 
         val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
             gtk_container_add(box.reinterpret(), this)
@@ -94,12 +78,12 @@ fun CPointer<GtkApplication>.activate(wraithPtr: COpaquePointer) {
             gtk_button_set_label(reinterpret(), "Save")
             gtk_style_context_add_class(gtk_widget_get_style_context(this), "suggested-action")
             connectSignalWithData("clicked", wraithPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-                ptr.asStableRef<WraithPrism>().get().save(); Unit
+                ptr.asStableRef<WraithPrism>().get().save()
             })
             gtk_container_add(saveOptionBox?.reinterpret(), this)
         }
 
-        gtk_widget_show_all(windowWidget)
+        gtk_widget_show_all(window)
     } else {
         gtk_message_dialog_new(
             activeWindow, 0u, GtkMessageType.GTK_MESSAGE_INFO, GtkButtonsType.GTK_BUTTONS_OK, "%s",
@@ -120,20 +104,16 @@ fun main(args: Array<String>) {
     when (result) {
         is WraithPrismResult.Success -> app.connectSignalWithData(
             "activate", StableRef.create(result.device).asCPointer(),
-            staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
-                it.activate(ptr)
-                ptr.asStableRef<WraithPrism>().dispose()
-            }
+            staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr -> it.activate(ptr) }
         )
 
         is WraithPrismResult.Failure -> app.connectSignalWithData(
             "activate", StableRef.create(result.message).asCPointer(),
             staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { _, ptr ->
-                val ref = ptr.asStableRef<String>()
                 val dialog = gtk_message_dialog_new(
-                    null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK, "%s", ref.get()
+                    null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK,
+                    "%s", ptr.asStableRef<String>().get()
                 )
-                ref.dispose()
 
                 gtk_dialog_run(dialog?.reinterpret())
             })

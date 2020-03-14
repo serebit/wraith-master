@@ -38,52 +38,36 @@ private val String.hintText: String
     }
 
 sealed class ComponentWidgets<C : LedComponent>(device: WraithPrism, val component: C) {
-    protected val ptr: COpaquePointer by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
-    protected open val widgets by lazy { listOf(modeBox, colorBox, brightnessScale, speedScale) }
+    protected val ptr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
+    open val widgets by lazy { listOf(modeBox, colorBox, brightnessScale, speedScale) }
 
-    open val modeBox = gridComboBox(component.mode.name, LedMode.values.map { it.name }, true).apply {
+    open val modeBox = gridComboBox(component.mode.name, LedMode.values.map { it.name }).apply {
         connectSignalWithData("changed", ptr, onModeChange)
     }
 
     val randomizeColorCheckbox = gtk_check_button_new_with_label("Randomize?")!!.apply {
-        setSensitive(component.mode.colorSupport == ColorSupport.ALL)
-        gtk_toggle_button_set_active(reinterpret(), component.useRandomColor.toByte().toInt())
         connectSignalWithData("toggled", ptr, onRandomizeChange)
     }
-    val colorButton = gridColorButton(
-        component.colorOrBlack, component.mode.colorSupport != ColorSupport.NONE && !component.useRandomColor
-    ).apply {
-        connectSignalWithData("color-set", ptr, onColorChange)
-    }
+    val colorButton = gridColorButton(component.colorOrBlack, ptr, onColorChange)
 
     @OptIn(ExperimentalUnsignedTypes::class)
     val colorBox = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
         gtk_box_pack_end(reinterpret(), colorButton, 0, 0, 0u)
         gtk_box_pack_end(reinterpret(), randomizeColorCheckbox, 0, 0, 0u)
     }
-    val brightnessScale = gridScale(component.brightness, 3, component.mode.supportsBrightness, ptr, onBrightnessChange)
-    val speedScale = gridScale(component.speed, 5, component.mode.supportsSpeed, ptr, onSpeedChange)
+    val brightnessScale = gridScale(component.brightness, 3, ptr, onBrightnessChange)
+    val speedScale = gridScale(component.speed, 5, ptr, onSpeedChange)
 
     open fun fullReload() = basicReload()
 
-    fun attachWidgetsToGrid(grid: Widget) = widgets.forEachIndexed { i, it -> grid.gridAttachRight(it, i) }
-
     protected val onModeChange: CallbackCFunction
-        get() = staticCFunction { it, ptr ->
-            ptr.use { data -> data.wraith.updateMode(data.widgets.component, it); data.widgets.fullReload() }
-        }
+        get() = staticCFunction { widget, ptr -> ptr.use { it.wraith.updateMode(it.widgets, widget) } }
     private val onColorChange: CallbackCFunction
-        get() = staticCFunction { it, ptr ->
-            ptr.use { data -> data.wraith.updateColor(data.widgets.component, it) }
-        }
+        get() = staticCFunction { widget, ptr -> ptr.use { it.wraith.updateColor(it.widgets.component, widget) } }
     private val onBrightnessChange: CallbackCFunction
-        get() = staticCFunction { it, ptr ->
-            ptr.use { data -> data.wraith.updateBrightness(data.widgets.component, it) }
-        }
+        get() = staticCFunction { widget, ptr -> ptr.use { it.wraith.updateBrightness(it.widgets.component, widget) } }
     private val onSpeedChange: CallbackCFunction
-        get() = staticCFunction { it, ptr ->
-            ptr.use { data -> data.wraith.updateSpeed(data.widgets.component, it) }
-        }
+        get() = staticCFunction { widget, ptr -> ptr.use { it.wraith.updateSpeed(it.widgets.component, widget) } }
     private val onRandomizeChange: CallbackCFunction
         get() = staticCFunction { it, ptr ->
             ptr.use { (wraith, widgets) -> wraith.updateRandomize(widgets.component, it, widgets.colorButton) }
@@ -95,42 +79,34 @@ class LogoWidgets(wraith: WraithPrism) : ComponentWidgets<LogoComponent>(wraith,
 @OptIn(ExperimentalUnsignedTypes::class)
 class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, wraith.fan) {
     private val mirageFrequencies = listOf("300Hz", "2000Hz")
+    private val mirageFreqWidgets by lazy { listOf(mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency) }
 
     private val mirageToggle = gtk_switch_new()!!.apply {
-        setSensitive(component.mode != LedMode.OFF)
-        gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         connectSignalWithData("state-set", ptr, staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
             ptr.useWith<FanWidgets> { (_, widgets) ->
                 widgets.component.mirage = state != 0
-                widgets.mirageRedFrequency.setSensitive(state == 1)
-                widgets.mirageGreenFrequency.setSensitive(state == 1)
-                widgets.mirageBlueFrequency.setSensitive(state == 1)
+                listOf(widgets.mirageRedFrequency, widgets.mirageGreenFrequency, widgets.mirageBlueFrequency).forEach {
+                    it.setSensitive(widgets.component.mode != LedMode.OFF && widgets.component.mirage)
+                }
             }
             false
         })
     }
 
-    private val mirageRedFrequency =
-        gridComboBox(mirageFrequencies.first(), mirageFrequencies, component.mode != LedMode.OFF).apply {
-            setSensitive(component.mode != LedMode.OFF && component.mirage)
-            gtk_widget_set_size_request(this, -1, -1)
-        }
+    private val mirageRedFrequency = gridComboBox(mirageFrequencies.first(), mirageFrequencies).apply {
+        gtk_widget_set_size_request(this, -1, -1)
+    }
 
-    private val mirageGreenFrequency =
-        gridComboBox(mirageFrequencies.first(), mirageFrequencies, component.mode != LedMode.OFF).apply {
-            setSensitive(component.mode != LedMode.OFF && component.mirage)
-            gtk_widget_set_size_request(this, -1, -1)
-        }
+    private val mirageGreenFrequency = gridComboBox(mirageFrequencies.first(), mirageFrequencies).apply {
+        gtk_widget_set_size_request(this, -1, -1)
+    }
 
-    private val mirageBlueFrequency =
-        gridComboBox(mirageFrequencies.first(), mirageFrequencies, component.mode != LedMode.OFF).apply {
-            setSensitive(component.mode != LedMode.OFF && component.mirage)
-            gtk_widget_set_size_request(this, -1, -1)
-        }
+    private val mirageBlueFrequency = gridComboBox(mirageFrequencies.first(), mirageFrequencies).apply {
+        gtk_widget_set_size_request(this, -1, -1)
+    }
 
     private val mirageReload = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
-        setSensitive(component.mode != LedMode.OFF)
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
             ptr.useWith<FanWidgets> { (wraith, _) -> wraith.updateFanMirage() }
@@ -147,9 +123,7 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, w
 
     override fun fullReload() = basicReload {
         mirageToggle.setSensitive(component.mode != LedMode.OFF)
-        mirageRedFrequency.setSensitive(component.mode != LedMode.OFF && component.mirage)
-        mirageGreenFrequency.setSensitive(component.mode != LedMode.OFF && component.mirage)
-        mirageBlueFrequency.setSensitive(component.mode != LedMode.OFF && component.mirage)
+        mirageFreqWidgets.forEach { it.setSensitive(component.mode != LedMode.OFF && component.mirage) }
         mirageReload.setSensitive(component.mode != LedMode.OFF)
     }
 }
@@ -159,20 +133,19 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, p
     private var morseTextBoxHintLabel: Widget? = null
     private var morseTextBoxHint: Widget? = null
 
-    override val modeBox = gridComboBox(component.mode.name, RingMode.values.map { it.name }, true).apply {
+    override val modeBox = gridComboBox(component.mode.name, RingMode.values.map { it.name }).apply {
         connectSignalWithData("changed", ptr, onModeChange)
     }
 
-    private val directionComboBox = gridComboBox(
-        component.direction.name, RotationDirection.values().map { it.name }, component.mode.supportsDirection
-    ).apply {
-        connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
-            val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-            ptr.useWith<RingWidgets> { data ->
-                data.wraith.update(data.widgets.component) { direction = RotationDirection.valueOf(text.toUpperCase()) }
-            }
-        })
-    }
+    private val directionComboBox =
+        gridComboBox(component.direction.name, RotationDirection.values().map { it.name }).apply {
+            connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
+                val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
+                ptr.useWith<RingWidgets> { (wraith, widgets) ->
+                    wraith.update(widgets.component) { direction = RotationDirection.valueOf(text.toUpperCase()) }
+                }
+            })
+        }
 
     private val morseTextBox = gtk_entry_new()!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
@@ -214,7 +187,6 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, p
     private val morseContainer = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
         gtk_box_pack_end(reinterpret(), morseReloadButton, 0, 0, 0u)
         gtk_box_pack_end(reinterpret(), morseTextBox, 0, 0, 0u)
-        setSensitive(component.mode == RingMode.MORSE)
     }
 
     private fun changeCallback(pointer: Widget) {
@@ -222,11 +194,7 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, p
             val entryText = pointer.text
             gtk_label_set_text(reinterpret(), entryText.hintText)
             val isInvalid = !entryText.isValidMorseText && !entryText.isMorseCode
-            if (entryText.parseMorseOrTextToBytes().size > 120 || isInvalid) {
-                gtk_widget_set_sensitive(morseReloadButton, 0)
-            } else {
-                gtk_widget_set_sensitive(morseReloadButton, 1)
-            }
+            morseReloadButton.setSensitive(!(entryText.parseMorseOrTextToBytes().size > 120 || isInvalid))
         }
     }
 
