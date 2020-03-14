@@ -16,7 +16,7 @@ object ColorArgType : ArgType<Color>(true) {
             ?.groupValues
             ?.drop(1)
             ?.map { it.toUByteOrNull() ?: error("Color channel value exceeded maximum of 255") }
-            ?.let { return Color(it.component1(), it.component2(), it.component3()) }
+            ?.let { return Color(it.component1().toInt(), it.component2().toInt(), it.component3().toInt()) }
 
         hexColorPattern.matchEntire(value)
             ?.value
@@ -25,7 +25,7 @@ object ColorArgType : ArgType<Color>(true) {
                 val r = it shr 16 and 0xFF
                 val g = it shr 8 and 0xFF
                 val b = it and 0xFF
-                return Color(r.toUByte(), g.toUByte(), b.toUByte())
+                return Color(r, g, b)
             }
 
         error(

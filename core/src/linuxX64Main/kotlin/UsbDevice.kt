@@ -10,7 +10,6 @@ sealed class WraithPrismResult {
     class Failure(val message: String) : WraithPrismResult()
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 private fun success(handle: CPointer<libusb_device_handle>, numInterfaces: Int) =
     WraithPrismResult.Success(WraithPrism(handle, numInterfaces))
 
@@ -47,8 +46,7 @@ private fun MemScope.getUsbDeviceDescriptors(devices: List<CPointer<libusb_devic
 
 @OptIn(ExperimentalUnsignedTypes::class)
 private class UsbDevice(val vendorID: UShort, val productID: UShort, private val device: CPointer<libusb_device>) {
-    val isWraithPrism
-        get() = vendorID == COOLER_MASTER_VENDOR_ID && productID == WRAITH_PRISM_PRODUCT_ID
+    val isWraithPrism get() = vendorID == COOLER_MASTER_VENDOR_ID && productID == WRAITH_PRISM_PRODUCT_ID
 
     val numInterfaces
         get() = memScoped {
@@ -56,8 +54,7 @@ private class UsbDevice(val vendorID: UShort, val productID: UShort, private val
             val err = libusb_get_active_config_descriptor(device, configPtr.ptr)
 
             check(err == 0) { "Failed to fetch active configuration for USB device with error code $err" }
-            configPtr.value!!.pointed.bNumInterfaces.toInt()
-                .also { libusb_free_config_descriptor(configPtr.value) }
+            configPtr.value!!.pointed.bNumInterfaces.toInt().also { libusb_free_config_descriptor(configPtr.value) }
         }
 
     fun open(): WraithPrismResult = memScoped {
@@ -72,7 +69,6 @@ private class UsbDevice(val vendorID: UShort, val productID: UShort, private val
         }
     }
 
-    @OptIn(ExperimentalUnsignedTypes::class)
     companion object {
         private const val COOLER_MASTER_VENDOR_ID: UShort = 0x2516u
         private const val WRAITH_PRISM_PRODUCT_ID: UShort = 0x51u

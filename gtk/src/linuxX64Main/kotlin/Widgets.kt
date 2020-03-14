@@ -203,7 +203,7 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, p
     override fun fullReload() = basicReload {
         gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.toDouble())
         gtk_range_set_value(speedScale.reinterpret(), component.speed.toDouble())
-        gtk_combo_box_set_active(directionComboBox.reinterpret(), component.direction.value.toInt())
+        gtk_combo_box_set_active(directionComboBox.reinterpret(), component.direction.value)
         directionComboBox.setSensitive(component.mode.supportsDirection)
         morseContainer.setSensitive(component.mode == RingMode.MORSE)
         if (component.mode != RingMode.MORSE) morseTextBoxHint?.let { hint -> gtk_widget_hide(hint) }

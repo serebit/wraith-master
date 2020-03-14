@@ -1,8 +1,7 @@
 package com.serebit.wraith.core
 
 interface LedComponent {
-    @OptIn(ExperimentalUnsignedTypes::class)
-    val values: UByteArray
+    val byteValues: List<Int>
     val mode: Mode
     var color: Color
     var speed: Int
@@ -12,35 +11,29 @@ interface LedComponent {
     fun assignValuesFromChannel(channelValues: ChannelValues)
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 interface BasicLedComponent : LedComponent {
-    val channel: UByte
+    val channel: Int
     override var mode: LedMode
 
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
         mode = LedMode.values.first { it.mode == channelValues.mode }
-        if (mode != LedMode.CYCLE) {
-            color = channelValues.color
-        }
-        if (mode.colorSupport == ColorSupport.ALL) {
-            useRandomColor = channelValues.colorSource == 0x80u.toUByte()
-        }
+        if (mode != LedMode.CYCLE) color = channelValues.color
+        if (mode.colorSupport == ColorSupport.ALL) useRandomColor = channelValues.colorSource == 0x80
         speed = mode.speeds.indexOfOrNull(channelValues.speed)?.plus(1) ?: 3
         brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1) ?: 2
     }
 
-    override val values: UByteArray
+    override val byteValues: List<Int>
         get() {
-            val brightness = mode.brightnesses.elementAtOrNull(brightness - 1) ?: 0u
-            val speed = mode.speeds.elementAtOrNull(speed - 1) ?: 0x2Cu
-            val colorSource: UByte = if (useRandomColor) 0x80u else 0x20u
-            return ubyteArrayOf(channel, speed, colorSource, mode.mode, 0xFFu, brightness, *color.bytes)
+            val brightness = mode.brightnesses.elementAtOrNull(brightness - 1) ?: 0
+            val speed = mode.speeds.elementAtOrNull(speed - 1) ?: 0x2C
+            val colorSource = if (useRandomColor) 0x80 else 0x20
+            return listOf(channel, speed, colorSource, mode.mode, 0xFF, brightness, *color.values.toTypedArray())
         }
 }
 
 class LogoComponent(initialValues: ChannelValues) : BasicLedComponent {
-    @OptIn(ExperimentalUnsignedTypes::class)
-    override val channel: UByte = 0x05u
+    override val channel = 5
     override lateinit var mode: LedMode
     override var color = Color(0, 0, 0)
     override var useRandomColor = false
@@ -52,9 +45,8 @@ class LogoComponent(initialValues: ChannelValues) : BasicLedComponent {
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 class FanComponent(initialValues: ChannelValues) : BasicLedComponent {
-    override val channel: UByte = 0x06u
+    override val channel = 6
     override lateinit var mode: LedMode
     override var color = Color(0, 0, 0)
     override var useRandomColor = false
@@ -67,10 +59,8 @@ class FanComponent(initialValues: ChannelValues) : BasicLedComponent {
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-enum class RotationDirection(val value: UByte) { CLOCKWISE(0u), COUNTERCLOCKWISE(1u); }
+enum class RotationDirection(val value: Int) { CLOCKWISE(0), COUNTERCLOCKWISE(1); }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 class RingComponent(initialValues: ChannelValues) : LedComponent {
     override lateinit var mode: RingMode
     override lateinit var color: Color
@@ -85,65 +75,62 @@ class RingComponent(initialValues: ChannelValues) : LedComponent {
 
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
         mode = RingMode.values.first { it.channel == channelValues.channel }
-        color = channelValues.let { if (mode.colorSupport != ColorSupport.NONE) it.color else Color(0u, 0u, 0u) }
+        color = channelValues.let { if (mode.colorSupport != ColorSupport.NONE) it.color else Color(0, 0, 0) }
         speed = mode.speeds.indexOfOrNull(channelValues.speed)?.plus(1) ?: 3
         brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)?.plus(1) ?: 2
         direction = if (mode.supportsDirection) {
-            RotationDirection.values()[channelValues.colorSource.toInt() and 1]
+            RotationDirection.values()[channelValues.colorSource and 1]
         } else {
             RotationDirection.CLOCKWISE
         }
         if (mode.colorSupport == ColorSupport.ALL) {
-            useRandomColor = channelValues.colorSource and 0x80u == 0x80u.toUByte()
+            useRandomColor = channelValues.colorSource and 0x80 != 0
         }
     }
 
-    override val values: UByteArray
+    override val byteValues: List<Int>
         get() {
-            val brightness = mode.brightnesses.elementAtOrNull(brightness - 1) ?: 0x99u
+            val brightness = mode.brightnesses.elementAtOrNull(brightness - 1) ?: 0x99
             val speed = if (mode != RingMode.MORSE) {
-                mode.speeds.elementAtOrNull(speed - 1) ?: 0xFFu
-            } else 0x6Bu
+                mode.speeds.elementAtOrNull(speed - 1) ?: 0xFF
+            } else 0x6B
             val colorSource = when {
                 mode.colorSupport == ColorSupport.ALL && useRandomColor ->
-                    0x80u.let { if (mode.supportsDirection) it + direction.value else it }.toUByte()
+                    0x80.let { if (mode.supportsDirection) it + direction.value else it }
                 mode.supportsDirection -> direction.value
                 else -> mode.colorSource
             }
-            return ubyteArrayOf(mode.channel, speed, colorSource, mode.mode, 0xFFu, brightness, *color.bytes)
+            return listOf(mode.channel, speed, colorSource, mode.mode, 0xFF, brightness, *color.values.toTypedArray())
         }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-private fun List<UByte>.indexOfOrNull(value: UByte) = indexOf(value).let { if (it == -1) null else it }
+private fun List<Int>.indexOfOrNull(value: Int) = indexOf(value).let { if (it == -1) null else it }
 
 enum class ColorSupport { NONE, SPECIFIC, ALL }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 sealed class Mode constructor(
     val name: String,
-    val mode: UByte,
-    val speeds: List<UByte>,
-    val brightnesses: List<UByte>,
+    val mode: Int,
+    val speeds: List<Int>,
+    val brightnesses: List<Int>,
     val colorSupport: ColorSupport
 ) {
     abstract val index: Int
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 sealed class LedMode(
     name: String,
-    mode: UByte,
-    speeds: List<UByte> = emptyList(),
-    brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
+    mode: Int,
+    speeds: List<Int> = emptyList(),
+    brightnesses: List<Int> = listOf(0x4C, 0x99, 0xFF),
     colorSupport: ColorSupport = ColorSupport.NONE
 ) : Mode(name, mode, speeds, brightnesses, colorSupport) {
     override val index get() = values.indexOf(this)
 
-    object OFF : LedMode("OFF", 0u, brightnesses = emptyList())
-    object STATIC : LedMode("STATIC", 1u, colorSupport = ColorSupport.SPECIFIC)
-    object CYCLE : LedMode("CYCLE", 2u, listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u), listOf(0x10u, 0x40u, 0x7Fu))
-    object BREATHE : LedMode("BREATHE", 3u, listOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), colorSupport = ColorSupport.ALL)
+    object OFF : LedMode("OFF", 0, brightnesses = emptyList())
+    object STATIC : LedMode("STATIC", 1, colorSupport = ColorSupport.SPECIFIC)
+    object CYCLE : LedMode("CYCLE", 2, listOf(0x96, 0x8C, 0x80, 0x6E, 0x68), listOf(0x10, 0x40, 0x7F))
+    object BREATHE : LedMode("BREATHE", 3, listOf(0x3C, 0x37, 0x31, 0x2C, 0x26), colorSupport = ColorSupport.ALL)
 
     companion object {
         val values = listOf(OFF, STATIC, CYCLE, BREATHE)
@@ -151,38 +138,34 @@ sealed class LedMode(
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 sealed class RingMode(
     name: String,
-    val channel: UByte, mode: UByte,
-    speeds: List<UByte> = emptyList(),
-    brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
+    val channel: Int, mode: Int,
+    speeds: List<Int> = emptyList(),
+    brightnesses: List<Int> = listOf(0x4C, 0x99, 0xFF),
     colorSupport: ColorSupport = ColorSupport.NONE,
     val supportsDirection: Boolean = false,
-    val colorSource: UByte = 0x20u
+    val colorSource: Int = 0x20
 ) : Mode(name, mode, speeds, brightnesses, colorSupport) {
     override val index get() = values.indexOf(this)
 
-    object OFF : RingMode("OFF", 0xFEu, 0u, emptyList(), emptyList())
-    object STATIC : RingMode("STATIC", 0u, 0xFFu, colorSupport = ColorSupport.SPECIFIC)
-    object RAINBOW : RingMode("RAINBOW", 7u, 5u, listOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u)
+    object OFF : RingMode("OFF", 0xFE, 0, emptyList(), emptyList())
+    object STATIC : RingMode("STATIC", 0, 0xFF, colorSupport = ColorSupport.SPECIFIC)
+    object RAINBOW : RingMode("RAINBOW", 7, 5, listOf(0x72, 0x68, 0x64, 0x62, 0x61), colorSource = 0)
     object SWIRL : RingMode(
-        "SWIRL", 0xAu, 0x4Au, listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
+        "SWIRL", 0xA, 0x4A, listOf(0x77, 0x74, 0x6E, 0x6B, 0x67),
         colorSupport = ColorSupport.ALL, supportsDirection = true
     )
 
     object CHASE : RingMode(
-        "CHASE", 9u, 0xC3u, listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u),
+        "CHASE", 9, 0xC3, listOf(0x77, 0x74, 0x6E, 0x6B, 0x67),
         colorSupport = ColorSupport.ALL, supportsDirection = true
     )
 
-    object BOUNCE : RingMode("BOUNCE", 8u, 0xFFu, listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u), colorSource = 0x80u)
-    object MORSE : RingMode("MORSE", 0xBu, 0x05u, colorSupport = ColorSupport.ALL, colorSource = 0u)
-    object CYCLE : RingMode("CYCLE", 2u, 0xFFu, listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u), listOf(0x10u, 0x40u, 0x7Fu))
-    object BREATHE : RingMode(
-        "BREATHE", 1u, 0xFFu, listOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u),
-        colorSupport = ColorSupport.ALL
-    )
+    object BOUNCE : RingMode("BOUNCE", 8, 0xFF, listOf(0x77, 0x74, 0x6E, 0x6B, 0x67), colorSource = 0x80)
+    object MORSE : RingMode("MORSE", 0xB, 5, colorSupport = ColorSupport.ALL, colorSource = 0)
+    object CYCLE : RingMode("CYCLE", 2, 0xFF, listOf(0x96, 0x8C, 0x80, 0x6E, 0x68), listOf(0x10, 0x40, 0x7F))
+    object BREATHE : RingMode("BREATHE", 1, 0xFF, listOf(0x3C, 0x37, 0x31, 0x2C, 0x26), colorSupport = ColorSupport.ALL)
 
     companion object {
         val values = listOf(OFF, STATIC, RAINBOW, SWIRL, CHASE, BOUNCE, MORSE, CYCLE, BREATHE)
@@ -190,16 +173,10 @@ sealed class RingMode(
     }
 }
 
-class Color(val r: Int, val g: Int, val b: Int) {
-    @OptIn(ExperimentalUnsignedTypes::class)
-    constructor(r: UByte, g: UByte, b: UByte) : this(r.toInt(), g.toInt(), b.toInt())
-
+data class Color(val r: Int, val g: Int, val b: Int) {
     constructor(r: Double, g: Double, b: Double) : this((255 * r).toInt(), (255 * g).toInt(), (255 * b).toInt())
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-val Color.bytes
-    get() = ubyteArrayOf(r.toUByte(), g.toUByte(), b.toUByte())
-
+val Color.values get() = intArrayOf(r, g, b)
 val Mode.supportsBrightness get() = brightnesses.isNotEmpty()
 val Mode.supportsSpeed get() = speeds.isNotEmpty()

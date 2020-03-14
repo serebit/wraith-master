@@ -13,13 +13,10 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>, private va
     init {
         libusb_reset_device(handle)
         claimInterfaces()
-        // turn on
-        sendBytes(0x41u, 0x80u)
-        // send magic bytes
-        sendBytes(0x51u, 0x96u)
-        // apply changes
+        powerOn()
+        sendBytes(0x51, 0x96) // magic bytes
         apply()
-        val channels = sendBytes(0x52u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u)
+        val channels = getChannels()
         logo = LogoComponent(getChannelValues(channels[8]))
         fan = FanComponent(getChannelValues(channels[9]))
         ring = RingComponent(getChannelValues(channels[10]))
@@ -41,16 +38,17 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>, private va
         byteValues.pointed.readValues(bytes.size).getBytes().toUByteArray()
     }
 
-    fun sendBytes(bytes: UByteArray): UByteArray = memScoped {
-        transfer(ENDPOINT_OUT, bytes, 1000u)
-        transfer(ENDPOINT_IN, UByteArray(64), 1000u)
+    fun sendBytes(bytes: List<Int>): List<Int> = memScoped {
+        val outBytes = bytes.map { it.coerceIn(UByte.MIN_VALUE.toInt()..UByte.MAX_VALUE.toInt()).toUByte() }
+        transfer(ENDPOINT_OUT, outBytes.toUByteArray(), 1000u)
+        transfer(ENDPOINT_IN, UByteArray(64), 1000u).toList().map { it.toInt() }
     }
 
     fun setChannelValues(component: LedComponent) =
-        sendBytes(0x51u, 0x2Cu, 0x01u, 0u, *component.values, 0u, 0u, 0u, filler = 0xFFu)
+        sendBytes(0x51, 0x2C, 1, 0, *component.byteValues.toIntArray(), 0, 0, 0, filler = 0xFF)
 
-    fun assignChannels() = sendBytes(0x51u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u, logo.channel, fan.channel,
-        *UByteArray(15) { ring.mode.channel })
+    fun assignChannels() = sendBytes(0x51, 0xA0, 1, 0, 0, 3, 0, 0, logo.channel, fan.channel,
+        *IntArray(15) { ring.mode.channel })
 
     fun close() {
         (0 until numInterfaces).forEach { libusb_release_interface(handle, it) }
@@ -60,66 +58,54 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>, private va
 
     companion object {
         private const val ENDPOINT_IN: UByte = 0x83u
-        private const val ENDPOINT_OUT: UByte = 0x04u
+        private const val ENDPOINT_OUT: UByte = 4u
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-fun WraithPrism.sendBytes(vararg bytes: UByte, bufferSize: Int = 64, filler: UByte = 0x0u) =
-    sendBytes(bytes.copyInto(UByteArray(bufferSize) { filler }))
+fun WraithPrism.sendBytes(vararg bytes: Int, filler: Int = 0) =
+    sendBytes(IntArray(64) { bytes.getOrNull(it) ?: filler }.toList())
 
-@OptIn(ExperimentalUnsignedTypes::class)
-class ChannelValues(private val array: UByteArray) {
-    val channel get() = array[4]
-    val speed get() = array[5]
-    val colorSource get() = array[6]
-    val mode get() = array[7]
-    val brightness get() = array[9]
-    val color get() = Color(array[10], array[11], array[12])
+class ChannelValues(private val values: List<Int>) {
+    val channel get() = values[4]
+    val speed get() = values[5]
+    val colorSource get() = values[6]
+    val mode get() = values[7]
+    val brightness get() = values[9]
+    val color get() = Color(values[10], values[11], values[12])
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-fun WraithPrism.getChannelValues(channel: UByte) = ChannelValues(sendBytes(0x52u, 0x2Cu, 0x01u, 0u, channel))
+fun WraithPrism.getChannelValues(channel: Int) = ChannelValues(sendBytes(0x52, 0x2C, 1, 0, channel))
+fun WraithPrism.save() = sendBytes(0x50, 0x55)
+fun WraithPrism.apply() = sendBytes(0x51, 0x28, 0, 0, 0xE0)
 
-@OptIn(ExperimentalUnsignedTypes::class)
-fun WraithPrism.save() = sendBytes(0x50u, 0x55u)
+fun WraithPrism.updateFanMirage() = if (fan.mirage)
+    sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, 2, 0x63, 0xBD, 3, 2, 0x63, 0xBD, 4, 2, 0x63, 0xBD)
+else
+    sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, 0, 0xFF, 0x4A, 3, 0, 0xFF, 0x4A, 4, 0, 0xFF, 0x4A)
 
-@OptIn(ExperimentalUnsignedTypes::class)
-fun WraithPrism.apply() = sendBytes(0x51u, 0x28u, 0u, 0u, 0xE0u)
-
-@OptIn(ExperimentalUnsignedTypes::class)
-fun WraithPrism.updateFanMirage() = if (fan.mirage) sendBytes(
-    0x51u, 0x71u, 0u, 0u, 0x01u, 0u, 0xFFu, 0x4Au, 0x02u, 0x02u, 0x63u, 0xBDu, 0x03u, 0x02u, 0x63u, 0xBDu,
-    0x04u, 0x02u, 0x63u, 0xBDu
-) else sendBytes(
-    0x51u, 0x71u, 0u, 0u, 0x01u, 0u, 0xFFu, 0x4Au, 0x02u, 0u, 0xFFu, 0x4Au, 0x03u, 0u, 0xFFu, 0x4Au,
-    0x04u, 0u, 0xFFu, 0x4Au
-)
-
-@OptIn(ExperimentalUnsignedTypes::class)
 fun WraithPrism.updateRingMorseText(text: String) {
     val chunks = text.parseMorseOrTextToBytes().chunked(60)
-    val firstChunk = chunks[0].toUByteArray()
-    val secondChunk = if (chunks.size > 1) chunks[1].toUByteArray() else ubyteArrayOf()
-    sendBytes(0x51u, 0x73u, 0u, 0u, *firstChunk)
-    sendBytes(0x51u, 0x73u, 0x01u, 0u, *secondChunk)
+    val firstChunk = chunks[0].toIntArray()
+    val secondChunk = if (chunks.size > 1) chunks[1].toIntArray() else intArrayOf()
+    sendBytes(0x51, 0x73, 0, 0, *firstChunk)
+    sendBytes(0x51, 0x73, 1, 0, *secondChunk)
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
+fun WraithPrism.load() = sendBytes(0x50)
+fun WraithPrism.restore() = sendBytes(0, 0x41)
+fun WraithPrism.powerOff() = sendBytes(0x41, 3)
+fun WraithPrism.powerOn() = sendBytes(0x41, 0x80)
+fun WraithPrism.getChannels() = sendBytes(0x52, 0xA0, 1, 0, 0, 3, 0, 0)
+
 fun WraithPrism.reset() {
-    // load
-    sendBytes(0x50u)
-    // power off
-    sendBytes(0x41u, 0x03u)
-    // restore
-    sendBytes(0u, 0x41u)
-    // power on
-    sendBytes(0x41u, 0x80u)
-    // apply changes
+    load()
+    powerOff()
+    restore()
+    powerOn()
     apply()
 
     // update existing components with reset values
-    val channels = sendBytes(0x52u, 0xA0u, 0x01u, 0u, 0u, 0x03u, 0u, 0u)
+    val channels = getChannels()
     logo.assignValuesFromChannel(getChannelValues(channels[8]))
     fan.assignValuesFromChannel(getChannelValues(channels[9]))
     ring.assignValuesFromChannel(getChannelValues(channels[10]))
