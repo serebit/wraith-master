@@ -9,7 +9,6 @@ private data class CallbackData<W : ComponentWidgets<*>>(val wraith: WraithPrism
 private inline fun <reified W : ComponentWidgets<*>> COpaquePointer.useWith(task: (CallbackData<W>) -> Unit) {
     val ref = asStableRef<CallbackData<W>>()
     task(ref.get())
-    ref.dispose()
 }
 
 private fun COpaquePointer.use(task: (CallbackData<*>) -> Unit) = useWith<ComponentWidgets<*>>(task)

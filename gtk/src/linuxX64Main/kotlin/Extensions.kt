@@ -105,7 +105,7 @@ fun gridScale(default: Int, marks: Int, data: COpaquePointer, action: CallbackCF
 fun WraithPrism.updateColor(component: LedComponent, colorButton: Widget) = update(component) {
     color = memScoped {
         alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(colorButton.reinterpret(), ptr) }
-            .run { Color(red, green, blue) }
+            .run { Color((255 * red).toInt(), (255 * green).toInt(), (255 * blue).toInt()) }
     }
 }
 

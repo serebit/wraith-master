@@ -28,7 +28,7 @@ interface BasicLedComponent : LedComponent {
             val brightness = mode.brightnesses.elementAtOrNull(brightness - 1) ?: 0
             val speed = mode.speeds.elementAtOrNull(speed - 1) ?: 0x2C
             val colorSource = if (useRandomColor) 0x80 else 0x20
-            return listOf(channel, speed, colorSource, mode.mode, 0xFF, brightness, *color.values.toTypedArray())
+            return listOf(channel, speed, colorSource, mode.mode, 0xFF, brightness, color.r, color.g, color.b)
         }
 }
 
@@ -100,7 +100,7 @@ class RingComponent(initialValues: ChannelValues) : LedComponent {
                 mode.supportsDirection -> direction.value
                 else -> mode.colorSource
             }
-            return listOf(mode.channel, speed, colorSource, mode.mode, 0xFF, brightness, *color.values.toTypedArray())
+            return listOf(mode.channel, speed, colorSource, mode.mode, 0xFF, brightness, color.r, color.g, color.b)
         }
 }
 
@@ -177,6 +177,5 @@ data class Color(val r: Int, val g: Int, val b: Int) {
     constructor(r: Double, g: Double, b: Double) : this((255 * r).toInt(), (255 * g).toInt(), (255 * b).toInt())
 }
 
-val Color.values get() = intArrayOf(r, g, b)
 val Mode.supportsBrightness get() = brightnesses.isNotEmpty()
 val Mode.supportsSpeed get() = speeds.isNotEmpty()
