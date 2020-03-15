@@ -40,14 +40,12 @@ sealed class ComponentWidgets<C : LedComponent>(device: WraithPrism, val compone
     protected val ptr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
     open val widgets by lazy { listOf(modeBox, colorBox, brightnessScale, speedScale) }
 
-    open val modeBox = gridComboBox(component.mode.name, LedMode.values.map { it.name }).apply {
-        connectSignalWithData("changed", ptr, onModeChange)
-    }
+    open val modeBox = comboBox(component.mode.name, LedMode.values.map { it.name }, ptr, onModeChange)
 
     val randomizeColorCheckbox = gtk_check_button_new_with_label("Randomize?")!!.apply {
         connectSignalWithData("toggled", ptr, onRandomizeChange)
     }
-    val colorButton = gridColorButton(component.colorOrBlack, ptr, onColorChange)
+    val colorButton = colorButton(component.colorOrBlack, ptr, onColorChange)
 
     @OptIn(ExperimentalUnsignedTypes::class)
     val colorBox = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
@@ -77,7 +75,6 @@ class LogoWidgets(wraith: WraithPrism) : ComponentWidgets<LogoComponent>(wraith,
 
 @OptIn(ExperimentalUnsignedTypes::class)
 class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, wraith.fan) {
-    private val mirageFrequencies = listOf("300Hz", "2000Hz")
     private val mirageFreqWidgets by lazy { listOf(mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency) }
 
     private val mirageToggle = gtk_switch_new()!!.apply {
@@ -93,17 +90,9 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, w
         })
     }
 
-    private val mirageRedFrequency = gridComboBox(mirageFrequencies.first(), mirageFrequencies).apply {
-        gtk_widget_set_size_request(this, -1, -1)
-    }
-
-    private val mirageGreenFrequency = gridComboBox(mirageFrequencies.first(), mirageFrequencies).apply {
-        gtk_widget_set_size_request(this, -1, -1)
-    }
-
-    private val mirageBlueFrequency = gridComboBox(mirageFrequencies.first(), mirageFrequencies).apply {
-        gtk_widget_set_size_request(this, -1, -1)
-    }
+    private val mirageRedFrequency = frequencySpinButton(ptr, staticCFunction { _, _, _ -> })
+    private val mirageGreenFrequency = frequencySpinButton(ptr, staticCFunction { _, _, _ -> })
+    private val mirageBlueFrequency = frequencySpinButton(ptr, staticCFunction { _, _, _ -> })
 
     private val mirageReload = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
@@ -132,19 +121,15 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, p
     private var morseTextBoxHintLabel: Widget? = null
     private var morseTextBoxHint: Widget? = null
 
-    override val modeBox = gridComboBox(component.mode.name, RingMode.values.map { it.name }).apply {
-        connectSignalWithData("changed", ptr, onModeChange)
-    }
+    override val modeBox = comboBox(component.mode.name, RingMode.values.map { it.name }, ptr, onModeChange)
 
     private val directionComboBox =
-        gridComboBox(component.direction.name, RotationDirection.values().map { it.name }).apply {
-            connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
-                val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
-                ptr.useWith<RingWidgets> { (wraith, widgets) ->
-                    wraith.update(widgets.component) { direction = RotationDirection.valueOf(text.toUpperCase()) }
-                }
-            })
-        }
+        comboBox(component.direction.name, RotationDirection.values().map { it.name }, ptr, staticCFunction { it, ptr ->
+            val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
+            ptr.useWith<RingWidgets> { (wraith, widgets) ->
+                wraith.update(widgets.component) { direction = RotationDirection.valueOf(text.toUpperCase()) }
+            }
+        })
 
     private val morseTextBox = gtk_entry_new()!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)

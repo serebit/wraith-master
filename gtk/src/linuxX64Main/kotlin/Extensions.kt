@@ -7,6 +7,7 @@ import kotlin.math.roundToInt
 
 typealias Widget = CPointer<GtkWidget>
 typealias CallbackCFunction = CPointer<CFunction<(Widget, COpaquePointer) -> Unit>>
+private typealias CallbackSpinCFunction = CPointer<CFunction<(Widget, GtkScrollType, COpaquePointer) -> Unit>>
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun <F : CFunction<*>> CPointer<*>.connectSignalWithData(signal: String, data: COpaquePointer?, action: CPointer<F>) =
@@ -74,22 +75,22 @@ fun Widget.addCss(css: String) = gtk_widget_get_style_context(this)!!.apply {
     gtk_style_context_add_provider(this, provider.reinterpret(), GTK_STYLE_PROVIDER_PRIORITY_USER)
 }
 
-fun gridComboBox(default: String, elements: List<String>) = gtk_combo_box_text_new()!!.apply {
-    elements.forEach { gtk_combo_box_text_append_text(reinterpret(), it.toLowerCase().capitalize()) }
-    gtk_combo_box_set_active(reinterpret(), elements.indexOf(default))
-    gtk_widget_set_size_request(this, 96, -1)
-    align()
-}
-
-fun gridColorButton(color: Color, ptr: COpaquePointer, onColorChange: CallbackCFunction) =
-    gtk_color_button_new()!!.apply {
-        gtk_color_button_set_use_alpha(reinterpret(), 0)
-        memScoped { gtk_color_button_set_rgba(reinterpret(), gdkRgba(color).ptr) }
+fun comboBox(default: String, elements: List<String>, data: COpaquePointer, action: CallbackCFunction) =
+    gtk_combo_box_text_new()!!.apply {
+        elements.forEach { gtk_combo_box_text_append_text(reinterpret(), it.toLowerCase().capitalize()) }
+        gtk_combo_box_set_active(reinterpret(), elements.indexOf(default))
         gtk_widget_set_size_request(this, 96, -1)
-        connectSignalWithData("color-set", ptr, onColorChange)
+        align()
+        connectSignalWithData("changed", data, action)
     }
 
-@OptIn(ExperimentalUnsignedTypes::class)
+fun colorButton(color: Color, ptr: COpaquePointer, onColorChange: CallbackCFunction) = gtk_color_button_new()!!.apply {
+    gtk_color_button_set_use_alpha(reinterpret(), 0)
+    memScoped { gtk_color_button_set_rgba(reinterpret(), gdkRgba(color).ptr) }
+    gtk_widget_set_size_request(this, 96, -1)
+    connectSignalWithData("color-set", ptr, onColorChange)
+}
+
 fun gridScale(default: Int, marks: Int, data: COpaquePointer, action: CallbackCFunction) =
     gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
         adjustment.connectSignalWithData("value-changed", data, action)
@@ -100,6 +101,16 @@ fun gridScale(default: Int, marks: Int, data: COpaquePointer, action: CallbackCF
             align()
             for (i in 1..marks) gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
         }
+    }
+
+fun frequencySpinButton(data: COpaquePointer, action: CallbackSpinCFunction) =
+    gtk_spin_button_new_with_range(50.0, 2000.0, 50.0)!!.apply {
+        gtk_spin_button_set_update_policy(reinterpret(), GtkSpinButtonUpdatePolicy.GTK_UPDATE_IF_VALID)
+        gtk_spin_button_set_snap_to_ticks(reinterpret(), 1)
+        gtk_spin_button_set_numeric(reinterpret(), 1)
+        gtk_spin_button_set_value(reinterpret(), 300.0)
+        connectSignalWithData("change-value", data, action)
+        gtk_adjustment_set_step_increment(gtk_spin_button_get_adjustment(reinterpret())!!.reinterpret(), 50.0)
     }
 
 fun WraithPrism.updateColor(component: LedComponent, colorButton: Widget) = update(component) {

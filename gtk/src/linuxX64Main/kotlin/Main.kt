@@ -27,7 +27,6 @@ fun CPointer<GtkApplication>.activate(wraithPtr: COpaquePointer) {
             })
 
         gtk_window_set_title(window.reinterpret(), "Wraith Master")
-        gtk_window_set_default_size(window.reinterpret(), 480, -1)
         gtk_window_set_default_icon_name("applications-games")
         gtk_window_set_icon_name(window.reinterpret(), "wraith-master")
 
