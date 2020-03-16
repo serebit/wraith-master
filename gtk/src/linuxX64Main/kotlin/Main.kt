@@ -56,20 +56,17 @@ fun CPointer<GtkApplication>.activate(wraithPtr: COpaquePointer) {
 
         gtk_button_new()?.apply {
             gtk_button_set_label(reinterpret(), "Reset")
-            val data = StableRef.create(wraith to listOf(logoWidgets, fanWidgets, ringWidgets))
-            connectSignalWithData(
-                "clicked", StableRef.create(data).asCPointer(),
-                staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-                    val ref = ptr.asStableRef<Pair<WraithPrism, List<ComponentWidgets<*>>>>()
-                    val (device, widgets) = ref.get()
-                    val (logo, fan, ring) = widgets
-                    device.reset()
-                    logo.fullReload(); fan.fullReload(); ring.fullReload()
-                    gtk_combo_box_set_active(logo.modeBox.reinterpret(), logo.component.mode.index)
-                    gtk_combo_box_set_active(logo.modeBox.reinterpret(), fan.component.mode.index)
-                    ref.dispose()
-                }
-            )
+            val data = StableRef.create(wraith to listOf(logoWidgets, fanWidgets, ringWidgets)).asCPointer()
+            connectSignalWithData("clicked", data, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+                val ref = ptr.asStableRef<Pair<WraithPrism, List<ComponentWidgets<*>>>>()
+                val (device, widgets) = ref.get()
+                val (logo, fan, ring) = widgets
+                device.reset()
+                logo.fullReload(); fan.fullReload(); ring.fullReload()
+                gtk_combo_box_set_active(logo.modeBox.reinterpret(), logo.component.mode.index)
+                gtk_combo_box_set_active(logo.modeBox.reinterpret(), fan.component.mode.index)
+                ref.dispose()
+            })
             gtk_container_add(saveOptionBox?.reinterpret(), this)
         }
 
