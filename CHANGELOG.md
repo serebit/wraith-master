@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Added 
 - **Mirage frequency control**, the last major feature that required implementation
 
+## 0.5.2 (2020-03-16)
+
+#### Fixed 
+- Reset button causing segfault
+
 ## 0.5.1 (2020-03-13)
 
 #### Meta 
