@@ -45,7 +45,7 @@ fun Widget.newSettingsGrid(): Widget = gtk_grid_new()!!.apply {
     gtk_grid_set_column_spacing(reinterpret(), 64u)
     gtk_grid_set_row_spacing(reinterpret(), 8u)
     gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_START)
-    gtk_container_add(this@newSettingsGrid.reinterpret(), this)
+    this@newSettingsGrid.addChild(this)
 }
 
 fun Widget.newGridLabels(vararg text: String) = text.forEachIndexed { i, it -> newGridLabel(i, it) }
