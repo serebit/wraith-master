@@ -42,9 +42,9 @@ fun CPointer<GtkApplication>.activate(wraithPtr: COpaquePointer) {
         ringGrid.newGridLabel(4, "Rotation Direction")
         ringGrid.newGridLabel(5, "Morse Text")
 
-        logoWidgets.widgets.forEachIndexed { i, it -> logoGrid.gridAttachRight(it, i) }
-        fanWidgets.widgets.forEachIndexed { i, it -> fanGrid.gridAttachRight(it, i) }
-        ringWidgets.widgets.forEachIndexed { i, it -> ringGrid.gridAttachRight(it, i) }
+        logoWidgets.attachToGrid(logoGrid)
+        fanWidgets.attachToGrid(fanGrid)
+        ringWidgets.attachToGrid(ringGrid)
 
         val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
             gtk_container_add(box.reinterpret(), this)

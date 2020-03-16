@@ -57,6 +57,8 @@ sealed class ComponentWidgets<C : LedComponent>(device: WraithPrism, val compone
 
     open fun fullReload() = basicReload()
 
+    open fun attachToGrid(grid: Widget) = widgets.forEachIndexed { i, it -> grid.gridAttachRight(it, i) }
+
     protected val onModeChange: CallbackCFunction
         get() = staticCFunction { widget, ptr -> ptr.use { it.wraith.updateMode(it.widgets, widget) } }
     private val onColorChange: CallbackCFunction
@@ -75,6 +77,7 @@ class LogoWidgets(wraith: WraithPrism) : ComponentWidgets<LogoComponent>(wraith,
 
 @OptIn(ExperimentalUnsignedTypes::class)
 class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, wraith.fan) {
+    private val mirageLabels = listOf("Red", "Green", "Blue").map { gtk_label_new("$it (Hz)")!! }
     private val mirageFreqWidgets by lazy { listOf(mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency) }
 
     private val mirageToggle = gtk_switch_new()!!.apply {
@@ -82,7 +85,7 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, w
         connectSignalWithData("state-set", ptr, staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
             ptr.useWith<FanWidgets> { (_, widgets) ->
                 widgets.component.mirage = state != 0
-                listOf(widgets.mirageRedFrequency, widgets.mirageGreenFrequency, widgets.mirageBlueFrequency).forEach {
+                (widgets.mirageFreqWidgets + widgets.mirageLabels).forEach {
                     it.setSensitive(widgets.component.mode != LedMode.OFF && widgets.component.mirage)
                 }
             }
@@ -110,18 +113,27 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, w
         })
     }
 
-    private val mirageBox = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
+    private val mirageGrid = gtk_grid_new()!!.apply {
+        gtk_grid_set_column_spacing(reinterpret(), 4u)
+        gtk_grid_set_row_spacing(reinterpret(), 4u)
         listOf(mirageToggle, mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency, mirageReload)
-            .asReversed()
-            .forEach { gtk_box_pack_end(reinterpret(), it, 0, 0, 0u) }
+            .forEachIndexed { i, it -> gtk_grid_attach(reinterpret(), it, i, 0, 1, 1) }
+        mirageLabels.forEachIndexed { i, it -> gtk_grid_attach(reinterpret(), it, i + 1, 1, 1, 1) }
     }
 
-    override val widgets = listOf(modeBox, colorBox, brightnessScale, speedScale, mirageBox)
+    override val widgets = listOf(modeBox, colorBox, brightnessScale, speedScale, mirageGrid)
 
     override fun fullReload() = basicReload {
         mirageToggle.setSensitive(component.mode != LedMode.OFF)
-        mirageFreqWidgets.forEach { it.setSensitive(component.mode != LedMode.OFF && component.mirage) }
+        (mirageFreqWidgets + mirageLabels).forEach {
+            it.setSensitive(component.mode != LedMode.OFF && component.mirage)
+        }
         mirageReload.setSensitive(component.mode != LedMode.OFF)
+    }
+
+    override fun attachToGrid(grid: Widget) {
+        widgets.dropLast(1).forEachIndexed { i, it -> grid.gridAttachRight(it, i) }
+        gtk_grid_attach(grid.reinterpret(), widgets.last(), 1, widgets.size - 1, 1, 2)
     }
 }
 

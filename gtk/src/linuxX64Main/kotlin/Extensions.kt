@@ -58,10 +58,7 @@ fun Widget.newGridLabel(position: Int, text: String) = gtk_label_new(text)!!.app
 
 fun Widget.addChild(widget: Widget) = gtk_container_add(reinterpret(), widget)
 
-fun Widget.gridAttachRight(widget: Widget, position: Int) {
-    widget.align()
-    gtk_grid_attach(reinterpret(), widget, 1, position, 1, 1)
-}
+fun Widget.gridAttachRight(widget: Widget, position: Int) = gtk_grid_attach(reinterpret(), widget, 1, position, 1, 1)
 
 fun Widget.setSensitive(boolean: Boolean) = gtk_widget_set_sensitive(this, boolean.toByte().toInt())
 
