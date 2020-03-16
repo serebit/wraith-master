@@ -3,6 +3,7 @@ package com.serebit.wraith.core
 import cnames.structs.libusb_device_handle
 import kotlinx.cinterop.*
 import libusb.*
+import kotlin.math.floor
 
 @OptIn(ExperimentalUnsignedTypes::class)
 class WraithPrism(private val handle: CPointer<libusb_device_handle>, private val numInterfaces: Int) {
@@ -84,9 +85,24 @@ fun WraithPrism.powerOn() = sendBytes(0x41, 0x80)
 fun WraithPrism.getChannels() = sendBytes(0x52, 0xA0, 1, 0, 0, 3, 0, 0)
 fun WraithPrism.getChannelValues(channel: Int) = ChannelValues(sendBytes(0x52, 0x2C, 1, 0, channel))
 
-fun WraithPrism.updateFanMirage() =
-    if (fan.mirage) sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, 2, 0x63, 0xBD, 3, 2, 0x63, 0xBD, 4, 2, 0x63, 0xBD)
-    else sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, 0, 0xFF, 0x4A, 3, 0, 0xFF, 0x4A, 4, 0, 0xFF, 0x4A)
+private fun Int.mirageFreqBytes(): List<Int> {
+    val initial = 187498f / this
+
+    val multiplicand = floor(initial / 256)
+    val rem = initial / (multiplicand + 1)
+
+    return listOf(multiplicand, floor(rem % 1 * 256), floor(rem)).map { it.toInt() }
+}
+
+fun WraithPrism.enableFanMirage(redFreq: Int, greenFreq: Int, blueFreq: Int): List<Int> {
+    val (rm, ri, rd) = redFreq.mirageFreqBytes()
+    val (gm, gi, gd) = greenFreq.mirageFreqBytes()
+    val (bm, bi, bd) = blueFreq.mirageFreqBytes()
+    return sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, rm, ri, rd, 3, gm, gi, gd, 4, bm, bi, bd)
+}
+
+fun WraithPrism.disableFanMirage() =
+    sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, 0, 0xFF, 0x4A, 3, 0, 0xFF, 0x4A, 4, 0, 0xFF, 0x4A)
 
 fun WraithPrism.updateRingMorseText(text: String) {
     val chunks = text.parseMorseOrTextToBytes().chunked(60)

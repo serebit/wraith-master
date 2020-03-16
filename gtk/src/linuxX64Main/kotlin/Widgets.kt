@@ -97,7 +97,16 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, w
     private val mirageReload = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-            ptr.useWith<FanWidgets> { (wraith, _) -> wraith.updateFanMirage() }
+            ptr.useWith<FanWidgets> { (wraith, widgets) ->
+                if (gtk_switch_get_active(widgets.mirageToggle.reinterpret()) == 1) {
+                    val redFreq = gtk_spin_button_get_value_as_int(widgets.mirageRedFrequency.reinterpret())
+                    val greenFreq = gtk_spin_button_get_value_as_int(widgets.mirageGreenFrequency.reinterpret())
+                    val blueFreq = gtk_spin_button_get_value_as_int(widgets.mirageBlueFrequency.reinterpret())
+                    wraith.enableFanMirage(redFreq, greenFreq, blueFreq)
+                } else {
+                    wraith.disableFanMirage()
+                }
+            }
         })
     }
 

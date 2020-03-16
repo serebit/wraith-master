@@ -176,8 +176,7 @@ fun main(args: Array<KString>) {
                 if (ledComponent.mode == LedMode.OFF)
                     shortCircuit("Currently selected mode does not support fan mirage")
                 if (verbose == true) println("  ${if (it == "on") "Enabling" else "Disabling"} mirage")
-                ledComponent.mirage = it == "on"
-                wraith.updateFanMirage()
+                if (it == "on") wraith.enableFanMirage(330, 330, 330) else wraith.disableFanMirage()
             }
 
             wraith.finalize(ledComponent, verbose)

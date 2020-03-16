@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+#### Meta
+- Code cleanup in GTK and core, with a focus on reducing total LoC without sacrificing looks or functionality
+
+#### Added 
+- **Mirage frequency control**, the last major feature that required implementation
+
 ## 0.5.1 (2020-03-13)
 
 #### Meta 

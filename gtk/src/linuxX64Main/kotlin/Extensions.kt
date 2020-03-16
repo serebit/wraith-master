@@ -104,13 +104,11 @@ fun gridScale(default: Int, marks: Int, data: COpaquePointer, action: CallbackCF
     }
 
 fun frequencySpinButton(data: COpaquePointer, action: CallbackSpinCFunction) =
-    gtk_spin_button_new_with_range(50.0, 2000.0, 50.0)!!.apply {
+    gtk_spin_button_new_with_range(45.0, 2000.0, 1.0)!!.apply {
         gtk_spin_button_set_update_policy(reinterpret(), GtkSpinButtonUpdatePolicy.GTK_UPDATE_IF_VALID)
-        gtk_spin_button_set_snap_to_ticks(reinterpret(), 1)
         gtk_spin_button_set_numeric(reinterpret(), 1)
-        gtk_spin_button_set_value(reinterpret(), 300.0)
+        gtk_spin_button_set_value(reinterpret(), 330.0)
         connectSignalWithData("change-value", data, action)
-        gtk_adjustment_set_step_increment(gtk_spin_button_get_adjustment(reinterpret())!!.reinterpret(), 50.0)
     }
 
 fun WraithPrism.updateColor(component: LedComponent, colorButton: Widget) = update(component) {
