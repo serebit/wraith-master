@@ -5,7 +5,7 @@ plugins {
 
 allprojects {
     group = "com.serebit.wraith"
-    version = "0.5.1"
+    version = "0.5.2"
 
     repositories { 
         mavenCentral()
