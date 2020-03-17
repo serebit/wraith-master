@@ -81,7 +81,7 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, w
     private val mirageFreqWidgets by lazy { listOf(mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency) }
 
     private val mirageToggle = gtk_switch_new()!!.apply {
-        gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
+        gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
         connectSignalWithData("state-set", ptr, staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
             ptr.useWith<FanWidgets> { (_, widgets) ->
                 widgets.component.mirage = state != 0
@@ -99,6 +99,8 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, w
 
     private val mirageReload = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
+        gtk_button_set_label(reinterpret(), "Apply")
+        gtk_button_set_always_show_image(reinterpret(), 1)
         connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
             ptr.useWith<FanWidgets> { (wraith, widgets) ->
                 if (gtk_switch_get_active(widgets.mirageToggle.reinterpret()) == 1) {
@@ -116,9 +118,10 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, w
     private val mirageGrid = gtk_grid_new()!!.apply {
         gtk_grid_set_column_spacing(reinterpret(), 4u)
         gtk_grid_set_row_spacing(reinterpret(), 4u)
-        listOf(mirageToggle, mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency, mirageReload)
-            .forEachIndexed { i, it -> gtk_grid_attach(reinterpret(), it, i, 0, 1, 1) }
-        mirageLabels.forEachIndexed { i, it -> gtk_grid_attach(reinterpret(), it, i + 1, 1, 1, 1) }
+        gtk_grid_attach(reinterpret(), mirageToggle, 0, 0, 1, 1)
+        gtk_grid_attach(reinterpret(), mirageReload, 2, 0, 1, 1)
+        mirageFreqWidgets.forEachIndexed { i, it -> gtk_grid_attach(reinterpret(), it, i, 1, 1, 1) }
+        mirageLabels.forEachIndexed { i, it -> gtk_grid_attach(reinterpret(), it, i, 2, 1, 1) }
     }
 
     override val widgets = listOf(modeBox, colorBox, brightnessScale, speedScale, mirageGrid)
@@ -192,6 +195,7 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, p
     private val morseContainer = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
         gtk_box_pack_end(reinterpret(), morseReloadButton, 0, 0, 0u)
         gtk_box_pack_end(reinterpret(), morseTextBox, 0, 0, 0u)
+        gtk_widget_set_hexpand(this, 1)
     }
 
     private fun changeCallback(pointer: Widget) {

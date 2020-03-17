@@ -41,8 +41,7 @@ fun Widget.newSettingsPage(label: String) = gtk_box_new(GtkOrientation.GTK_ORIEN
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.newSettingsGrid(): Widget = gtk_grid_new()!!.apply {
-    gtk_grid_set_row_homogeneous(reinterpret(), 1)
-    gtk_grid_set_column_spacing(reinterpret(), 64u)
+    gtk_grid_set_column_spacing(reinterpret(), 32u)
     gtk_grid_set_row_spacing(reinterpret(), 8u)
     gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_START)
     this@newSettingsGrid.addChild(this)
@@ -51,6 +50,7 @@ fun Widget.newSettingsGrid(): Widget = gtk_grid_new()!!.apply {
 fun Widget.newGridLabels(vararg text: String) = text.forEachIndexed { i, it -> newGridLabel(i, it) }
 fun Widget.newGridLabel(position: Int, text: String) = gtk_label_new(text)!!.apply {
     gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
+    gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_START)
     gtk_widget_set_hexpand(this, 1)
     gtk_widget_set_size_request(this, -1, 36)
     gtk_grid_attach(this@newGridLabel.reinterpret(), this, 0, position, 1, 1)
@@ -105,6 +105,7 @@ fun frequencySpinButton(data: COpaquePointer, action: CallbackSpinCFunction) =
         gtk_spin_button_set_update_policy(reinterpret(), GtkSpinButtonUpdatePolicy.GTK_UPDATE_IF_VALID)
         gtk_spin_button_set_numeric(reinterpret(), 1)
         gtk_spin_button_set_value(reinterpret(), 330.0)
+        addCss("spinbutton button { padding: 1px; min-width: unset; }")
         connectSignalWithData("change-value", data, action)
     }
 
