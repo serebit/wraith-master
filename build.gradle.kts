@@ -7,9 +7,9 @@ allprojects {
     group = "com.serebit.wraith"
     version = "1.0.0-dev"
 
-    repositories { 
+    repositories {
         mavenCentral()
-        maven("https://dl.bintray.com/kotlin/kotlin-eap") 
+        maven("https://dl.bintray.com/kotlin/kotlin-eap")
     }
 }
 
@@ -21,12 +21,12 @@ tasks.register("distTar") {
         val packageDir = buildDir.resolve("package")
         val tarballName = "wraith-master-$version.tar.xz"
 
-        temporaryDir.resolve("wraith-master").also {
-            packageDir.copyRecursively(it, true)
-            exec {
-                workingDir = temporaryDir
-                commandLine("tar", "cfJ", tarballName, it.name)
-            }
+        temporaryDir.resolve("wraith-master").also { tempDir ->
+            packageDir.copyRecursively(tempDir, true)
+
+            tempDir.resolve("wraith-master").setExecutable(true)
+            tempDir.resolve("wraith-master-gtk").setExecutable(true)
+            exec { workingDir = temporaryDir; commandLine("tar", "cfJ", tarballName, tempDir.name) }
         }
 
         temporaryDir.resolve(tarballName).apply {
