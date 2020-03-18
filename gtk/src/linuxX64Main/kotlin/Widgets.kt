@@ -4,73 +4,65 @@ import com.serebit.wraith.core.*
 import gtk3.*
 import kotlinx.cinterop.*
 
-private data class CallbackData<W : ComponentWidgets<*>>(val wraith: WraithPrism, val widgets: W)
-
-private inline fun <reified W : ComponentWidgets<*>> COpaquePointer.useWith(task: (CallbackData<W>) -> Unit) {
-    val ref = asStableRef<CallbackData<W>>()
-    task(ref.get())
-}
-
-private fun COpaquePointer.use(task: (CallbackData<*>) -> Unit) = useWith<ComponentWidgets<*>>(task)
-
-private inline fun ComponentWidgets<*>.basicReload(additional: () -> Unit = {}) {
-    gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.index)
-    memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(component.colorOrBlack).ptr) }
-
-    val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
-    gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
-
-    randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
-    colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !useRandomColor)
-    brightnessScale.setSensitive(component.mode.supportsBrightness)
-    speedScale.setSensitive(component.mode.supportsSpeed)
-    additional()
-}
-
-private val String.hintText: String
-    get() = when {
-        isBlank() -> "Enter either morse code (dots and dashes) or text"
-        parseMorseOrTextToBytes().size > 120 -> "Maximum length exceeded"
-        isMorseCode -> "Parsing as morse code"
-        isValidMorseText -> "Parsing as text"
-        else -> "Invalid characters detected: $invalidMorseChars"
-    }
-
-sealed class ComponentWidgets<C : LedComponent>(device: WraithPrism, val component: C) {
+sealed class ComponentWidgets<C : LedComponent>(
+    device: WraithPrism, val component: C, modes: List<Mode> = LedMode.values
+) {
     protected val ptr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
-    open val widgets by lazy { listOf(modeBox, colorBox, brightnessScale, speedScale) }
 
-    open val modeBox = comboBox(component.mode.name, LedMode.values.map { it.name }, ptr, onModeChange)
-
-    val randomizeColorCheckbox = gtk_check_button_new_with_label("Randomize?")!!.apply {
-        connectSignalWithData("toggled", ptr, onRandomizeChange)
-    }
-    val colorButton = colorButton(component.colorOrBlack, ptr, onColorChange)
+    private val modeBox = comboBox(modes.map { it.name }, ptr, staticCFunction { widget, ptr ->
+        ptr.use { it.wraith.updateMode(it.widgets, widget) }
+    })
+    private val colorButton = colorButton(ptr, staticCFunction { widget, ptr ->
+        ptr.use { it.wraith.updateColor(it.widgets.component, widget) }
+    })
+    private val randomizeColorCheckbox = checkButton("Randomize?", ptr, staticCFunction { widget, ptr ->
+        ptr.use { (wraith, widgets) -> wraith.updateRandomize(widgets.component, widget, widgets.colorButton) }
+    })
+    private val brightnessScale = gridScale(3, ptr, staticCFunction { widget, ptr ->
+        ptr.use { it.wraith.updateBrightness(it.widgets.component, widget) }
+    })
+    private val speedScale = gridScale(5, ptr, staticCFunction { widget, ptr ->
+        ptr.use { it.wraith.updateSpeed(it.widgets.component, widget) }
+    })
 
     @OptIn(ExperimentalUnsignedTypes::class)
     val colorBox = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
         gtk_box_pack_end(reinterpret(), colorButton, 0, 0, 0u)
         gtk_box_pack_end(reinterpret(), randomizeColorCheckbox, 0, 0, 0u)
     }
-    val brightnessScale = gridScale(component.brightness, 3, ptr, onBrightnessChange)
-    val speedScale = gridScale(component.speed, 5, ptr, onSpeedChange)
 
-    open fun fullReload() = basicReload()
+    private val baseLabels = listOf("Mode", "Color", "Brightness", "Speed")
+    protected val baseWidgets = listOf(modeBox, colorBox, brightnessScale, speedScale)
 
-    open fun attachToGrid(grid: Widget) = widgets.forEachIndexed { i, it -> grid.gridAttachRight(it, i) }
+    protected open val extraLabels = emptyList<String>()
+    protected open val extraWidgets = emptyList<Widget>()
 
-    protected val onModeChange: CallbackCFunction
-        get() = staticCFunction { widget, ptr -> ptr.use { it.wraith.updateMode(it.widgets, widget) } }
-    private val onColorChange: CallbackCFunction
-        get() = staticCFunction { widget, ptr -> ptr.use { it.wraith.updateColor(it.widgets.component, widget) } }
-    private val onBrightnessChange: CallbackCFunction
-        get() = staticCFunction { widget, ptr -> ptr.use { it.wraith.updateBrightness(it.widgets.component, widget) } }
-    private val onSpeedChange: CallbackCFunction
-        get() = staticCFunction { widget, ptr -> ptr.use { it.wraith.updateSpeed(it.widgets.component, widget) } }
-    private val onRandomizeChange: CallbackCFunction
-        get() = staticCFunction { it, ptr ->
-            ptr.use { (wraith, widgets) -> wraith.updateRandomize(widgets.component, it, widgets.colorButton) }
-        }
+    fun initialize(grid: Widget) {
+        grid.gridAttach(baseLabels + extraLabels, baseWidgets + extraWidgets)
+        attachExtraWidgets(grid)
+        reload()
+    }
+
+    fun reload() {
+        gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.index)
+        memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(component.colorOrBlack).ptr) }
+
+        val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
+        gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+
+        gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.toDouble())
+        gtk_range_set_value(speedScale.reinterpret(), component.speed.toDouble())
+
+        randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
+        colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !useRandomColor)
+        brightnessScale.setSensitive(component.mode.supportsBrightness)
+        speedScale.setSensitive(component.mode.supportsSpeed)
+        extraReload()
+    }
+
+    protected open fun extraReload() = Unit
+
+    protected open fun attachExtraWidgets(grid: Widget) = Unit
 }
 
 class LogoWidgets(wraith: WraithPrism) : ComponentWidgets<LogoComponent>(wraith, wraith.logo)
@@ -78,10 +70,9 @@ class LogoWidgets(wraith: WraithPrism) : ComponentWidgets<LogoComponent>(wraith,
 @OptIn(ExperimentalUnsignedTypes::class)
 class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, wraith.fan) {
     private val mirageLabels = listOf("Red", "Green", "Blue").map { gtk_label_new("$it (Hz)")!! }
-    private val mirageFreqWidgets by lazy { listOf(mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency) }
-
     private val mirageToggle = gtk_switch_new()!!.apply {
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
+        gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER) // override for some themes, like default
         connectSignalWithData("state-set", ptr, staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
             ptr.useWith<FanWidgets> { (_, widgets) ->
                 widgets.component.mirage = state != 0
@@ -96,6 +87,7 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, w
     private val mirageRedFrequency = frequencySpinButton(ptr, staticCFunction { _, _, _ -> })
     private val mirageGreenFrequency = frequencySpinButton(ptr, staticCFunction { _, _, _ -> })
     private val mirageBlueFrequency = frequencySpinButton(ptr, staticCFunction { _, _, _ -> })
+    private val mirageFreqWidgets = listOf(mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency)
 
     private val mirageReload = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
@@ -124,31 +116,27 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<FanComponent>(wraith, w
         mirageLabels.forEachIndexed { i, it -> gtk_grid_attach(reinterpret(), it, i, 2, 1, 1) }
     }
 
-    override val widgets = listOf(modeBox, colorBox, brightnessScale, speedScale, mirageGrid)
-
-    override fun fullReload() = basicReload {
+    override fun extraReload() {
         mirageToggle.setSensitive(component.mode != LedMode.OFF)
+        mirageReload.setSensitive(component.mode != LedMode.OFF)
         (mirageFreqWidgets + mirageLabels).forEach {
             it.setSensitive(component.mode != LedMode.OFF && component.mirage)
         }
-        mirageReload.setSensitive(component.mode != LedMode.OFF)
     }
 
-    override fun attachToGrid(grid: Widget) {
-        widgets.dropLast(1).forEachIndexed { i, it -> grid.gridAttachRight(it, i) }
-        gtk_grid_attach(grid.reinterpret(), widgets.last(), 1, widgets.size - 1, 1, 2)
+    override val extraLabels = listOf("Mirage")
+    override fun attachExtraWidgets(grid: Widget) {
+        gtk_grid_attach(grid.reinterpret(), mirageGrid, 1, baseWidgets.lastIndex + 1, 1, 2)
     }
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, prism.ring) {
+class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, prism.ring, RingMode.values) {
     private var morseTextBoxHintLabel: Widget? = null
     private var morseTextBoxHint: Widget? = null
 
-    override val modeBox = comboBox(component.mode.name, RingMode.values.map { it.name }, ptr, onModeChange)
-
     private val directionComboBox =
-        comboBox(component.direction.name, RotationDirection.values().map { it.name }, ptr, staticCFunction { it, ptr ->
+        comboBox(RotationDirection.values().map { it.name }, ptr, staticCFunction { it, ptr ->
             val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
             ptr.useWith<RingWidgets> { (wraith, widgets) ->
                 wraith.update(widgets.component) { direction = RotationDirection.valueOf(text.toUpperCase()) }
@@ -162,6 +150,7 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, p
             GtkEntryIconPosition.GTK_ENTRY_ICON_SECONDARY,
             "dialog-information"
         )
+        gtk_widget_set_size_request(this, 192, -1)
 
         connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
             ptr.useWith<RingWidgets> { (_, widgets) -> widgets.changeCallback(it) }
@@ -207,14 +196,36 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, p
         }
     }
 
-    override val widgets = listOf(modeBox, colorBox, brightnessScale, speedScale, directionComboBox, morseContainer)
+    override val extraLabels = listOf("Rotation Direction", "Morse Text")
+    override val extraWidgets = listOf(directionComboBox, morseContainer)
 
-    override fun fullReload() = basicReload {
-        gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.toDouble())
-        gtk_range_set_value(speedScale.reinterpret(), component.speed.toDouble())
+    override fun extraReload() {
         gtk_combo_box_set_active(directionComboBox.reinterpret(), component.direction.value)
         directionComboBox.setSensitive(component.mode.supportsDirection)
         morseContainer.setSensitive(component.mode == RingMode.MORSE)
         if (component.mode != RingMode.MORSE) morseTextBoxHint?.let { hint -> gtk_widget_hide(hint) }
     }
 }
+
+private data class CallbackData<W : ComponentWidgets<*>>(val wraith: WraithPrism, val widgets: W)
+
+private inline fun <reified W : ComponentWidgets<*>> COpaquePointer.useWith(task: (CallbackData<W>) -> Unit) {
+    val ref = asStableRef<CallbackData<W>>()
+    task(ref.get())
+}
+
+private fun COpaquePointer.use(task: (CallbackData<*>) -> Unit) = useWith<ComponentWidgets<*>>(task)
+
+private fun Widget.gridAttach(labels: List<String>, widgets: List<Widget>) {
+    labels.forEachIndexed { i, it -> newGridLabel(i, it) }
+    widgets.forEachIndexed { i, it -> gridAttachRight(it, i) }
+}
+
+private val String.hintText: String
+    get() = when {
+        isBlank() -> "Enter either morse code (dots and dashes) or text"
+        parseMorseOrTextToBytes().size > 120 -> "Maximum length exceeded"
+        isMorseCode -> "Parsing as morse code"
+        isValidMorseText -> "Parsing as text"
+        else -> "Invalid characters detected: $invalidMorseChars"
+    }

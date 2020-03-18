@@ -47,7 +47,6 @@ fun Widget.newSettingsGrid(): Widget = gtk_grid_new()!!.apply {
     this@newSettingsGrid.addChild(this)
 }
 
-fun Widget.newGridLabels(vararg text: String) = text.forEachIndexed { i, it -> newGridLabel(i, it) }
 fun Widget.newGridLabel(position: Int, text: String) = gtk_label_new(text)!!.apply {
     gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
     gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_START)
@@ -72,24 +71,27 @@ fun Widget.addCss(css: String) = gtk_widget_get_style_context(this)!!.apply {
     gtk_style_context_add_provider(this, provider.reinterpret(), GTK_STYLE_PROVIDER_PRIORITY_USER)
 }
 
-fun comboBox(default: String, elements: List<String>, data: COpaquePointer, action: CallbackCFunction) =
+fun comboBox(elements: List<String>, data: COpaquePointer, action: CallbackCFunction) =
     gtk_combo_box_text_new()!!.apply {
         elements.forEach { gtk_combo_box_text_append_text(reinterpret(), it.toLowerCase().capitalize()) }
-        gtk_combo_box_set_active(reinterpret(), elements.indexOf(default))
         gtk_widget_set_size_request(this, 96, -1)
         align()
         connectSignalWithData("changed", data, action)
     }
 
-fun colorButton(color: Color, ptr: COpaquePointer, onColorChange: CallbackCFunction) = gtk_color_button_new()!!.apply {
+fun checkButton(label: String, data: COpaquePointer, action: CallbackCFunction) =
+    gtk_check_button_new_with_label(label)!!.apply {
+        connectSignalWithData("toggled", data, action)
+    }
+
+fun colorButton(ptr: COpaquePointer, onColorChange: CallbackCFunction) = gtk_color_button_new()!!.apply {
     gtk_color_button_set_use_alpha(reinterpret(), 0)
-    memScoped { gtk_color_button_set_rgba(reinterpret(), gdkRgba(color).ptr) }
     gtk_widget_set_size_request(this, 96, -1)
     connectSignalWithData("color-set", ptr, onColorChange)
 }
 
-fun gridScale(default: Int, marks: Int, data: COpaquePointer, action: CallbackCFunction) =
-    gtk_adjustment_new(default.toDouble(), 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
+fun gridScale(marks: Int, data: COpaquePointer, action: CallbackCFunction) =
+    gtk_adjustment_new(0.0, 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
         adjustment.connectSignalWithData("value-changed", data, action)
         gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {
             gtk_scale_set_digits(reinterpret(), 0)
@@ -139,7 +141,7 @@ fun WraithPrism.updateMode(widgets: ComponentWidgets<*>, comboBox: Widget) = upd
             assignValuesFromChannel(getChannelValues(mode.channel))
         }
     }
-    widgets.fullReload()
+    widgets.reload()
 }
 
 val LedComponent.colorOrBlack get() = if (mode.colorSupport != ColorSupport.NONE) color else Color(0, 0, 0)
