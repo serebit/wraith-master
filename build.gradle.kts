@@ -30,8 +30,9 @@ tasks.register("distTar") {
         }
 
         temporaryDir.resolve(tarballName).apply {
-            copyTo(buildDir.resolve("dist/$name"))
-            deleteOnExit()
+            copyTo(buildDir.resolve("dist/$name"), true)
         }
+
+        temporaryDir.deleteRecursively()
     }
 }
