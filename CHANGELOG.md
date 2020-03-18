@@ -6,11 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-#### Meta
-- Code cleanup in GTK and core, with a focus on reducing total LoC without sacrificing looks or functionality
-
 #### Added 
 - **Mirage frequency control**, the last major feature that required implementation
+
+#### Changed 
+- Increased width of morse textbox in GTK
+- Made overall GTK design more compact
+
+#### Meta
+- Code cleanup in GTK and core, with a focus on reducing total LoC without sacrificing looks or functionality
+- `distTar` Gradle task now produces a tarball with correct permissions
 
 ## 0.5.2 (2020-03-16)
 
@@ -18,10 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reset button causing segfault
 
 ## 0.5.1 (2020-03-13)
-
-#### Meta 
-- Updated Kotlin to 1.3.70
-- Reduced code complexity and duplication
 
 #### Added 
 - `verbose` flag to show program status in CLI frontend
@@ -33,10 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Significantly more checks to ensure parameter validity in CLI frontend
 - Eliminated (tiny) memory leaks in setup caused by unfreed libusb resources
 
-## 0.5.0 (2020-03-01)
+#### Meta 
+- Updated Kotlin to 1.3.70
+- Reduced code complexity and duplication
 
-#### Meta
-- Updated Kotlin to 1.3.70-eap-3
+## 0.5.0 (2020-03-01)
 
 #### Added 
 - **Morse text setting**, which can parse plaintext along with literal morse code
@@ -52,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed crash on swapping ring mode to a mode that supports both random colors and rotation direction if the random colors option was selected for that mode outside of Wraith Master
 - Clicking on the window now clears the keyboard focus
 - Color buttons now have the correct colors set on startup for modes that don't support color
+
+#### Meta
+- Updated Kotlin to 1.3.70-eap-3
 
 ## 0.4.2 (2020-01-21)
 
