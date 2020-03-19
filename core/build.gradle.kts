@@ -12,10 +12,13 @@ kotlin.linuxX64().compilations["main"].apply {
 
 tasks.register("package") {
     dependsOn("build")
-
     doLast {
+        val resourcesDir = rootProject.buildDir.resolve("package/resources")
+
         buildDir.resolve("processedResources/linuxX64/main/99-wraith-master.rules")
-            .copyTo(rootProject.buildDir.resolve("package/resources/99-wraith-master.rules"), overwrite = true)
+            .copyTo(resourcesDir.resolve("99-wraith-master.rules"), overwrite = true)
+
+        resourcesDir.resolve("version.txt").writeText(version.toString())
     }
 }
 
@@ -23,11 +26,17 @@ tasks.register("install") {
     dependsOn("package")
 
     doLast {
-        if (file("/sbin/udevadm").exists() && properties["noudev"] == null) {
-            val udevDir = rootDir.resolve(properties["udevdir"] as? String ?: "/etc/udev").resolve("rules.d")
+        val resourcesDir = rootProject.buildDir.resolve("package/resources")
+        val installDir = file(properties["installdir"] as? String ?: "/usr/local")
 
-            rootProject.buildDir.resolve("package/resources/99-wraith-master.rules")
+        if (file("/sbin/udevadm").exists() && properties["noudev"] == null) {
+            val udevDir = file(properties["udevdir"] as? String ?: "/etc/udev").resolve("rules.d")
+
+            resourcesDir.resolve("99-wraith-master.rules")
                 .copyTo(udevDir.resolve("99-wraith-master.rules"), overwrite = true)
         }
+
+        resourcesDir.resolve("version.txt")
+            .copyTo(installDir.resolve("share/wraith-master/version.txt"), overwrite = true)
     }
 }

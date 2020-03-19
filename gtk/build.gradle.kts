@@ -60,7 +60,7 @@ tasks.register("install") {
     doLast {
         val packageDir = rootProject.buildDir.resolve("package")
         val resourcesDir = packageDir.resolve("resources")
-        val installDir = rootDir.resolve(properties["installdir"] as? String ?: "/usr/local")
+        val installDir = file(properties["installdir"] as? String ?: "/usr/local")
 
         packageDir.resolve("wraith-master-gtk")
             .copyTo(installDir.resolve("bin/wraith-master-gtk"), overwrite = true)

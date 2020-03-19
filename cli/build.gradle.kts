@@ -30,7 +30,7 @@ tasks.register("install") {
     dependsOn(":core:package")
 
     doLast {
-        val installDir = rootDir.resolve(properties["installdir"] as? String ?: "/usr/local")
+        val installDir = file(properties["installdir"] as? String ?: "/usr/local")
 
         rootProject.buildDir.resolve("package/wraith-master")
             .copyTo(installDir.resolve("bin/wraith-master"), overwrite = true)

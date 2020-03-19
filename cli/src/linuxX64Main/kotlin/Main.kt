@@ -49,6 +49,11 @@ fun WraithPrism.finalize(component: LedComponent, verbose: Boolean?) {
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun main(args: Array<KString>) {
+    if (args.size == 1 && args[0] in listOf("-v", "--version")) {
+        println(programVersion?.let { "Wraith Master, version $it" } ?: "Wraith Master, unknown version")
+        return
+    }
+
     val parser = ArgParser("wraith-master")
 
     val component by parser.argument(ArgType.Choice(listOf("logo", "fan", "ring")))
@@ -74,6 +79,9 @@ fun main(args: Array<KString>) {
         description = "Plaintext or morse code to apply to the morse code mode"
     )
     val verbose by parser.option(ArgType.Boolean, description = "Print changes made to device LEDs to the console")
+
+    @Suppress("UNUSED_VARIABLE")
+    val version by parser.option(ArgType.Boolean, shortName = "v", description = "Print program version and exit")
 
     parser.parse(args)
 

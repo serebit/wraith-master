@@ -8,10 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added 
 - **Mirage frequency control**, the last major feature that required implementation
+- "About" dialog, viewable by clicking the info button in the title bar
 
 #### Changed 
 - Increased width of morse textbox in GTK
 - Made overall GTK design more compact
+- Reset no longer power-cycles the device
 
 #### Fixed 
 - Reset button no longer segfaults after a few presses

@@ -40,7 +40,7 @@ fun runAboutDialog() {
     gtk_about_dialog_new()!!.apply {
         gtk_about_dialog_set_program_name(reinterpret(), "Wraith Master")
         gtk_about_dialog_set_logo_icon_name(reinterpret(), "wraith-master")
-        gtk_about_dialog_set_version(reinterpret(), "Version 1.0.0")
+        gtk_about_dialog_set_version(reinterpret(), programVersion?.let { "Version $it" } ?: "Unknown Version")
         gtk_about_dialog_set_website(reinterpret(), "https://gitlab.com/serebit/wraith-master")
         gtk_about_dialog_set_website_label(reinterpret(), "Visit on GitLab")
         gtk_about_dialog_set_copyright(reinterpret(), "Copyright © 2020 Campbell Jones\nLicensed under the Apache License 2.0")
