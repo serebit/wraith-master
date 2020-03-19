@@ -11,19 +11,43 @@ fun CPointer<GtkApplication>.createWindowOrNull(addWidgets: Widget.() -> Unit): 
         // unset focus on left click with mouse button
         connectSignal(
             "button-press-event",
-            staticCFunction<Widget, CPointer<GdkEventButton>, Unit> { it, event ->
+            staticCFunction<Widget, CPointer<GdkEventButton>, Boolean> { it, event ->
                 if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
                     gtk_window_set_focus(it.reinterpret(), null)
                     gtk_window_set_focus_visible(it.reinterpret(), 0)
                 }
+                false
             })
 
-        gtk_window_set_title(reinterpret(), "Wraith Master")
+        val headerBar = gtk_header_bar_new()!!.apply {
+            gtk_header_bar_set_show_close_button(reinterpret(), 1)
+            gtk_header_bar_set_title(reinterpret(), "Wraith Master")
+            gtk_header_bar_pack_start(reinterpret(), iconButton("dialog-information", null, staticCFunction { _, _ ->
+                runAboutDialog()
+            }))
+        }
+
+        gtk_window_set_titlebar(reinterpret(), headerBar)
         gtk_window_set_icon_name(reinterpret(), "wraith-master")
         gtk_window_set_default_icon_name("applications-games")
         addWidgets()
+
+        gtk_window_set_position(reinterpret(), GtkWindowPosition.GTK_WIN_POS_CENTER)
         gtk_widget_show_all(this)
     } else null
+
+fun runAboutDialog() {
+    gtk_about_dialog_new()!!.apply {
+        gtk_about_dialog_set_program_name(reinterpret(), "Wraith Master")
+        gtk_about_dialog_set_logo_icon_name(reinterpret(), "wraith-master")
+        gtk_about_dialog_set_version(reinterpret(), "Version 1.0.0")
+        gtk_about_dialog_set_website(reinterpret(), "https://gitlab.com/serebit/wraith-master")
+        gtk_about_dialog_set_website_label(reinterpret(), "Visit on GitLab")
+        gtk_about_dialog_set_copyright(reinterpret(), "Copyright © 2020 Campbell Jones\nLicensed under the Apache License 2.0")
+        gtk_dialog_run(reinterpret())
+        gtk_widget_destroy(this)
+    }
+}
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun runNoExtraWindowsDialog() {

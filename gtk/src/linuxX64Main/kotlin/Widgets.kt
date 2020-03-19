@@ -5,23 +5,23 @@ import gtk3.*
 import kotlinx.cinterop.*
 
 sealed class ComponentWidgets<C : LedComponent>(
-    device: WraithPrism, val component: C, modes: List<Mode> = LedMode.values
+    private val device: WraithPrism, val component: C, modes: List<Mode> = LedMode.values
 ) {
-    protected val ptr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
+    protected val ptr get() = StableRef.create(CallbackData(device, this)).asCPointer()
 
-    private val modeBox = comboBox(modes.map { it.name }, ptr, staticCFunction { widget, ptr ->
+    val modeBox = comboBox(modes.map { it.name }, ptr, staticCFunction { widget, ptr ->
         ptr.use { it.wraith.updateMode(it.widgets, widget) }
     })
-    private val colorButton = colorButton(ptr, staticCFunction { widget, ptr ->
+    val colorButton = colorButton(ptr, staticCFunction { widget, ptr ->
         ptr.use { it.wraith.updateColor(it.widgets.component, widget) }
     })
-    private val randomizeColorCheckbox = checkButton("Randomize?", ptr, staticCFunction { widget, ptr ->
+    val randomizeColorCheckbox = checkButton("Randomize?", ptr, staticCFunction { widget, ptr ->
         ptr.use { (wraith, widgets) -> wraith.updateRandomize(widgets.component, widget, widgets.colorButton) }
     })
-    private val brightnessScale = gridScale(3, ptr, staticCFunction { widget, ptr ->
+    val brightnessScale = gridScale(3, ptr, staticCFunction { widget, ptr ->
         ptr.use { it.wraith.updateBrightness(it.widgets.component, widget) }
     })
-    private val speedScale = gridScale(5, ptr, staticCFunction { widget, ptr ->
+    val speedScale = gridScale(5, ptr, staticCFunction { widget, ptr ->
         ptr.use { it.wraith.updateSpeed(it.widgets.component, widget) }
     })
 
@@ -43,24 +43,7 @@ sealed class ComponentWidgets<C : LedComponent>(
         reload()
     }
 
-    fun reload() {
-        gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.index)
-        memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(component.colorOrBlack).ptr) }
-
-        val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
-        gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
-
-        gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.toDouble())
-        gtk_range_set_value(speedScale.reinterpret(), component.speed.toDouble())
-
-        randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
-        colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !useRandomColor)
-        brightnessScale.setSensitive(component.mode.supportsBrightness)
-        speedScale.setSensitive(component.mode.supportsSpeed)
-        extraReload()
-    }
-
-    protected open fun extraReload() = Unit
+    open fun extraReload() = Unit
 
     protected open fun attachExtraWidgets(grid: Widget) = Unit
 }
@@ -207,11 +190,29 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<RingComponent>(prism, p
     }
 }
 
+fun ComponentWidgets<*>.reload() {
+    gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.index)
+    memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(component.colorOrBlack).ptr) }
+
+    val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
+    gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+
+    gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.toDouble())
+    gtk_range_set_value(speedScale.reinterpret(), component.speed.toDouble())
+
+    randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
+    colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !useRandomColor)
+    brightnessScale.setSensitive(component.mode.supportsBrightness)
+    speedScale.setSensitive(component.mode.supportsSpeed)
+    extraReload()
+}
+
 private data class CallbackData<W : ComponentWidgets<*>>(val wraith: WraithPrism, val widgets: W)
 
 private inline fun <reified W : ComponentWidgets<*>> COpaquePointer.useWith(task: (CallbackData<W>) -> Unit) {
     val ref = asStableRef<CallbackData<W>>()
     task(ref.get())
+    ref.dispose()
 }
 
 private fun COpaquePointer.use(task: (CallbackData<*>) -> Unit) = useWith<ComponentWidgets<*>>(task)

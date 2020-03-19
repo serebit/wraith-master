@@ -90,6 +90,12 @@ fun colorButton(ptr: COpaquePointer, onColorChange: CallbackCFunction) = gtk_col
     connectSignalWithData("color-set", ptr, onColorChange)
 }
 
+fun iconButton(iconName: String, ptr: COpaquePointer?, onClick: CallbackCFunction) =
+    gtk_button_new_from_icon_name(iconName, GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
+        gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
+        connectSignalWithData("clicked", ptr, onClick)
+    }
+
 fun gridScale(marks: Int, data: COpaquePointer, action: CallbackCFunction) =
     gtk_adjustment_new(0.0, 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
         adjustment.connectSignalWithData("value-changed", data, action)
