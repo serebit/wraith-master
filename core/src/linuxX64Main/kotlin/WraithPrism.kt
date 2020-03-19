@@ -40,10 +40,9 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>, private va
         byteValues.pointed.readValues(bytes.size).getBytes().toUByteArray()
     }
 
-    fun sendBytes(bytes: List<Int>): List<Int> = memScoped {
-        val outBytes = bytes.map { it.coerceIn(UByte.MIN_VALUE.toInt()..UByte.MAX_VALUE.toInt()).toUByte() }
-        transfer(ENDPOINT_OUT, outBytes.toUByteArray(), 1000u)
-        transfer(ENDPOINT_IN, UByteArray(64), 1000u).toList().map { it.toInt() }
+    fun sendBytes(bytes: List<Int>): List<Int> {
+        transfer(ENDPOINT_OUT, bytes.map { it.toUByte() }.toUByteArray(), 1000u)
+        return transfer(ENDPOINT_IN, UByteArray(64), 1000u).toList().map { it.toInt() }
     }
 
     fun setChannelValues(component: LedComponent) =
@@ -114,9 +113,7 @@ fun WraithPrism.updateRingMorseText(text: String) {
 
 fun WraithPrism.reset() {
     load()
-    powerOff()
     restore()
-    powerOn()
     apply()
 
     // update existing components with reset values

@@ -41,12 +41,14 @@ fun Widget.activate(prismPtr: COpaquePointer) {
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.also { addChild(it) }
     val mainNotebook = gtk_notebook_new()!!.also { box.addChild(it) }
 
-    val grids = listOf("Logo", "Fan", "Ring").map { mainNotebook.newSettingsPage(it).newSettingsGrid() }
+    val logoGrid = mainNotebook.newSettingsPage("Logo").newSettingsGrid()
+    val fanGrid = mainNotebook.newSettingsPage("Fan").newSettingsGrid()
+    val ringGrid = mainNotebook.newSettingsPage("Ring").newSettingsGrid()
+
     val wraith = prismPtr.asStableRef<WraithPrism>().get()
-    val widgetGroups = listOf(LogoWidgets(wraith), FanWidgets(wraith), RingWidgets(wraith))
-        .zip(grids)
-        .onEach { it.first.initialize(it.second) }
-        .unzip().second
+    val logoWidgets = LogoWidgets(wraith).apply { initialize(logoGrid) }
+    val fanWidgets = FanWidgets(wraith).apply { initialize(fanGrid) }
+    val ringWidgets = RingWidgets(wraith).apply { initialize(ringGrid) }
 
     val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
         gtk_container_add(box.reinterpret(), this)
@@ -58,13 +60,12 @@ fun Widget.activate(prismPtr: COpaquePointer) {
 
     gtk_button_new()?.apply {
         gtk_button_set_label(reinterpret(), "Reset")
-        val data = StableRef.create(wraith to widgetGroups).asCPointer()
+        val data = StableRef.create(wraith to listOf(logoWidgets, fanWidgets, ringWidgets)).asCPointer()
         connectSignalWithData("clicked", data, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
             val ref = ptr.asStableRef<Pair<WraithPrism, List<ComponentWidgets<*>>>>()
             val (device, widgets) = ref.get()
             device.reset()
             widgets.forEach { it.reload() }
-            ref.dispose()
         })
         gtk_container_add(saveOptionBox?.reinterpret(), this)
     }
