@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added 
 - **Mirage frequency control**, the last major feature that required implementation
-- "About" dialog, viewable by clicking the info button in the title bar
+- "About" dialog in GTK, viewable by clicking the info button in the title bar
+- `version` option in CLI
 
 #### Changed 
 - Increased width of morse textbox in GTK

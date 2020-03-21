@@ -5,9 +5,9 @@ import gtk3.*
 import kotlinx.cinterop.*
 
 sealed class ComponentWidgets<C : LedComponent>(
-    private val device: WraithPrism, val component: C, modes: List<Mode> = LedMode.values
+    device: WraithPrism, val component: C, modes: List<Mode> = LedMode.values
 ) {
-    protected val ptr get() = StableRef.create(CallbackData(device, this)).asCPointer()
+    protected val ptr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
 
     val modeBox = comboBox(modes.map { it.name }, ptr, staticCFunction { widget, ptr ->
         ptr.use { it.wraith.updateMode(it.widgets, widget) }
@@ -212,7 +212,6 @@ private data class CallbackData<W : ComponentWidgets<*>>(val wraith: WraithPrism
 private inline fun <reified W : ComponentWidgets<*>> COpaquePointer.useWith(task: (CallbackData<W>) -> Unit) {
     val ref = asStableRef<CallbackData<W>>()
     task(ref.get())
-    ref.dispose()
 }
 
 private fun COpaquePointer.use(task: (CallbackData<*>) -> Unit) = useWith<ComponentWidgets<*>>(task)
