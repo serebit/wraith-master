@@ -6,7 +6,7 @@ kotlin.linuxX64 {
     compilations["main"].apply {
         defaultSourceSet {
             dependencies { implementation(project(":core")) }
-            defaultSourceSet.languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+            languageSettings.useExperimentalAnnotation("kotlin.Experimental")
         }
 
         cinterops.create("gtk3") {

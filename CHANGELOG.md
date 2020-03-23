@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reset button no longer segfaults after a few presses
 
 #### Meta 
+- Update Kotlin to 1.4-M1
 - Code cleanup in GTK and core, with a focus on reducing total LoC without sacrificing looks or functionality
 - `distTar` Gradle task now produces a tarball with correct permissions
 
