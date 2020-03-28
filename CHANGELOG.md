@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Mirage frequency control**, the last major feature that required implementation
 - "About" dialog in GTK, viewable by clicking the info button in the title bar
 - `version` option in CLI
+- USB IO now takes place on a separate thread
 
 #### Changed 
 - Increased width of morse textbox in GTK
