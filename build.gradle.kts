@@ -29,10 +29,7 @@ tasks.register("distTar") {
             exec { workingDir = temporaryDir; commandLine("tar", "cfJ", tarballName, tempDir.name) }
         }
 
-        temporaryDir.resolve(tarballName).apply {
-            copyTo(buildDir.resolve("dist/$name"), true)
-        }
-
+        temporaryDir.resolve(tarballName).copyTo(buildDir.resolve("dist/$name"), true)
         temporaryDir.deleteRecursively()
     }
 }
