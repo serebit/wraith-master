@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update Kotlin to 1.4-M1
 - Code cleanup in GTK and core, with a focus on reducing total LoC without sacrificing looks or functionality
 - `distTar` Gradle task now produces a tarball with correct permissions
+- Added `strip` property to `package` Gradle task, which strips packaged binaries if enabled
 
 ## 0.5.2 (2020-03-16)
 

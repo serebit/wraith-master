@@ -19,8 +19,10 @@ tasks.register("package") {
     dependsOn(":core:package")
 
     doLast {
+        val shouldStrip = properties["strip"] !in listOf(null, "false")
         buildDir.resolve("bin/linuxX64/releaseExecutable/cli.kexe")
             .copyTo(rootProject.buildDir.resolve("package/wraith-master"), overwrite = true)
+            .also { if (shouldStrip) exec { commandLine("strip", it.absolutePath) } }
             .setExecutable(true)
     }
 }
