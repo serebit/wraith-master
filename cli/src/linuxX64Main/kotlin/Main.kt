@@ -12,50 +12,6 @@ import libusb.libusb_exit
 import libusb.libusb_init
 import kotlin.String as KString
 
-@OptIn(ExperimentalUnsignedTypes::class)
-object ColorArgType : ArgType<Color>(true) {
-    private val commaSeparatedChannelPattern = "(\\d{1,3}),(\\d{1,3}),(\\d{1,3})".toRegex() // r,g,b
-    private val hexColorPattern = "#?[\\da-fA-F]{6}".toRegex() // RRGGBB
-
-    override val description = "{ Color with format r,g,b or RRGGBB }"
-    override fun convert(value: KString, name: KString): Color {
-        commaSeparatedChannelPattern.matchEntire(value)
-            ?.groupValues?.drop(1)
-            ?.map { it.toUByteOrNull() ?: error("Color channel value exceeded maximum of 255") }
-            ?.let { return Color(it.component1().toInt(), it.component2().toInt(), it.component3().toInt()) }
-
-        hexColorPattern.matchEntire(value)
-            ?.value
-            ?.removePrefix("#")
-            ?.toIntOrNull(16)?.let {
-                val r = it shr 16 and 0xFF
-                val g = it shr 8 and 0xFF
-                val b = it and 0xFF
-                return Color(r, g, b)
-            }
-
-        error(
-            """
-                |Option $name is expected to be a color, either represented by channel values separated by commas (such 
-                |as 255,128,0) or a hex color (such as 03A9F4).
-            """.trimMargin()
-        )
-    }
-}
-
-fun WraithPrism.finalize(component: PrismComponent, verbose: Boolean?) {
-    if (verbose == true) println("Applying changes")
-    setChannelValues(component)
-    assignChannels()
-    apply()
-    save()
-    if (verbose == true) print("Closing USB interface... ")
-    close()
-    if (verbose == true) println("Done.")
-    libusb_exit(null)
-}
-
-@OptIn(ExperimentalUnsignedTypes::class)
 fun main(args: Array<KString>) {
     if (args.size == 1 && args[0] in listOf("-v", "--version")) {
         println(programVersion?.let { "Wraith Master, version $it" } ?: "Wraith Master, unknown version")
@@ -82,7 +38,7 @@ fun main(args: Array<KString>) {
         shortName = "d", description = "Only supported by ring modes swirl and chase"
     )
     val randomColor by parser.option(ArgType.Boolean, fullName = "random-color")
-    val mirage by parser.option(ArgType.Choice(listOf("on", "off")), description = "Enable or disable fan mirage")
+    val mirage by parser.option(MirageArgType, description = "Enable or disable fan mirage")
     val morseText by parser.option(
         ArgType.String, "morse-text",
         description = "Plaintext or morse code to apply to the morse code mode"
@@ -188,18 +144,97 @@ fun main(args: Array<KString>) {
 
                 morseText?.let {
                     if (prismComponent.mode != PrismRingMode.MORSE)
-                        shortCircuit("Can't se")
+                        shortCircuit("Can't set morse text on any modes other than morse")
                     if (verbose == true) println("  Setting morse text to \"$it\"")
                     prism.updateRingMorseText(it)
                 }
             } else if (prismComponent is PrismFanComponent) mirage?.let {
                 if (prismComponent.mode == BasicPrismMode.OFF)
                     shortCircuit("Currently selected mode does not support fan mirage")
-                if (verbose == true) println("  ${if (it == "on") "Enabling" else "Disabling"} mirage")
-                if (it == "on") prism.enableFanMirage(330, 330, 330) else prism.disableFanMirage()
+
+                if (it is MirageValues.On) {
+                    if (verbose == true) println("  Enabling mirage, setting frequencies to ${it.r},${it.g},${it.b}")
+                    prism.enableFanMirage(it.r, it.g, it.b)
+                } else {
+                    if (verbose == true) println("  Disabling mirage")
+                    prism.disableFanMirage()
+                }
             }
 
             prism.finalize(prismComponent, verbose)
         }
     }
+}
+
+private sealed class MirageValues {
+    data class On(val r: Int, val g: Int, val b: Int) : MirageValues()
+    object Off : MirageValues()
+}
+
+private object MirageArgType : ArgType<MirageValues>(true) {
+    private val commaSeparatedChannelPattern = "(\\d{2,4}),(\\d{2,4}),(\\d{2,4})".toRegex() // r,g,b
+
+    override val description = """{ Value should be three frequencies in the format "r,g,b", each within the range 
+        |45-2000 (e.g. "330,330,330"), or one of the strings "on" or "off" }""".trimMargin().replace("\n", "")
+
+    override fun convert(value: KString, name: KString): MirageValues {
+        commaSeparatedChannelPattern.matchEntire(value)
+            ?.groupValues?.drop(1)
+            ?.mapNotNull { it.toIntOrNull() }
+            ?.filter { it in 45..2000 }
+            ?.takeIf { it.size == 3 }
+            ?.let { return MirageValues.On(it[0], it[1], it[2]) }
+
+        return when (value.toLowerCase()) {
+            "on" -> MirageValues.On(330, 330, 330)
+            "off" -> MirageValues.Off
+            else -> error(
+                """Option $name is expected to be either three comma-separated values, or one of the strings
+                | "on" or "off".""".trimMargin().replace("\n", "")
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalUnsignedTypes::class)
+private object ColorArgType : ArgType<Color>(true) {
+    private val commaSeparatedChannelPattern = "(\\d{1,3}),(\\d{1,3}),(\\d{1,3})".toRegex() // r,g,b
+    private val hexColorPattern = "#?[\\da-fA-F]{6}".toRegex() // RRGGBB
+
+    override val description = "{ Color with format r,g,b or RRGGBB }"
+    override fun convert(value: KString, name: KString): Color {
+        commaSeparatedChannelPattern.matchEntire(value)
+            ?.groupValues?.drop(1)
+            ?.map { it.toUByteOrNull() ?: error("Color channel value exceeded maximum of 255") }
+            ?.let { return Color(it[0].toInt(), it[1].toInt(), it[2].toInt()) }
+
+        hexColorPattern.matchEntire(value)
+            ?.value
+            ?.removePrefix("#")
+            ?.toIntOrNull(16)?.let {
+                val r = it shr 16 and 0xFF
+                val g = it shr 8 and 0xFF
+                val b = it and 0xFF
+                return Color(r, g, b)
+            }
+
+        error(
+            """
+                |Option $name is expected to be a color, either represented by channel values separated by commas (such 
+                |as 255,128,0) or a hex color (such as 03A9F4).
+            """.trimMargin().replace("\n", "")
+        )
+    }
+}
+
+private fun WraithPrism.finalize(component: PrismComponent, verbose: Boolean?) {
+    if (verbose == true) println("Applying changes")
+    setChannelValues(component)
+    assignChannels()
+    apply()
+    save()
+    if (verbose == true) print("Closing USB interface... ")
+    close()
+    if (verbose == true) println("Done.")
+    libusb_exit(null)
 }

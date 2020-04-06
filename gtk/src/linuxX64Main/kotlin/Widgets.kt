@@ -14,7 +14,7 @@ sealed class ComponentWidgets<C : PrismComponent>(device: WraithPrism, val compo
     val colorButton = colorButton(ptr, staticCFunction { widget, ptr ->
         ptr.useUpdateBasic {
             color = memScoped {
-                alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(widget.reinterpret(), this.ptr) }.toColor()
+                alloc<GdkRGBA>().also { gtk_color_button_get_rgba(widget.reinterpret(), it.ptr) }.toColor()
             }
         }
     })
