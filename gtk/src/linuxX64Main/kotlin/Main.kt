@@ -100,7 +100,7 @@ fun Widget.activate(prismPtr: COpaquePointer) {
             val (device, widgets) = ref.get()
             device.sendBytes(0x50)
             device.apply()
-            val channels = device.getChannels().result
+            val channels = device.getChannels()
             device.components.forEachIndexed { i, it -> it.assignValuesFromChannel(device.getChannelValues(channels[i + 8])) }
             widgets.forEach { it.reload() }
         })
