@@ -39,3 +39,17 @@ tasks.register("install") {
             .also { exec { commandLine("chmod", "00755", it.absolutePath) } }
     }
 }
+
+tasks.register("valgrind") {
+    dependsOn("build")
+
+    doLast {
+        exec {
+            isIgnoreExitValue = true
+            workingDir = buildDir.resolve("bin/linuxX64/debugExecutable")
+            val programArgs = properties["cliargs"].toString().split(" ").toTypedArray()
+            val valgrindArgs = properties["valargs"].toString().split(" ").toTypedArray()
+            commandLine("valgrind", *valgrindArgs, "./cli.kexe", *programArgs)
+        }
+    }
+}
