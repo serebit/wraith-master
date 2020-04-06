@@ -1,16 +1,23 @@
 package com.serebit.wraith.gtk
 
-import com.serebit.wraith.core.*
+import com.serebit.wraith.core.DeviceResult
+import com.serebit.wraith.core.obtainWraithPrism
+import com.serebit.wraith.core.prism.*
+import com.serebit.wraith.core.programVersion
 import gtk3.*
 import kotlinx.cinterop.*
+import libusb.LIBUSB_SUCCESS
+import libusb.libusb_error_name
+import libusb.libusb_init
 import kotlin.system.exitProcess
+
+private typealias AppPtr = CPointer<GtkApplication>
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.createWindowOrNull(addWidgets: Widget.() -> Unit): Widget? =
     if (gtk_application_get_active_window(this) == null) gtk_application_window_new(this)!!.apply {
         // unset focus on left click with mouse button
-        connectSignal(
-            "button-press-event",
+        connectSignalWithData("button-press-event", null,
             staticCFunction<Widget, CPointer<GdkEventButton>, Boolean> { it, event ->
                 if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
                     gtk_window_set_focus(it.reinterpret(), null)
@@ -43,7 +50,10 @@ fun runAboutDialog() {
         gtk_about_dialog_set_version(reinterpret(), programVersion?.let { "Version $it" } ?: "Unknown Version")
         gtk_about_dialog_set_website(reinterpret(), "https://gitlab.com/serebit/wraith-master")
         gtk_about_dialog_set_website_label(reinterpret(), "Visit on GitLab")
-        gtk_about_dialog_set_copyright(reinterpret(), "Copyright © 2020 Campbell Jones\nLicensed under the Apache License 2.0")
+        gtk_about_dialog_set_copyright(
+            reinterpret(),
+            "Copyright © 2020 Campbell Jones\nLicensed under the Apache License 2.0"
+        )
         gtk_dialog_run(reinterpret())
         gtk_widget_destroy(this)
     }
@@ -88,7 +98,10 @@ fun Widget.activate(prismPtr: COpaquePointer) {
         connectSignalWithData("clicked", data, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
             val ref = ptr.asStableRef<Pair<WraithPrism, List<ComponentWidgets<*>>>>()
             val (device, widgets) = ref.get()
-            device.reset()
+            device.sendBytes(0x50)
+            device.apply()
+            val channels = device.getChannels().result
+            device.components.forEachIndexed { i, it -> it.assignValuesFromChannel(device.getChannelValues(channels[i + 8])) }
             widgets.forEach { it.reload() }
         })
         gtk_container_add(saveOptionBox?.reinterpret(), this)
@@ -108,19 +121,21 @@ fun Widget.activate(prismPtr: COpaquePointer) {
 fun main(args: Array<String>) {
     val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
     val status: Int
+
+    libusb_init(null).also {
+        if (it != LIBUSB_SUCCESS) error("Libusb initialization returned error code ${libusb_error_name(it)}.")
+    }
     val result = obtainWraithPrism()
 
     when (result) {
-        is WraithPrismResult.Success -> app.connectSignalWithData(
-            "activate", StableRef.create(result.device).asCPointer(),
-            staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
+        is DeviceResult.Success -> app.connectSignalWithData("activate", StableRef.create(result.prism).asCPointer(),
+            staticCFunction<AppPtr, COpaquePointer, Unit> { it, ptr ->
                 it.createWindowOrNull { activate(ptr) } ?: runNoExtraWindowsDialog()
-            }
-        )
+            })
 
-        is WraithPrismResult.Failure -> app.connectSignalWithData(
+        is DeviceResult.Failure -> app.connectSignalWithData(
             "activate", StableRef.create(result.message).asCPointer(),
-            staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { _, ptr ->
+            staticCFunction<AppPtr, COpaquePointer, Unit> { _, ptr ->
                 val dialog = gtk_message_dialog_new(
                     null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK,
                     "%s", ptr.asStableRef<String>().get()
@@ -131,8 +146,7 @@ fun main(args: Array<String>) {
     }
 
     status = memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
-    if (result is WraithPrismResult.Success) result.device.close()
-
+    if (result is DeviceResult.Success) result.prism.close()
     g_object_unref(app)
     if (status != 0) exitProcess(status)
 }

@@ -1,8 +1,15 @@
 package com.serebit.wraith.cli
 
-import com.serebit.wraith.core.*
+import com.serebit.wraith.core.DeviceResult
+import com.serebit.wraith.core.obtainWraithPrism
+import com.serebit.wraith.core.prism.*
+import com.serebit.wraith.core.programVersion
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
+import libusb.LIBUSB_SUCCESS
+import libusb.libusb_error_name
+import libusb.libusb_exit
+import libusb.libusb_init
 import kotlin.String as KString
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -13,8 +20,7 @@ object ColorArgType : ArgType<Color>(true) {
     override val description = "{ Color with format r,g,b or RRGGBB }"
     override fun convert(value: KString, name: KString): Color {
         commaSeparatedChannelPattern.matchEntire(value)
-            ?.groupValues
-            ?.drop(1)
+            ?.groupValues?.drop(1)
             ?.map { it.toUByteOrNull() ?: error("Color channel value exceeded maximum of 255") }
             ?.let { return Color(it.component1().toInt(), it.component2().toInt(), it.component3().toInt()) }
 
@@ -37,14 +43,16 @@ object ColorArgType : ArgType<Color>(true) {
     }
 }
 
-fun WraithPrism.finalize(component: LedComponent, verbose: Boolean?) {
+fun WraithPrism.finalize(component: PrismComponent, verbose: Boolean?) {
     if (verbose == true) println("Applying changes")
     setChannelValues(component)
     assignChannels()
     apply()
+    save()
     if (verbose == true) print("Closing USB interface... ")
     close()
     if (verbose == true) println("Done.")
+    libusb_exit(null)
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -58,12 +66,13 @@ fun main(args: Array<KString>) {
 
     val component by parser.argument(ArgType.Choice(listOf("logo", "fan", "ring")))
 
-    val allModes = (RingMode.values + LedMode.values)
+    val allModes = (PrismRingMode.values().toList() + BasicPrismMode.values().toList())
     val modeNames = allModes.map { it.name.toLowerCase() }.distinct()
 
     val mode by parser.option(
         ArgType.Choice(modeNames), shortName = "m",
-        description = "(Modes ${modeNames - LedMode.values.map { it.name.toLowerCase() }} are only supported by ring component)"
+        description = "(Modes ${modeNames - BasicPrismMode.values()
+            .map { it.name.toLowerCase() }} are only supported by ring component)"
     )
     val color by parser.option(ColorArgType, shortName = "c")
     val brightness by parser.option(ArgType.Int, shortName = "b", description = "Value from 1 to 3")
@@ -85,20 +94,23 @@ fun main(args: Array<KString>) {
 
     parser.parse(args)
 
-    if (verbose == true) print("Opening interface to device... ")
-    when (val result: WraithPrismResult = obtainWraithPrism()) {
-        is WraithPrismResult.Failure -> error(result.message)
+    libusb_init(null).also {
+        if (it != LIBUSB_SUCCESS) error("Libusb initialization returned error code ${libusb_error_name(it)}.")
+    }
 
-        is WraithPrismResult.Success -> {
+    if (verbose == true) print("Opening interface to device... ")
+    when (val result: DeviceResult = obtainWraithPrism()) {
+        is DeviceResult.Failure -> error(result.message)
+
+        is DeviceResult.Success -> result.run {
             if (verbose == true) println("Done.")
-            val wraith = result.device
 
             // parameter validation
             mode?.let { it ->
                 val invalidRingMode = component.toLowerCase() == "ring"
-                        && it.toUpperCase() !in RingMode.values.map { it.name }
+                        && it.toUpperCase() !in PrismRingMode.values().map { it.name }
                 val invalidLedMode = component.toLowerCase() in listOf("fan", "logo")
-                        && it.toUpperCase() !in LedMode.values.map { it.name }
+                        && it.toUpperCase() !in BasicPrismMode.values().map { it.name }
                 if (invalidRingMode || invalidLedMode) {
                     error("Provided mode $it is not in valid modes for component $component.")
                 }
@@ -116,16 +128,16 @@ fun main(args: Array<KString>) {
                 if (color != null) error("Cannot set color randomness along with a specific color")
             }
 
-            val ledComponent = when (component) {
-                "logo" -> wraith.logo
-                "fan" -> wraith.fan
-                "ring" -> wraith.ring
+            val prismComponent = when (component) {
+                "logo" -> prism.logo
+                "fan" -> prism.fan
+                "ring" -> prism.ring
                 else -> throw IllegalStateException()
             }
 
             fun shortCircuit(message: KString): Nothing {
                 if (verbose == true) println("Encountered error, short-circuiting")
-                wraith.finalize(ledComponent, verbose)
+                prism.finalize(prismComponent, verbose)
                 error(message)
             }
 
@@ -133,61 +145,61 @@ fun main(args: Array<KString>) {
 
             mode?.let {
                 if (verbose == true) println("  Setting mode to $it")
-                when (ledComponent) {
-                    is BasicLedComponent -> ledComponent.mode = LedMode[it.toUpperCase()]
-                    is RingComponent -> ledComponent.mode = RingMode[it.toUpperCase()]
+                when (prismComponent) {
+                    is BasicPrismComponent -> prismComponent.mode = BasicPrismMode.valueOf(it.toUpperCase())
+                    is PrismRingComponent -> prismComponent.mode = PrismRingMode.valueOf(it.toUpperCase())
                 }
             }
 
             randomColor?.let {
-                if (ledComponent.mode.colorSupport != ColorSupport.ALL)
+                if (prismComponent.mode.colorSupport != ColorSupport.ALL)
                     shortCircuit("Currently selected mode does not support color randomization")
                 if (verbose == true) println("  ${if (it) "Enabling" else "Disabling"} color randomization")
-                ledComponent.useRandomColor = it
+                prismComponent.useRandomColor = it
             }
             color?.let {
-                if (ledComponent.mode.colorSupport == ColorSupport.NONE)
+                if (prismComponent.mode.colorSupport == ColorSupport.NONE)
                     shortCircuit("Currently selected mode does not support setting a color")
                 if (verbose == true) println("  Setting color to ${it.r},${it.g},${it.b}")
-                ledComponent.color = it
-                ledComponent.useRandomColor = false
+                prismComponent.color = it
+                prismComponent.useRandomColor = false
             }
 
             brightness?.let {
-                if (!ledComponent.mode.supportsBrightness)
+                if (!prismComponent.mode.supportsBrightness)
                     shortCircuit("Currently selected mode does not support setting the brightness level")
                 if (verbose == true) println("  Setting brightness to level $it")
-                ledComponent.brightness = it
+                prismComponent.brightness = Brightness.values()[it - 1]
             }
             speed?.let {
-                if (!ledComponent.mode.supportsSpeed)
+                if (!prismComponent.mode.supportsSpeed)
                     shortCircuit("Currently selected mode does not support the speed setting")
                 if (verbose == true) println("  Setting speed to level $it")
-                ledComponent.speed = it
+                prismComponent.speed = Speed.values()[it - 1]
             }
 
-            if (ledComponent is RingComponent) {
+            if (prismComponent is PrismRingComponent) {
                 direction?.let {
-                    if (!ledComponent.mode.supportsDirection)
+                    if (!prismComponent.mode.supportsDirection)
                         shortCircuit("Currently selected mode does not support the rotation direction setting")
                     if (verbose == true) println("  Setting rotation direction to $it")
-                    ledComponent.direction = RotationDirection.valueOf(it.toUpperCase())
+                    prismComponent.direction = RotationDirection.valueOf(it.toUpperCase())
                 }
 
                 morseText?.let {
-                    if (ledComponent.mode != RingMode.MORSE)
+                    if (prismComponent.mode != PrismRingMode.MORSE)
                         shortCircuit("Can't se")
                     if (verbose == true) println("  Setting morse text to \"$it\"")
-                    wraith.updateRingMorseText(it)
+                    prism.updateRingMorseText(it)
                 }
-            } else if (ledComponent is FanComponent) mirage?.let {
-                if (ledComponent.mode == LedMode.OFF)
+            } else if (prismComponent is PrismFanComponent) mirage?.let {
+                if (prismComponent.mode == BasicPrismMode.OFF)
                     shortCircuit("Currently selected mode does not support fan mirage")
                 if (verbose == true) println("  ${if (it == "on") "Enabling" else "Disabling"} mirage")
-                if (it == "on") wraith.enableFanMirage(330, 330, 330) else wraith.disableFanMirage()
+                if (it == "on") prism.enableFanMirage(330, 330, 330) else prism.disableFanMirage()
             }
 
-            wraith.finalize(ledComponent, verbose)
+            prism.finalize(prismComponent, verbose)
         }
     }
 }

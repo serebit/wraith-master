@@ -1,4 +1,4 @@
-package com.serebit.wraith.core
+package com.serebit.wraith.core.prism
 
 val String.isMorseCode get() = trim().split(' ').all { it in charMorseRepresentation.values }
 val String.isValidMorseText get() = toUpperCase().all { it in charMorseRepresentation }

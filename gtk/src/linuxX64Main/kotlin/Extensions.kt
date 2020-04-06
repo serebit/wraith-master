@@ -1,9 +1,8 @@
 package com.serebit.wraith.gtk
 
-import com.serebit.wraith.core.*
+import com.serebit.wraith.core.prism.*
 import gtk3.*
 import kotlinx.cinterop.*
-import kotlin.math.roundToInt
 
 typealias Widget = CPointer<GtkWidget>
 typealias CallbackCFunction = CPointer<CFunction<(Widget, COpaquePointer) -> Unit>>
@@ -12,9 +11,6 @@ private typealias CallbackSpinCFunction = CPointer<CFunction<(Widget, GtkScrollT
 @OptIn(ExperimentalUnsignedTypes::class)
 fun <F : CFunction<*>> CPointer<*>.connectSignalWithData(signal: String, data: COpaquePointer?, action: CPointer<F>) =
     g_signal_connect_data(reinterpret(), signal, action.reinterpret(), data, null, 0u)
-
-fun <F : CFunction<*>> CPointer<*>.connectSignal(signal: String, action: CPointer<F>) =
-    connectSignalWithData(signal, null, action)
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
@@ -57,8 +53,6 @@ fun Widget.newGridLabel(position: Int, text: String) = gtk_label_new(text)!!.app
 
 fun Widget.addChild(widget: Widget) = gtk_container_add(reinterpret(), widget)
 
-fun Widget.gridAttachRight(widget: Widget, position: Int) = gtk_grid_attach(reinterpret(), widget, 1, position, 1, 1)
-
 fun Widget.setSensitive(boolean: Boolean) = gtk_widget_set_sensitive(this, boolean.toByte().toInt())
 
 fun Widget.addCss(css: String) = gtk_widget_get_style_context(this)!!.apply {
@@ -97,14 +91,16 @@ fun iconButton(iconName: String, ptr: COpaquePointer?, onClick: CallbackCFunctio
     }
 
 fun gridScale(marks: Int, data: COpaquePointer, action: CallbackCFunction) =
-    gtk_adjustment_new(0.0, 1.0, marks.toDouble(), 1.0, 0.0, 0.0)!!.let { adjustment ->
+    gtk_adjustment_new(0.0, 0.0, marks.toDouble() - 1, 1.0, 0.0, 0.0)!!.let { adjustment ->
         adjustment.connectSignalWithData("value-changed", data, action)
         gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {
             gtk_scale_set_digits(reinterpret(), 0)
             gtk_scale_set_draw_value(reinterpret(), 0)
             gtk_widget_set_size_request(this, 96, -1)
             align()
-            for (i in 1..marks) gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
+            for (i in 0 until marks) {
+                gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
+            }
         }
     }
 
@@ -117,37 +113,21 @@ fun frequencySpinButton(data: COpaquePointer, action: CallbackSpinCFunction) =
         connectSignalWithData("change-value", data, action)
     }
 
-fun WraithPrism.updateColor(component: LedComponent, colorButton: Widget) = update(component) {
-    color = memScoped {
-        alloc<GdkRGBA>().apply { gtk_color_button_get_rgba(colorButton.reinterpret(), ptr) }
-            .run { Color((255 * red).toInt(), (255 * green).toInt(), (255 * blue).toInt()) }
-    }
-}
-
-fun WraithPrism.updateRandomize(component: LedComponent, checkButton: Widget, colorButton: Widget) {
-    val isActive = gtk_toggle_button_get_active(checkButton.reinterpret())
-    if (component.mode.colorSupport == ColorSupport.ALL) update(component) { useRandomColor = isActive == 1 }
-    colorButton.setSensitive(isActive == 0)
-}
-
-fun WraithPrism.updateSpeed(component: LedComponent, adjustment: Widget) = update(component) {
-    speed = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt()
-}
-
-fun WraithPrism.updateBrightness(component: LedComponent, adjustment: Widget) = update(component) {
-    brightness = gtk_adjustment_get_value(adjustment.reinterpret()).roundToInt()
+inline fun <C : PrismComponent> WraithPrism.update(component: C, task: C.() -> Unit) {
+    component.task()
+    setChannelValues(component)
+    assignChannels()
+    apply()
 }
 
 fun WraithPrism.updateMode(widgets: ComponentWidgets<*>, comboBox: Widget) = update(widgets.component) {
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
     when (this) {
-        is BasicLedComponent -> mode = LedMode[text.toUpperCase()]
-        is RingComponent -> {
-            mode = RingMode[text.toUpperCase()]
+        is BasicPrismComponent -> mode = BasicPrismMode.valueOf(text.toUpperCase())
+        is PrismRingComponent -> {
+            mode = PrismRingMode.valueOf(text.toUpperCase())
             assignValuesFromChannel(getChannelValues(mode.channel))
         }
     }
     widgets.reload()
 }
-
-val LedComponent.colorOrBlack get() = if (mode.colorSupport != ColorSupport.NONE) color else Color(0, 0, 0)

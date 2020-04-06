@@ -16,8 +16,6 @@ Wraith Master supports all 64-bit Linux distributions that use glibc as their li
 
 ## Installing
 
-
-
 #### Arch/Derivatives
 
 If you're on Arch Linux or one of its derivatives, you can install both frontends [from the AUR](https://aur.archlinux.org/packages/?K=wraith%2Dmaster), under `wraith-master-cli` for the CLI frontend and `wraith-master-gtk` for the GTK frontend. 
