@@ -20,7 +20,7 @@ interface BasicPrismComponent : PrismComponent {
 }
 
 class BasicPrismComponentDelegate(initialValues: ChannelValues, override val channel: Int) : BasicPrismComponent {
-    override val modes: List<BasicPrismMode> get() = BasicPrismMode.values().toList()
+    override val modes: List<BasicPrismMode> = BasicPrismMode.values().toList()
     override lateinit var mode: BasicPrismMode
     override var color = Color(0, 0, 0)
     override var useRandomColor = false
@@ -62,7 +62,7 @@ class PrismFanComponent(initialValues: ChannelValues) :
 }
 
 class PrismRingComponent(initialValues: ChannelValues) : PrismComponent {
-    override val modes: List<PrismRingMode> get() = PrismRingMode.values().toList()
+    override val modes: List<PrismRingMode> = PrismRingMode.values().toList()
     override lateinit var mode: PrismRingMode
     override val channel: Int get() = mode.channel
     override lateinit var color: Color

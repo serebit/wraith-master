@@ -52,8 +52,6 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>) {
     fun getChannelValues(channel: Int) = ChannelValues(sendBytes(0x52, 0x2C, 1, 0, channel))
 
     fun close() {
-        restore()
-        apply(runCallback = false)
         libusb_release_interface(handle, HID_INTERFACE)
         libusb_close(handle)
     }
@@ -73,6 +71,8 @@ class ChannelValues(private val values: List<Int>) {
     val brightness get() = values[9]
     val color get() = Color(values[10], values[11], values[12])
 }
+
+val WraithPrism.hasUnsavedChanges get() = components.any { it.savedByteValues != it.byteValues }
 
 fun WraithPrism.save() {
     sendBytes(0x50, 0x55)

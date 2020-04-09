@@ -2,10 +2,7 @@ package com.serebit.wraith.gtk
 
 import com.serebit.wraith.core.DeviceResult
 import com.serebit.wraith.core.obtainWraithPrism
-import com.serebit.wraith.core.prism.WraithPrism
-import com.serebit.wraith.core.prism.apply
-import com.serebit.wraith.core.prism.restore
-import com.serebit.wraith.core.prism.save
+import com.serebit.wraith.core.prism.*
 import com.serebit.wraith.core.programVersion
 import gtk3.*
 import kotlinx.cinterop.*
@@ -14,8 +11,6 @@ import libusb.libusb_error_name
 import libusb.libusb_exit
 import libusb.libusb_init
 import kotlin.system.exitProcess
-
-private typealias AppPtr = CPointer<GtkApplication>
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun main(args: Array<String>) {
@@ -29,13 +24,13 @@ fun main(args: Array<String>) {
 
     when (result) {
         is DeviceResult.Success -> app.connectSignalWithData("activate", StableRef.create(result.prism).asCPointer(),
-            staticCFunction<AppPtr, COpaquePointer, Unit> { it, ptr ->
+            staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
                 it.createWindowOrNull { activate(ptr) } ?: runNoExtraWindowsDialog()
             })
 
         is DeviceResult.Failure -> app.connectSignalWithData(
             "activate", StableRef.create(result.message).asCPointer(),
-            staticCFunction<AppPtr, COpaquePointer, Unit> { _, ptr ->
+            staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { _, ptr ->
                 val dialog = gtk_message_dialog_new(
                     null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK,
                     "%s", ptr.asStableRef<String>().get()
@@ -52,6 +47,7 @@ fun main(args: Array<String>) {
         result.prism.close()
         libusb_exit(null)
     }
+
     if (status != 0) exitProcess(status)
 }
 
@@ -156,9 +152,9 @@ fun Widget.activate(prismPtr: COpaquePointer) {
 
     val saveOptionButtons = listOf(resetButton, saveButton)
     val callbackData = CallbackData(wraith, listOf(logoWidgets, fanWidgets, ringWidgets), saveOptionButtons)
-    val ptr = StableRef.create(callbackData).asCPointer()
+    val callbackPtr = StableRef.create(callbackData).asCPointer()
 
-    resetButton.connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+    resetButton.connectSignalWithData("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
         val (device, widgets, buttons) = ptr.asStableRef<CallbackData>().get()
         device.restore()
         device.apply()
@@ -170,15 +166,34 @@ fun Widget.activate(prismPtr: COpaquePointer) {
         buttons.forEach { it.setSensitive(false) }
     })
 
-    saveButton.connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+    saveButton.connectSignalWithData("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
         val (device, _, buttons) = ptr.asStableRef<CallbackData>().get()
         device.save()
         buttons.forEach { it.setSensitive(false) }
     })
 
     wraith.onApply = {
-        saveOptionButtons.forEach { button ->
-            button.setSensitive(wraith.components.any { it.savedByteValues != it.byteValues })
-        }
+        saveOptionButtons.forEach { it.setSensitive(wraith.hasUnsavedChanges) }
     }
+
+    connectSignalWithData("delete-event", prismPtr,
+        staticCFunction<Widget, GdkEvent, COpaquePointer, Boolean> { window, _, ptr ->
+            val prism = ptr.asStableRef<WraithPrism>().get()
+            if (prism.hasUnsavedChanges) {
+                val dialog = gtk_message_dialog_new(
+                    window.reinterpret(), 0u, GtkMessageType.GTK_MESSAGE_QUESTION, GtkButtonsType.GTK_BUTTONS_YES_NO,
+                    "%s", "You have unsaved changes. Would you like to save them?"
+                )!!
+
+                if (gtk_dialog_run(dialog.reinterpret()) == GTK_RESPONSE_YES) {
+                    prism.save()
+                } else {
+                    prism.restore()
+                    prism.apply(runCallback = false)
+                }
+
+                gtk_widget_destroy(dialog)
+            }
+            false
+        })
 }
