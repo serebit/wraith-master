@@ -177,7 +177,7 @@ fun Widget.activate(prismPtr: COpaquePointer) {
     }
 
     connectSignalWithData("delete-event", prismPtr,
-        staticCFunction<Widget, GdkEvent, COpaquePointer, Boolean> { window, _, ptr ->
+        staticCFunction<Widget, CPointer<GdkEvent>, COpaquePointer, Boolean> { window, _, ptr ->
             val prism = ptr.asStableRef<WraithPrism>().get()
             if (prism.hasUnsavedChanges) {
                 val dialog = gtk_message_dialog_new(

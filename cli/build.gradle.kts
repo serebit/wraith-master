@@ -7,6 +7,7 @@ kotlin.linuxX64 {
         defaultSourceSet {
             dependencies { implementation(project(":core")) }
             languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+            languageSettings.enableLanguageFeature("NewInference")
         }
         enableEndorsedLibs = true
     }
