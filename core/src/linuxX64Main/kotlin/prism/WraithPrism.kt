@@ -13,10 +13,12 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>) {
     val logo: PrismLogoComponent
     val fan: PrismFanComponent
     val ring: PrismRingComponent
+    var onApply: () -> Unit = { }
 
     init {
         sendBytes(0x41, 0x80) // power on
         sendBytes(0x51, 0x96) // magic bytes
+        restore()
         apply()
         val channels = getChannels()
         logo = PrismLogoComponent(getChannelValues(channels[8]))
@@ -46,7 +48,12 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>) {
     fun assignChannels() =
         sendBytes(0x51, 0xA0, 1, 0, 0, 3, 0, 0, logo.channel, fan.channel, *IntArray(15) { ring.mode.channel })
 
+    fun getChannels() = sendBytes(0x52, 0xA0, 1, 0, 0, 3, 0, 0)
+    fun getChannelValues(channel: Int) = ChannelValues(sendBytes(0x52, 0x2C, 1, 0, channel))
+
     fun close() {
+        restore()
+        apply(runCallback = false)
         libusb_release_interface(handle, HID_INTERFACE)
         libusb_close(handle)
     }
@@ -67,10 +74,17 @@ class ChannelValues(private val values: List<Int>) {
     val color get() = Color(values[10], values[11], values[12])
 }
 
-fun WraithPrism.save() = sendBytes(0x50, 0x55)
-fun WraithPrism.apply() = sendBytes(0x51, 0x28, 0, 0, 0xE0)
-fun WraithPrism.getChannels() = sendBytes(0x52, 0xA0, 1, 0, 0, 3, 0, 0)
-fun WraithPrism.getChannelValues(channel: Int) = ChannelValues(sendBytes(0x52, 0x2C, 1, 0, channel))
+fun WraithPrism.save() {
+    sendBytes(0x50, 0x55)
+    components.forEach { it.savedByteValues = it.byteValues }
+}
+
+fun WraithPrism.restore() = sendBytes(0x50)
+
+fun WraithPrism.apply(runCallback: Boolean = true) {
+    sendBytes(0x51, 0x28, 0, 0, 0xE0)
+    if (runCallback) onApply()
+}
 
 private fun Int.mirageFreqBytes(): List<Int> {
     val initial = 187_498f / this

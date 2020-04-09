@@ -14,7 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Changed 
 - Increased width of morse textbox in GTK
 - Made overall GTK design more compact
-- Reset no longer power-cycles the device
+- In GTK, the Reset button no longer power-cycles the device
+- In GTK, the Save and Reset buttons now change their sensitivity based on whether the current values are the same as the saved values
+- In GTK, saved settings are restored both on app close and on app start
 
 #### Fixed 
 - Reset button no longer segfaults after a few presses

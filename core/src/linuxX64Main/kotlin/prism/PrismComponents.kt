@@ -2,6 +2,8 @@ package com.serebit.wraith.core.prism
 
 interface PrismComponent {
     val byteValues: List<Int>
+    var savedByteValues: List<Int>
+
     val mode: PrismMode
     val modes: List<PrismMode>
     val channel: Int
@@ -24,9 +26,11 @@ class BasicPrismComponentDelegate(initialValues: ChannelValues, override val cha
     override var useRandomColor = false
     override var speed = Speed.MEDIUM
     override var brightness = Brightness.MEDIUM
+    override var savedByteValues: List<Int> = emptyList()
 
     init {
         assignValuesFromChannel(initialValues)
+        savedByteValues = byteValues
     }
 
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
@@ -66,9 +70,11 @@ class PrismRingComponent(initialValues: ChannelValues) : PrismComponent {
     override var speed = Speed.MEDIUM
     override var brightness = Brightness.MEDIUM
     lateinit var direction: RotationDirection
+    override var savedByteValues: List<Int> = emptyList()
 
     init {
         assignValuesFromChannel(initialValues)
+        savedByteValues = byteValues
     }
 
     override fun assignValuesFromChannel(channelValues: ChannelValues) {

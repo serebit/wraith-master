@@ -2,7 +2,10 @@ package com.serebit.wraith.gtk
 
 import com.serebit.wraith.core.DeviceResult
 import com.serebit.wraith.core.obtainWraithPrism
-import com.serebit.wraith.core.prism.*
+import com.serebit.wraith.core.prism.WraithPrism
+import com.serebit.wraith.core.prism.apply
+import com.serebit.wraith.core.prism.restore
+import com.serebit.wraith.core.prism.save
 import com.serebit.wraith.core.programVersion
 import gtk3.*
 import kotlinx.cinterop.*
@@ -13,6 +16,44 @@ import libusb.libusb_init
 import kotlin.system.exitProcess
 
 private typealias AppPtr = CPointer<GtkApplication>
+
+@OptIn(ExperimentalUnsignedTypes::class)
+fun main(args: Array<String>) {
+    val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
+    val status: Int
+
+    libusb_init(null).also {
+        if (it != LIBUSB_SUCCESS) error("Libusb initialization returned error code ${libusb_error_name(it)}.")
+    }
+    val result = obtainWraithPrism()
+
+    when (result) {
+        is DeviceResult.Success -> app.connectSignalWithData("activate", StableRef.create(result.prism).asCPointer(),
+            staticCFunction<AppPtr, COpaquePointer, Unit> { it, ptr ->
+                it.createWindowOrNull { activate(ptr) } ?: runNoExtraWindowsDialog()
+            })
+
+        is DeviceResult.Failure -> app.connectSignalWithData(
+            "activate", StableRef.create(result.message).asCPointer(),
+            staticCFunction<AppPtr, COpaquePointer, Unit> { _, ptr ->
+                val dialog = gtk_message_dialog_new(
+                    null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK,
+                    "%s", ptr.asStableRef<String>().get()
+                )
+
+                gtk_dialog_run(dialog?.reinterpret())
+            })
+    }
+
+    status = memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
+    g_object_unref(app)
+
+    if (result is DeviceResult.Success) {
+        result.prism.close()
+        libusb_exit(null)
+    }
+    if (status != 0) exitProcess(status)
+}
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.createWindowOrNull(addWidgets: Widget.() -> Unit): Widget? =
@@ -86,7 +127,7 @@ fun Widget.activate(prismPtr: COpaquePointer) {
     val fanWidgets = FanWidgets(wraith).apply { initialize(fanGrid) }
     val ringWidgets = RingWidgets(wraith).apply { initialize(ringGrid) }
 
-    val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)?.apply {
+    val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)!!.apply {
         gtk_container_add(box.reinterpret(), this)
         gtk_container_set_border_width(reinterpret(), 10u)
         gtk_button_box_set_layout(reinterpret(), GTK_BUTTONBOX_END)
@@ -94,67 +135,50 @@ fun Widget.activate(prismPtr: COpaquePointer) {
         gtk_box_set_child_packing(box.reinterpret(), this, 0, 1, 0u, GtkPackType.GTK_PACK_END)
     }
 
-    gtk_button_new()?.apply {
+    data class CallbackData(
+        val wraith: WraithPrism,
+        val widgets: List<PrismComponentWidgets<*>>,
+        val buttons: List<Widget>
+    )
+
+    val resetButton = gtk_button_new()!!.apply {
         gtk_button_set_label(reinterpret(), "Reset")
-        val data = StableRef.create(wraith to listOf(logoWidgets, fanWidgets, ringWidgets)).asCPointer()
-        connectSignalWithData("clicked", data, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-            val ref = ptr.asStableRef<Pair<WraithPrism, List<PrismComponentWidgets<*>>>>()
-            val (device, widgets) = ref.get()
-            device.sendBytes(0x50)
-            device.apply()
-            val channels = device.getChannels()
-            device.components.forEachIndexed { i, it ->
-                it.assignValuesFromChannel(device.getChannelValues(channels[i + 8]))
-            }
-            widgets.forEach { it.reload() }
-        })
-        gtk_container_add(saveOptionBox?.reinterpret(), this)
+        setSensitive(false)
+        gtk_container_add(saveOptionBox.reinterpret(), this)
     }
 
-    gtk_button_new()?.apply {
+    val saveButton = gtk_button_new()!!.apply {
         gtk_button_set_label(reinterpret(), "Save")
         gtk_style_context_add_class(gtk_widget_get_style_context(this), "suggested-action")
-        connectSignalWithData("clicked", prismPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-            ptr.asStableRef<WraithPrism>().get().save()
-        })
-        gtk_container_add(saveOptionBox?.reinterpret(), this)
-    }
-}
-
-@OptIn(ExperimentalUnsignedTypes::class)
-fun main(args: Array<String>) {
-    val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
-    val status: Int
-
-    libusb_init(null).also {
-        if (it != LIBUSB_SUCCESS) error("Libusb initialization returned error code ${libusb_error_name(it)}.")
-    }
-    val result = obtainWraithPrism()
-
-    when (result) {
-        is DeviceResult.Success -> app.connectSignalWithData("activate", StableRef.create(result.prism).asCPointer(),
-            staticCFunction<AppPtr, COpaquePointer, Unit> { it, ptr ->
-                it.createWindowOrNull { activate(ptr) } ?: runNoExtraWindowsDialog()
-            })
-
-        is DeviceResult.Failure -> app.connectSignalWithData(
-            "activate", StableRef.create(result.message).asCPointer(),
-            staticCFunction<AppPtr, COpaquePointer, Unit> { _, ptr ->
-                val dialog = gtk_message_dialog_new(
-                    null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK,
-                    "%s", ptr.asStableRef<String>().get()
-                )
-
-                gtk_dialog_run(dialog?.reinterpret())
-            })
+        setSensitive(false)
+        gtk_container_add(saveOptionBox.reinterpret(), this)
     }
 
-    status = memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
-    g_object_unref(app)
+    val saveOptionButtons = listOf(resetButton, saveButton)
+    val callbackData = CallbackData(wraith, listOf(logoWidgets, fanWidgets, ringWidgets), saveOptionButtons)
+    val ptr = StableRef.create(callbackData).asCPointer()
 
-    if (result is DeviceResult.Success) {
-        result.prism.close()
-        libusb_exit(null)
+    resetButton.connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+        val (device, widgets, buttons) = ptr.asStableRef<CallbackData>().get()
+        device.restore()
+        device.apply()
+        val channels = device.getChannels()
+        device.components.forEachIndexed { i, it ->
+            it.assignValuesFromChannel(device.getChannelValues(channels[i + 8]))
+        }
+        widgets.forEach { it.reload() }
+        buttons.forEach { it.setSensitive(false) }
+    })
+
+    saveButton.connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+        val (device, _, buttons) = ptr.asStableRef<CallbackData>().get()
+        device.save()
+        buttons.forEach { it.setSensitive(false) }
+    })
+
+    wraith.onApply = {
+        saveOptionButtons.forEach { button ->
+            button.setSensitive(wraith.components.any { it.savedByteValues != it.byteValues })
+        }
     }
-    if (status != 0) exitProcess(status)
 }
