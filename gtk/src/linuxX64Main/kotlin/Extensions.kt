@@ -22,11 +22,6 @@ fun MemScope.gdkRgba(color: Color) = alloc<GdkRGBA>().apply {
 
 val Widget.text get() = gtk_entry_get_text(reinterpret())!!.toKString()
 
-fun Widget.align() {
-    gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
-    gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-}
-
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.newSettingsPage(label: String) = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.apply {
     gtk_container_set_border_width(reinterpret(), 16u)
@@ -40,7 +35,7 @@ fun Widget.newSettingsGrid(): Widget = gtk_grid_new()!!.apply {
     gtk_grid_set_column_spacing(reinterpret(), 32u)
     gtk_grid_set_row_spacing(reinterpret(), 8u)
     gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_START)
-    this@newSettingsGrid.addChild(this)
+    gtk_container_add(this@newSettingsGrid.reinterpret(), this)
 }
 
 fun Widget.newGridLabel(position: Int, text: String) = gtk_label_new(text)!!.apply {
@@ -50,8 +45,6 @@ fun Widget.newGridLabel(position: Int, text: String) = gtk_label_new(text)!!.app
     gtk_widget_set_size_request(this, -1, 36)
     gtk_grid_attach(this@newGridLabel.reinterpret(), this, 0, position, 1, 1)
 }
-
-fun Widget.addChild(widget: Widget) = gtk_container_add(reinterpret(), widget)
 
 fun Widget.setSensitive(boolean: Boolean) = gtk_widget_set_sensitive(this, boolean.toByte().toInt())
 
@@ -69,7 +62,8 @@ fun comboBox(elements: List<String>, data: COpaquePointer, action: CallbackCFunc
     gtk_combo_box_text_new()!!.apply {
         elements.forEach { gtk_combo_box_text_append_text(reinterpret(), it.toLowerCase().capitalize()) }
         gtk_widget_set_size_request(this, 96, -1)
-        align()
+        gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
+        gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         connectSignalWithData("changed", data, action)
     }
 
@@ -84,8 +78,10 @@ fun colorButton(ptr: COpaquePointer, onColorChange: CallbackCFunction) = gtk_col
     connectSignalWithData("color-set", ptr, onColorChange)
 }
 
-fun iconButton(iconName: String, ptr: COpaquePointer?, onClick: CallbackCFunction) =
+fun iconButton(iconName: String, text: String?, ptr: COpaquePointer?, onClick: CallbackCFunction) =
     gtk_button_new_from_icon_name(iconName, GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
+        text?.let { gtk_button_set_label(reinterpret(), it) }
+        gtk_button_set_always_show_image(reinterpret(), 1)
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
         connectSignalWithData("clicked", ptr, onClick)
     }
@@ -97,7 +93,8 @@ fun gridScale(marks: Int, data: COpaquePointer, action: CallbackCFunction) =
             gtk_scale_set_digits(reinterpret(), 0)
             gtk_scale_set_draw_value(reinterpret(), 0)
             gtk_widget_set_size_request(this, 96, -1)
-            align()
+            gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
+            gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
             for (i in 0 until marks) {
                 gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
             }
@@ -109,7 +106,7 @@ fun frequencySpinButton(data: COpaquePointer, action: CallbackSpinCFunction) =
         gtk_spin_button_set_update_policy(reinterpret(), GtkSpinButtonUpdatePolicy.GTK_UPDATE_IF_VALID)
         gtk_spin_button_set_numeric(reinterpret(), 1)
         gtk_spin_button_set_value(reinterpret(), 330.0)
-        addCss("spinbutton button { padding: 1px; min-width: unset; }")
+        addCss("spinbutton button { padding: 2px; min-width: unset; }")
         connectSignalWithData("change-value", data, action)
     }
 
@@ -120,7 +117,7 @@ inline fun <C : PrismComponent> WraithPrism.update(component: C, task: C.() -> U
     apply()
 }
 
-fun WraithPrism.updateMode(widgets: ComponentWidgets<*>, comboBox: Widget) = update(widgets.component) {
+fun WraithPrism.updateMode(widgets: PrismComponentWidgets<*>, comboBox: Widget) = update(widgets.component) {
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
     when (this) {
         is BasicPrismComponent -> mode = BasicPrismMode.valueOf(text.toUpperCase())

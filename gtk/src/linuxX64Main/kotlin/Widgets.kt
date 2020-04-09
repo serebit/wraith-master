@@ -3,22 +3,21 @@ package com.serebit.wraith.gtk
 import com.serebit.wraith.core.prism.*
 import gtk3.*
 import kotlinx.cinterop.*
-import kotlin.math.roundToInt
 
-sealed class ComponentWidgets<C : PrismComponent>(device: WraithPrism, val component: C) {
+sealed class PrismComponentWidgets<C : PrismComponent>(device: WraithPrism, val component: C) {
     protected val ptr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
 
-    val modeBox = comboBox(component.modes.map { it.name }, ptr, staticCFunction { widget, ptr ->
+    private val modeBox = comboBox(component.modes.map { it.name }, ptr, staticCFunction { widget, ptr ->
         ptr.use { it.wraith.updateMode(it.widgets, widget) }
     })
-    val colorButton = colorButton(ptr, staticCFunction { widget, ptr ->
+    private val colorButton = colorButton(ptr, staticCFunction { widget, ptr ->
         ptr.useUpdateBasic {
             color = memScoped {
                 alloc<GdkRGBA>().also { gtk_color_button_get_rgba(widget.reinterpret(), it.ptr) }.toColor()
             }
         }
     })
-    val randomizeColorCheckbox = checkButton("Randomize?", ptr, staticCFunction { widget, ptr ->
+    private val randomizeColorCheckbox = checkButton("Randomize?", ptr, staticCFunction { widget, ptr ->
         ptr.useUpdateBasic {
             val isActive = gtk_toggle_button_get_active(widget.reinterpret())
             if (it.component.mode.colorSupport == ColorSupport.ALL) {
@@ -27,14 +26,14 @@ sealed class ComponentWidgets<C : PrismComponent>(device: WraithPrism, val compo
             it.colorButton.setSensitive(isActive == 0)
         }
     })
-    val brightnessScale = gridScale(Brightness.values().size, ptr, staticCFunction { widget, ptr ->
+    private val brightnessScale = gridScale(Brightness.values().size, ptr, staticCFunction { widget, ptr ->
         ptr.useUpdateBasic {
-            brightness = Brightness.values()[gtk_adjustment_get_value(widget.reinterpret()).roundToInt()]
+            brightness = Brightness.values()[gtk_adjustment_get_value(widget.reinterpret()).toInt()]
         }
     })
-    val speedScale = gridScale(Speed.values().size, ptr, staticCFunction { widget, ptr ->
+    private val speedScale = gridScale(Speed.values().size, ptr, staticCFunction { widget, ptr ->
         ptr.useUpdateBasic {
-            speed = Speed.values()[gtk_adjustment_get_value(widget.reinterpret()).roundToInt()]
+            speed = Speed.values()[gtk_adjustment_get_value(widget.reinterpret()).toInt()]
         }
     })
 
@@ -57,15 +56,34 @@ sealed class ComponentWidgets<C : PrismComponent>(device: WraithPrism, val compo
         reload()
     }
 
-    open fun extraReload() = Unit
+    fun reload() {
+        gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.ordinal)
+
+        val colorOrBlack = if (component.mode.colorSupport != ColorSupport.NONE) component.color else Color(0, 0, 0)
+        memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(colorOrBlack).ptr) }
+
+        val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
+        gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+
+        gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.ordinal.toDouble())
+        gtk_range_set_value(speedScale.reinterpret(), component.speed.ordinal.toDouble())
+
+        randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
+        colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !useRandomColor)
+        brightnessScale.setSensitive(component.mode.supportsBrightness)
+        speedScale.setSensitive(component.mode.supportsSpeed)
+        extraReload()
+    }
+
+    protected open fun extraReload() = Unit
 
     protected open fun attachExtraWidgets(grid: Widget) = Unit
 }
 
-class LogoWidgets(wraith: WraithPrism) : ComponentWidgets<PrismLogoComponent>(wraith, wraith.logo)
+class LogoWidgets(wraith: WraithPrism) : PrismComponentWidgets<PrismLogoComponent>(wraith, wraith.logo)
 
 @OptIn(ExperimentalUnsignedTypes::class)
-class FanWidgets(wraith: WraithPrism) : ComponentWidgets<PrismFanComponent>(wraith, wraith.fan) {
+class FanWidgets(wraith: WraithPrism) : PrismComponentWidgets<PrismFanComponent>(wraith, wraith.fan) {
     private val mirageLabels = listOf("Red", "Green", "Blue").map { gtk_label_new("$it (Hz)")!! }
     private val mirageToggle = gtk_switch_new()!!.apply {
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
@@ -86,23 +104,18 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<PrismFanComponent>(wrai
     private val mirageBlueFrequency = frequencySpinButton(ptr, staticCFunction { _, _, _ -> })
     private val mirageFreqWidgets = listOf(mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency)
 
-    private val mirageReload = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
-        gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-        gtk_button_set_label(reinterpret(), "Apply")
-        gtk_button_set_always_show_image(reinterpret(), 1)
-        connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-            ptr.useWith<FanWidgets> { (wraith, widgets) ->
-                if (gtk_switch_get_active(widgets.mirageToggle.reinterpret()) == 1) {
-                    val redFreq = gtk_spin_button_get_value_as_int(widgets.mirageRedFrequency.reinterpret())
-                    val greenFreq = gtk_spin_button_get_value_as_int(widgets.mirageGreenFrequency.reinterpret())
-                    val blueFreq = gtk_spin_button_get_value_as_int(widgets.mirageBlueFrequency.reinterpret())
-                    wraith.enableFanMirage(redFreq, greenFreq, blueFreq)
-                } else {
-                    wraith.disableFanMirage()
-                }
+    private val mirageReload = iconButton("gtk-ok", "Apply", ptr, staticCFunction { _, ptr ->
+        ptr.useWith<FanWidgets> { (wraith, widgets) ->
+            if (gtk_switch_get_active(widgets.mirageToggle.reinterpret()) == 1) {
+                val redFreq = gtk_spin_button_get_value_as_int(widgets.mirageRedFrequency.reinterpret())
+                val greenFreq = gtk_spin_button_get_value_as_int(widgets.mirageGreenFrequency.reinterpret())
+                val blueFreq = gtk_spin_button_get_value_as_int(widgets.mirageBlueFrequency.reinterpret())
+                wraith.enableFanMirage(redFreq, greenFreq, blueFreq)
+            } else {
+                wraith.disableFanMirage()
             }
-        })
-    }
+        }
+    })
 
     private val mirageGrid = gtk_grid_new()!!.apply {
         gtk_grid_set_column_spacing(reinterpret(), 4u)
@@ -128,7 +141,7 @@ class FanWidgets(wraith: WraithPrism) : ComponentWidgets<PrismFanComponent>(wrai
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-class RingWidgets(prism: WraithPrism) : ComponentWidgets<PrismRingComponent>(prism, prism.ring) {
+class RingWidgets(prism: WraithPrism) : PrismComponentWidgets<PrismRingComponent>(prism, prism.ring) {
     private var morseTextBoxHintLabel: Widget? = null
     private var morseTextBoxHint: Widget? = null
 
@@ -204,38 +217,20 @@ class RingWidgets(prism: WraithPrism) : ComponentWidgets<PrismRingComponent>(pri
     }
 }
 
-fun ComponentWidgets<*>.reload() {
-    gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.ordinal)
+private data class CallbackData<W : PrismComponentWidgets<*>>(val wraith: WraithPrism, val widgets: W)
 
-    val colorOrBlack = if (component.mode.colorSupport != ColorSupport.NONE) component.color else Color(0, 0, 0)
-    memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(colorOrBlack).ptr) }
-
-    val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
-    gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
-
-    gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.ordinal.toDouble())
-    gtk_range_set_value(speedScale.reinterpret(), component.speed.ordinal.toDouble())
-
-    randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
-    colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !useRandomColor)
-    brightnessScale.setSensitive(component.mode.supportsBrightness)
-    speedScale.setSensitive(component.mode.supportsSpeed)
-    extraReload()
-}
-
-private data class CallbackData<W : ComponentWidgets<*>>(val wraith: WraithPrism, val widgets: W)
-
-private fun COpaquePointer.use(task: (CallbackData<*>) -> Unit) = useWith<ComponentWidgets<*>>(task)
-private inline fun <W : ComponentWidgets<*>> COpaquePointer.useWith(task: (CallbackData<W>) -> Unit) {
+private fun COpaquePointer.use(task: (CallbackData<*>) -> Unit) = useWith<PrismComponentWidgets<*>>(task)
+private inline fun <W : PrismComponentWidgets<*>> COpaquePointer.useWith(task: (CallbackData<W>) -> Unit) {
     task(asStableRef<CallbackData<W>>().get())
 }
 
-private inline fun <W : ComponentWidgets<C>, C : PrismComponent> COpaquePointer.useUpdate(task: C.(W) -> Unit) {
+private inline fun <W : PrismComponentWidgets<C>, C : PrismComponent> COpaquePointer.useUpdate(task: C.(W) -> Unit) {
     val ref = asStableRef<CallbackData<W>>()
     ref.get().run { wraith.update(widgets.component) { task(widgets) } }
 }
 
-private inline fun COpaquePointer.useUpdateBasic(task: PrismComponent.(ComponentWidgets<*>) -> Unit) = useUpdate(task)
+private inline fun COpaquePointer.useUpdateBasic(task: PrismComponent.(PrismComponentWidgets<*>) -> Unit) =
+    useUpdate(task)
 
 private fun GdkRGBA.toColor() = Color((255 * red).toInt(), (255 * green).toInt(), (255 * blue).toInt())
 

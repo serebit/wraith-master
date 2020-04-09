@@ -8,6 +8,7 @@ import gtk3.*
 import kotlinx.cinterop.*
 import libusb.LIBUSB_SUCCESS
 import libusb.libusb_error_name
+import libusb.libusb_exit
 import libusb.libusb_init
 import kotlin.system.exitProcess
 
@@ -29,9 +30,10 @@ fun CPointer<GtkApplication>.createWindowOrNull(addWidgets: Widget.() -> Unit): 
         val headerBar = gtk_header_bar_new()!!.apply {
             gtk_header_bar_set_show_close_button(reinterpret(), 1)
             gtk_header_bar_set_title(reinterpret(), "Wraith Master")
-            gtk_header_bar_pack_start(reinterpret(), iconButton("dialog-information", null, staticCFunction { _, _ ->
+            val aboutButton = iconButton("dialog-information", null, null, staticCFunction { _, _ ->
                 runAboutDialog()
-            }))
+            })
+            gtk_header_bar_pack_start(reinterpret(), aboutButton)
         }
 
         gtk_window_set_titlebar(reinterpret(), headerBar)
@@ -72,8 +74,8 @@ fun runNoExtraWindowsDialog() {
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.activate(prismPtr: COpaquePointer) {
-    val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.also { addChild(it) }
-    val mainNotebook = gtk_notebook_new()!!.also { box.addChild(it) }
+    val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.also { gtk_container_add(reinterpret(), it) }
+    val mainNotebook = gtk_notebook_new()!!.also { gtk_container_add(box.reinterpret(), it) }
 
     val logoGrid = mainNotebook.newSettingsPage("Logo").newSettingsGrid()
     val fanGrid = mainNotebook.newSettingsPage("Fan").newSettingsGrid()
@@ -96,12 +98,14 @@ fun Widget.activate(prismPtr: COpaquePointer) {
         gtk_button_set_label(reinterpret(), "Reset")
         val data = StableRef.create(wraith to listOf(logoWidgets, fanWidgets, ringWidgets)).asCPointer()
         connectSignalWithData("clicked", data, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-            val ref = ptr.asStableRef<Pair<WraithPrism, List<ComponentWidgets<*>>>>()
+            val ref = ptr.asStableRef<Pair<WraithPrism, List<PrismComponentWidgets<*>>>>()
             val (device, widgets) = ref.get()
             device.sendBytes(0x50)
             device.apply()
             val channels = device.getChannels()
-            device.components.forEachIndexed { i, it -> it.assignValuesFromChannel(device.getChannelValues(channels[i + 8])) }
+            device.components.forEachIndexed { i, it ->
+                it.assignValuesFromChannel(device.getChannelValues(channels[i + 8]))
+            }
             widgets.forEach { it.reload() }
         })
         gtk_container_add(saveOptionBox?.reinterpret(), this)
@@ -146,7 +150,11 @@ fun main(args: Array<String>) {
     }
 
     status = memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
-    if (result is DeviceResult.Success) result.prism.close()
     g_object_unref(app)
+
+    if (result is DeviceResult.Success) {
+        result.prism.close()
+        libusb_exit(null)
+    }
     if (status != 0) exitProcess(status)
 }

@@ -47,13 +47,14 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>) {
         sendBytes(0x51, 0xA0, 1, 0, 0, 3, 0, 0, logo.channel, fan.channel, *IntArray(15) { ring.mode.channel })
 
     fun close() {
-        libusb_release_interface(handle, 1)
+        libusb_release_interface(handle, HID_INTERFACE)
         libusb_close(handle)
     }
 
     companion object {
         private const val ENDPOINT_IN: UByte = 0x83u
         private const val ENDPOINT_OUT: UByte = 4u
+        private const val HID_INTERFACE: Int = 1
     }
 }
 
