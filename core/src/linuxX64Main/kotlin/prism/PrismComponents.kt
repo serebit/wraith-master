@@ -13,13 +13,17 @@ interface PrismComponent {
     fun assignValuesFromChannel(channelValues: ChannelValues)
 }
 
-class BasicPrismComponent(initialValues: ChannelValues, override val channel: Int) : PrismComponent {
+interface BasicPrismComponent : PrismComponent {
+    override var mode: BasicPrismMode
+}
+
+class BasicPrismComponentDelegate(initialValues: ChannelValues, override val channel: Int) : BasicPrismComponent {
+    override val modes: List<BasicPrismMode> get() = BasicPrismMode.values().toList()
     override lateinit var mode: BasicPrismMode
     override var color = Color(0, 0, 0)
     override var useRandomColor = false
     override var speed = Speed.MEDIUM
     override var brightness = Brightness.MEDIUM
-    override val modes: List<BasicPrismMode> = BasicPrismMode.values().toList()
 
     init {
         assignValuesFromChannel(initialValues)
@@ -44,15 +48,18 @@ class BasicPrismComponent(initialValues: ChannelValues, override val channel: In
         }
 }
 
-class PrismLogoComponent(initialValues: ChannelValues) : PrismComponent by BasicPrismComponent(initialValues, 5)
-class PrismFanComponent(initialValues: ChannelValues) : PrismComponent by BasicPrismComponent(initialValues, 6) {
+class PrismLogoComponent(initialValues: ChannelValues) :
+    BasicPrismComponent by BasicPrismComponentDelegate(initialValues, 5)
+
+class PrismFanComponent(initialValues: ChannelValues) :
+    BasicPrismComponent by BasicPrismComponentDelegate(initialValues, 6) {
+
     var mirage = false
 }
 
-class PrismRingComponent(initialValues: ChannelValues) :
-    PrismComponent {
-    override lateinit var mode: PrismRingMode
+class PrismRingComponent(initialValues: ChannelValues) : PrismComponent {
     override val modes: List<PrismRingMode> get() = PrismRingMode.values().toList()
+    override lateinit var mode: PrismRingMode
     override val channel: Int get() = mode.channel
     override lateinit var color: Color
     override var useRandomColor = false

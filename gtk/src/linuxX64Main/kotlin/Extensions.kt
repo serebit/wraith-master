@@ -120,11 +120,11 @@ inline fun <C : PrismComponent> WraithPrism.update(component: C, task: C.() -> U
 fun WraithPrism.updateMode(widgets: PrismComponentWidgets<*>, comboBox: Widget) = update(widgets.component) {
     val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
     when (this) {
-        is BasicPrismComponent -> mode = BasicPrismMode.valueOf(text.toUpperCase())
         is PrismRingComponent -> {
             mode = PrismRingMode.valueOf(text.toUpperCase())
             assignValuesFromChannel(getChannelValues(mode.channel))
         }
+        is BasicPrismComponent -> mode = BasicPrismMode.valueOf(text.toUpperCase())
     }
     widgets.reload()
 }
