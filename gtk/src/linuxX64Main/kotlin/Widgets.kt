@@ -6,6 +6,7 @@ import kotlinx.cinterop.*
 
 sealed class PrismComponentWidgets<C : PrismComponent>(device: WraithPrism, val component: C) {
     protected val ptr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
+    var isReloading = false
 
     private val modeBox = comboBox(component.modes.map { it.name }, ptr, staticCFunction { widget, ptr ->
         ptr.use { it.wraith.updateMode(it.widgets, widget) }
@@ -57,6 +58,7 @@ sealed class PrismComponentWidgets<C : PrismComponent>(device: WraithPrism, val 
     }
 
     fun reload() {
+        isReloading = true
         gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.ordinal)
 
         val colorOrBlack = if (component.mode.colorSupport != ColorSupport.NONE) component.color else Color(0, 0, 0)
@@ -73,6 +75,7 @@ sealed class PrismComponentWidgets<C : PrismComponent>(device: WraithPrism, val 
         brightnessScale.setSensitive(component.mode.supportsBrightness)
         speedScale.setSensitive(component.mode.supportsSpeed)
         extraReload()
+        isReloading = false
     }
 
     protected open fun extraReload() = Unit
@@ -222,12 +225,16 @@ private data class CallbackData<W : PrismComponentWidgets<*>>(val wraith: Wraith
 
 private fun COpaquePointer.use(task: (CallbackData<*>) -> Unit) = useWith<PrismComponentWidgets<*>>(task)
 private inline fun <W : PrismComponentWidgets<*>> COpaquePointer.useWith(task: (CallbackData<W>) -> Unit) {
-    task(asStableRef<CallbackData<W>>().get())
+    asStableRef<CallbackData<W>>().get().let {
+        if (!it.widgets.isReloading) task(it)
+    }
 }
 
 private inline fun <W : PrismComponentWidgets<C>, C : PrismComponent> COpaquePointer.useUpdate(task: C.(W) -> Unit) {
-    val ref = asStableRef<CallbackData<W>>()
-    ref.get().run { wraith.update(widgets.component) { task(widgets) } }
+    val (wraith, widgets) = asStableRef<CallbackData<W>>().get()
+    if (!widgets.isReloading) {
+        wraith.update(widgets.component) { task(widgets) }
+    }
 }
 
 private inline fun COpaquePointer.useUpdateBasic(task: PrismComponent.(PrismComponentWidgets<*>) -> Unit) =

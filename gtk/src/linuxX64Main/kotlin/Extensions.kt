@@ -88,7 +88,6 @@ fun iconButton(iconName: String, text: String?, ptr: COpaquePointer?, onClick: C
 
 fun gridScale(marks: Int, data: COpaquePointer, action: CallbackCFunction) =
     gtk_adjustment_new(0.0, 0.0, marks.toDouble() - 1, 1.0, 0.0, 0.0)!!.let { adjustment ->
-        adjustment.connectSignalWithData("value-changed", data, action)
         gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {
             gtk_scale_set_digits(reinterpret(), 0)
             gtk_scale_set_draw_value(reinterpret(), 0)
@@ -98,7 +97,7 @@ fun gridScale(marks: Int, data: COpaquePointer, action: CallbackCFunction) =
             for (i in 0 until marks) {
                 gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
             }
-        }
+        }.also { adjustment.connectSignalWithData("value-changed", data, action) }
     }
 
 fun frequencySpinButton(data: COpaquePointer, action: CallbackSpinCFunction) =

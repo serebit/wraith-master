@@ -112,4 +112,5 @@ fun WraithPrism.updateRingMorseText(text: String) {
     val secondChunk = if (chunks.size > 1) chunks[1].toIntArray() else intArrayOf()
     sendBytes(0x51, 0x73, 0, 0, *firstChunk)
     sendBytes(0x51, 0x73, 1, 0, *secondChunk)
+    apply(runCallback = false)
 }
