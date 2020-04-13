@@ -45,7 +45,7 @@ There are precompiled binaries available for each release [here](https://gitlab.
 
 ## Building from Source
 
-See [this section of the wiki](https://gitlab.com/serebit/wraith-master/-/wikis/building-from-source) for instructions on building this software yourself.
+See [this section of the wiki](https://gitlab.com/serebit/wraith-master/-/wikis/help/building-from-source) for instructions on building this software yourself.
 
 ## Changelog
 
