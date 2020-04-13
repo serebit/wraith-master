@@ -142,8 +142,8 @@ class FanWidgets(wraith: WraithPrism) : PrismComponentWidgets<PrismFanComponent>
 
 @OptIn(ExperimentalUnsignedTypes::class)
 class RingWidgets(prism: WraithPrism) : PrismComponentWidgets<PrismRingComponent>(prism, prism.ring) {
-    private var morseTextBoxHintLabel: Widget? = null
-    private var morseTextBoxHint: Widget? = null
+    private var morseHintLabel: Widget? = null
+    private var morseHint: Widget? = null
 
     private val directionComboBox =
         comboBox(RotationDirection.values().map { it.name }, ptr, staticCFunction { it, ptr ->
@@ -165,23 +165,24 @@ class RingWidgets(prism: WraithPrism) : PrismComponentWidgets<PrismRingComponent
         connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
             ptr.useWith<RingWidgets> { (_, widgets) -> widgets.changeCallback(it) }
         })
-        connectSignalWithData("icon-press", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
-            ptr.useWith<RingWidgets> { (_, widgets) ->
-                when {
-                    widgets.morseTextBoxHint == null -> {
-                        widgets.morseTextBoxHintLabel = gtk_label_new(it.text.hintText)!!
-                        widgets.morseTextBoxHint = gtk_popover_new(it)!!.apply {
-                            gtk_popover_set_modal(reinterpret(), 0)
-                            gtk_container_set_border_width(reinterpret(), 8u)
-                            gtk_container_add(reinterpret(), widgets.morseTextBoxHintLabel)
-                            gtk_widget_show_all(this)
+        connectSignalWithData("icon-press", ptr,
+            staticCFunction<Widget, GtkEntryIconPosition, CPointer<GdkEvent>, COpaquePointer, Unit> { it, _, _, ptr ->
+                ptr.useWith<RingWidgets> { (_, widgets) ->
+                    when {
+                        widgets.morseHint == null -> {
+                            widgets.morseHintLabel = gtk_label_new(it.text.hintText)!!
+                            widgets.morseHint = gtk_popover_new(it)!!.apply {
+                                gtk_popover_set_modal(reinterpret(), 0)
+                                gtk_container_set_border_width(reinterpret(), 8u)
+                                gtk_container_add(reinterpret(), widgets.morseHintLabel)
+                                gtk_widget_show_all(this)
+                            }
                         }
+                        gtk_widget_is_visible(widgets.morseHint) == 1 -> gtk_widget_hide(widgets.morseHint)
+                        else -> gtk_widget_show(widgets.morseHint)
                     }
-                    gtk_widget_is_visible(widgets.morseTextBoxHint) == 1 -> gtk_widget_hide(widgets.morseTextBoxHint)
-                    else -> gtk_widget_show(widgets.morseTextBoxHint)
                 }
-            }
-        })
+            })
     }
 
     private val morseReloadButton = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
@@ -198,7 +199,7 @@ class RingWidgets(prism: WraithPrism) : PrismComponentWidgets<PrismRingComponent
     }
 
     private fun changeCallback(pointer: Widget) {
-        morseTextBoxHintLabel?.apply {
+        morseHintLabel?.apply {
             val entryText = pointer.text
             gtk_label_set_text(reinterpret(), entryText.hintText)
             val isInvalid = !entryText.isValidMorseText && !entryText.isMorseCode
@@ -213,7 +214,7 @@ class RingWidgets(prism: WraithPrism) : PrismComponentWidgets<PrismRingComponent
         gtk_combo_box_set_active(directionComboBox.reinterpret(), component.direction.ordinal)
         directionComboBox.setSensitive(component.mode.supportsDirection)
         morseContainer.setSensitive(component.mode == PrismRingMode.MORSE)
-        if (component.mode != PrismRingMode.MORSE) morseTextBoxHint?.let { hint -> gtk_widget_hide(hint) }
+        if (component.mode != PrismRingMode.MORSE) morseHint?.let { hint -> gtk_widget_hide(hint) }
     }
 }
 
