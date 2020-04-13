@@ -12,7 +12,7 @@ Designed for feature parity with the official Windows-only Cooler Master applica
 
 ## Supported Platforms
 
-Wraith Master supports all 64-bit Linux distributions that use glibc as their libc implementation. This dependence on glibc is not my choice, but a limitation of the software stack; Kotlin/Native is [incompatible with musl](https://github.com/JetBrains/kotlin-native/issues/3771) as of the time I am writing this. Once it gains compatibility with more libc implementations, I fully intend to take advantage of that compatibility. I am open to bringing Wraith Master to Windows as well, if there is demand for it.
+Wraith Master supports all 64-bit Linux distributions that use glibc as their libc implementation. This dependence on glibc is not my choice, but a limitation of the software stack; Kotlin/Native is [incompatible with musl](https://github.com/JetBrains/kotlin-native/issues/3771) as of the time I am writing this. Once it gains compatibility with more libc implementations, I fully intend to take advantage of that compatibility.
 
 ## Installing
 
@@ -26,7 +26,7 @@ Solus has both frontends in the official repository. They can be installed eithe
 
 #### Other Distributions
 
-There are precompiled binaries available for each release [here](https://gitlab.com/serebit/wraith-master/-/releases). 
+There are precompiled binaries available for each release [here](https://gitlab.com/serebit/wraith-master/-/releases).
 
 ## Screenshots
 
@@ -37,10 +37,10 @@ There are precompiled binaries available for each release [here](https://gitlab.
 | Distribution       | Shared Dependencies           | GTK-Only                |
 |--------------------|-------------------------------|-------------------------|
 | Debian/Derivatives | `libusb-1.0-0`, `libncurses5` | `glib2.0`, `libgtk-3.0` |
-| Arch/Derivatives   | None                          | `gtk3`                  |
-| Fedora             | None                          | `gtk3`                  |
-| OpenSUSE           | None                          | `glib2`, `gtk3`         |
-| Solus              | None                          | None                    |
+| Arch/Derivatives   |                               | `gtk3`                  |
+| Fedora             |                               | `gtk3`                  |
+| OpenSUSE           |                               | `glib2`, `gtk3`         |
+| Solus              |                               |                         |
 | Gentoo             | `dev-libs/libusb`             | `gtk+`                  |
 
 ## Building from Source
@@ -57,11 +57,11 @@ Wraith Master is open-sourced under the [Apache License, Version 2.0](https://ww
 
 ## Acknowledgements
 
-- **gfduszynski**, for his work on [cm-rgb](https://github.com/gfduszynski/cm-rgb). Although I started Wraith Master before discovering cm-rgb, gfduszynski's work made it viable.
+- **gfduszynski**, for his work on [cm-rgb](https://github.com/gfduszynski/cm-rgb). Although I started Wraith Master before discovering cm-rgb, gfduszynski's groundwork made it viable for me to continue working on it.
 - **Adam Honse**, for his work on [OpenRGB](https://gitlab.com/CalcProgrammer1/OpenRGB). This had some extra documentation on specific functions that I was lacking.
 - **ballsystemlord**, **Kirk**, and **tralamazza** from the [AdoredTV](https://adoredtv.com/) Discord server, along with **[Apache](https://github.com/Apache-HB)** and **my dad**, for helping me figure out how the mirage frequencies are converted to byte values.
-- **Cooler Master**, for manufacturing these great stock coolers, and forwarding me to AMD when I inquired about how the Wraith Prism's USB interface worked.
-- **AMD**, for telling me I'd need to sign an NDA to get that information. Sorry, but that's not really my style. Thanks for the great product though!
+- **Cooler Master**, for manufacturing these great stock coolers, and being as helpful as they're allowed to be when I asked about how the USB interface worked.
+- **AMD**, for including actually decent stock coolers with their desktop processors.
 
 [wraith-master-logo]: https://serebit.com/images/wraith-master-banner-nopad.svg "Wraith Master"
 [pipeline-status]: https://gitlab.com/serebit/wraith-master/badges/master/pipeline.svg "Pipeline Status"
