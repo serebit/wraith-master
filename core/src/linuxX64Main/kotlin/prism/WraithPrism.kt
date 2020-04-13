@@ -96,6 +96,7 @@ private fun Int.mirageFreqBytes(): List<Int> {
 }
 
 fun WraithPrism.enableFanMirage(redFreq: Int, greenFreq: Int, blueFreq: Int): List<Int> {
+    disableFanMirage() // resets lights to default timing, avoids weird offsets
     val (rm, ri, rd) = redFreq.mirageFreqBytes()
     val (gm, gi, gd) = greenFreq.mirageFreqBytes()
     val (bm, bi, bd) = blueFreq.mirageFreqBytes()
