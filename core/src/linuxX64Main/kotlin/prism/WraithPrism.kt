@@ -5,6 +5,8 @@ import kotlinx.cinterop.*
 import libusb.libusb_close
 import libusb.libusb_interrupt_transfer
 import libusb.libusb_release_interface
+import platform.posix.nanosleep
+import platform.posix.timespec
 import kotlin.math.floor
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -95,12 +97,16 @@ private fun Int.mirageFreqBytes(): List<Int> {
     return listOf(multiplicand, floor(rem % 1 * 256), floor(rem)).map { it.toInt() }
 }
 
-fun WraithPrism.enableFanMirage(redFreq: Int, greenFreq: Int, blueFreq: Int): List<Int> {
-    disableFanMirage() // resets lights to default timing, avoids weird offsets
+fun WraithPrism.enableFanMirage(redFreq: Int, greenFreq: Int, blueFreq: Int) {
+    // fix weird offsets by disabling fan mirage, then waiting for a bit before re-enabling
+    disableFanMirage()
+    memScoped {
+        nanosleep(alloc<timespec>().apply { tv_nsec = 22200000 }.ptr, null)
+    }
     val (rm, ri, rd) = redFreq.mirageFreqBytes()
     val (gm, gi, gd) = greenFreq.mirageFreqBytes()
     val (bm, bi, bd) = blueFreq.mirageFreqBytes()
-    return sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, rm, ri, rd, 3, gm, gi, gd, 4, bm, bi, bd)
+    sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, rm, ri, rd, 3, gm, gi, gd, 4, bm, bi, bd)
 }
 
 fun WraithPrism.disableFanMirage() =
