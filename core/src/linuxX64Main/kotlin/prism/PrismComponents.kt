@@ -71,6 +71,7 @@ class PrismRingComponent(initialValues: ChannelValues) : PrismComponent {
     override var brightness = Brightness.MEDIUM
     lateinit var direction: RotationDirection
     override var savedByteValues: List<Int> = emptyList()
+    var savedMorseBytes: List<Int>? = null
 
     init {
         assignValuesFromChannel(initialValues)

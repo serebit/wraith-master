@@ -190,8 +190,12 @@ class RingWidgets(prism: WraithPrism) : PrismComponentWidgets<PrismRingComponent
 
     private val morseReloadButton = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-        connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-            ptr.useWith<RingWidgets> { (wraith, widgets) -> wraith.updateRingMorseText(widgets.morseTextBox.text) }
+        connectSignalWithData("clicked", ptr, staticCFunction<Widget, COpaquePointer, Unit> { it, ptr ->
+            ptr.useWith<RingWidgets> { (wraith, widgets) ->
+                gtk_entry_set_text(widgets.morseTextBox.reinterpret(), widgets.morseTextBox.text.trim())
+                wraith.updateRingMorseText(widgets.morseTextBox.text)
+                it.setSensitive(false)
+            }
         })
     }
 
@@ -202,12 +206,14 @@ class RingWidgets(prism: WraithPrism) : PrismComponentWidgets<PrismRingComponent
     }
 
     private fun changeCallback(pointer: Widget) {
+        val entryText = pointer.text
         morseHintLabel?.apply {
-            val entryText = pointer.text
             gtk_label_set_text(reinterpret(), entryText.hintText)
-            val isInvalid = !entryText.isValidMorseText && !entryText.isMorseCode
-            morseReloadButton.setSensitive(!(entryText.parseMorseOrTextToBytes().size > 120 || isInvalid))
         }
+        val isInvalid = !entryText.isValidMorseText && !entryText.isMorseCode
+        val parsed = entryText.parseMorseOrTextToBytes()
+        val equalsSaved = parsed == component.savedMorseBytes
+        morseReloadButton.setSensitive(!(parsed.size > 120 || isInvalid) && !equalsSaved)
     }
 
     override val extraLabels = listOf("Rotation Direction", "Morse Text")

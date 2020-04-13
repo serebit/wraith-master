@@ -107,7 +107,7 @@ fun WraithPrism.disableFanMirage() =
     sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, 0, 0xFF, 0x4A, 3, 0, 0xFF, 0x4A, 4, 0, 0xFF, 0x4A)
 
 fun WraithPrism.updateRingMorseText(text: String) {
-    val chunks = text.parseMorseOrTextToBytes().chunked(60)
+    val chunks = text.parseMorseOrTextToBytes().also { ring.savedMorseBytes = it }.chunked(60)
     val firstChunk = chunks[0].toIntArray()
     val secondChunk = if (chunks.size > 1) chunks[1].toIntArray() else intArrayOf()
     sendBytes(0x51, 0x73, 0, 0, *firstChunk)
