@@ -141,13 +141,13 @@ enum class PrismRingMode(
     val supportsDirection: Boolean = false,
     val colorSource: Int = 0x20
 ) : PrismMode {
-    OFF(0xFE, 0, emptyList(), emptyList()),
+    OFF(0xFE, 0, brightnesses = emptyList()),
     STATIC(0, 0xFF, colorSupport = ColorSupport.SPECIFIC),
     RAINBOW(7, 5, listOf(0x72, 0x68, 0x64, 0x62, 0x61), colorSource = 0),
     SWIRL(0xA, 0x4A, listOf(0x77, 0x74, 0x6E, 0x6B, 0x67), colorSupport = ColorSupport.ALL, supportsDirection = true),
     CHASE(9, 0xC3, listOf(0x77, 0x74, 0x6E, 0x6B, 0x67), colorSupport = ColorSupport.ALL, supportsDirection = true),
     BOUNCE(8, 0xFF, listOf(0x77, 0x74, 0x6E, 0x6B, 0x67), colorSource = 0x80),
-    MORSE(0xB, 5, colorSupport = ColorSupport.ALL, colorSource = 0),
+    MORSE(0xB, 5, brightnesses = emptyList(), colorSupport = ColorSupport.ALL, colorSource = 0),
     CYCLE(2, 0xFF, listOf(0x96, 0x8C, 0x80, 0x6E, 0x68), listOf(0x10, 0x40, 0x7F)),
     BREATHE(1, 0xFF, listOf(0x3C, 0x37, 0x31, 0x2C, 0x26), colorSupport = ColorSupport.ALL)
 }

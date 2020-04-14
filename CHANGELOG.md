@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In GTK, the Save and Reset buttons now change their sensitivity based on whether the current values are the same as the saved values
 - In GTK, saved settings are restored both on app close and on app start
 
+#### Removed 
+- Brightness setting for the ring component's Morse mode is no longer available. Even though the Cooler Master application does show support for it, the setting doesn't affect the actual ring brightness
+
 #### Fixed 
 - Reset button no longer segfaults after a few presses
 
