@@ -5,24 +5,15 @@ val String.isValidMorseText get() = toUpperCase().all { it in charMorseRepresent
 val String.invalidMorseChars get() = filter { it.toUpperCase() !in charMorseRepresentation }.toList().distinct()
 
 private fun String.fromTextToMorse() = trim().mapNotNull { charMorseRepresentation[it.toUpperCase()] }.joinToString(" ")
-private fun String.fromMorseToBits() = trim().map {
-    when (it) {
-        '.' -> "10"
-        '-' -> "01"
-        ' ' -> "00"
-        else -> error("Invalid character")
-    }
-}
 
-fun String.parseMorseOrTextToBytes(): List<Int> {
-    val morse = if (isMorseCode) this else fromTextToMorse()
+private val charToBitsMap = mapOf('.' to "10", '-' to "01", ' ' to "00")
+private fun String.fromMorseToBits() = trim().map { charToBitsMap[it] ?: error("Invalid character") }
 
-    return morse.fromMorseToBits()
-        .joinToString("")
-        .plus("0011")
-        .chunked(8)
-        .map { it.reversed().toInt(2) }
-}
+fun String.parseMorseOrTextToBytes(): List<Int> = (if (isMorseCode) this else fromTextToMorse())
+    .fromMorseToBits()
+    .joinToString("", postfix = "0011")
+    .chunked(8)
+    .map { it.reversed().toInt(2) }
 
 private val charMorseRepresentation = mapOf(
     'A' to ".-", 'B' to "-...", 'C' to "-.-.", 'D' to "-..", 'E' to ".", 'F' to "..-.", 'G' to "--.", 'H' to "....",
