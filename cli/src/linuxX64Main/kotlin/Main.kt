@@ -22,7 +22,7 @@ fun main(args: Array<KString>) {
 
     val component by parser.argument(ArgType.Choice(listOf("logo", "fan", "ring")))
 
-    val allModes = (PrismRingMode.values().toList() + BasicPrismMode.values().toList())
+    val allModes: List<PrismMode> = (PrismRingMode.values().toList() + BasicPrismMode.values().toList())
     val modeNames = allModes.map { it.name.toLowerCase() }.distinct()
 
     val mode by parser.option(
