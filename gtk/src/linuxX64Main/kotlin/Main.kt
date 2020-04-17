@@ -1,15 +1,13 @@
 package com.serebit.wraith.gtk
 
 import com.serebit.wraith.core.DeviceResult
+import com.serebit.wraith.core.initLibusb
 import com.serebit.wraith.core.obtainWraithPrism
 import com.serebit.wraith.core.prism.*
 import com.serebit.wraith.core.programVersion
 import gtk3.*
 import kotlinx.cinterop.*
-import libusb.LIBUSB_SUCCESS
-import libusb.libusb_error_name
 import libusb.libusb_exit
-import libusb.libusb_init
 import kotlin.system.exitProcess
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -17,9 +15,7 @@ fun main(args: Array<String>) {
     val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
     val status: Int
 
-    libusb_init(null).also {
-        if (it != LIBUSB_SUCCESS) error("Libusb initialization returned error code ${libusb_error_name(it)}.")
-    }
+    initLibusb()
     val result = obtainWraithPrism()
 
     when (result) {
@@ -43,10 +39,8 @@ fun main(args: Array<String>) {
     status = memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
     g_object_unref(app)
 
-    if (result is DeviceResult.Success) {
-        result.prism.close()
-        libusb_exit(null)
-    }
+    if (result is DeviceResult.Success) result.prism.close()
+    libusb_exit(null)
 
     if (status != 0) exitProcess(status)
 }
@@ -112,16 +106,19 @@ fun runNoExtraWindowsDialog() {
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.activate(prismPtr: COpaquePointer) {
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.also { gtk_container_add(reinterpret(), it) }
-    val mainNotebook = gtk_notebook_new()!!.also { gtk_container_add(box.reinterpret(), it) }
+    val mainNotebook = gtk_notebook_new()!!.apply {
+        gtk_container_add(box.reinterpret(), this)
+        addCss("notebook header.top tabs tab { padding-left: 20px; padding-right: 20px; margin-right: 4px; }")
+    }
 
-    val logoGrid = mainNotebook.newSettingsPage("Logo").newSettingsGrid()
-    val fanGrid = mainNotebook.newSettingsPage("Fan").newSettingsGrid()
     val ringGrid = mainNotebook.newSettingsPage("Ring").newSettingsGrid()
+    val fanGrid = mainNotebook.newSettingsPage("Fan").newSettingsGrid()
+    val logoGrid = mainNotebook.newSettingsPage("Logo").newSettingsGrid()
 
     val wraith = prismPtr.asStableRef<WraithPrism>().get()
-    val logoWidgets = LogoWidgets(wraith).apply { initialize(logoGrid) }
-    val fanWidgets = FanWidgets(wraith).apply { initialize(fanGrid) }
     val ringWidgets = RingWidgets(wraith).apply { initialize(ringGrid) }
+    val fanWidgets = FanWidgets(wraith).apply { initialize(fanGrid) }
+    val logoWidgets = LogoWidgets(wraith).apply { initialize(logoGrid) }
 
     val saveOptionBox = gtk_button_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL)!!.apply {
         gtk_container_add(box.reinterpret(), this)
@@ -151,7 +148,7 @@ fun Widget.activate(prismPtr: COpaquePointer) {
     }
 
     val saveOptionButtons = listOf(resetButton, saveButton)
-    val callbackData = CallbackData(wraith, listOf(logoWidgets, fanWidgets, ringWidgets), saveOptionButtons)
+    val callbackData = CallbackData(wraith, listOf(ringWidgets, fanWidgets, logoWidgets), saveOptionButtons)
     val callbackPtr = StableRef.create(callbackData).asCPointer()
 
     resetButton.connectSignalWithData("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->

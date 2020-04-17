@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
 ## Unreleased
 
 #### Added 
@@ -17,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In GTK, the Reset button no longer power-cycles the device
 - In GTK, the Save and Reset buttons now change their sensitivity based on whether the current values are the same as the saved values
 - In GTK, saved settings are restored both on app close and on app start
+- In GTK, reordered component tabs to reflect Cooler Master application
 
 #### Removed 
 - Brightness setting for the ring component's Morse mode is no longer available. Even though the Cooler Master application does show support for it, the setting doesn't affect the actual ring brightness
@@ -30,10 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `distTar` Gradle task now produces a tarball with correct permissions
 - Added `strip` property to `package` Gradle task, which strips packaged binaries if enabled
 
+
 ## 0.5.2 (2020-03-16)
 
 #### Fixed 
 - Reset button causing segfault
+
 
 ## 0.5.1 (2020-03-13)
 
@@ -50,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Meta 
 - Updated Kotlin to 1.3.70
 - Reduced code complexity and duplication
+
 
 ## 0.5.0 (2020-03-01)
 
@@ -71,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Meta
 - Updated Kotlin to 1.3.70-eap-3
 
+
 ## 0.4.2 (2020-01-21)
 
 #### Added 
@@ -83,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Fixed 
 - Regression in GTK frontend where a failure in resolving the Wraith device would crash the program instead of providing the error message
+
 
 ## 0.4.0 (2020-01-30)
 
@@ -101,10 +108,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Both frontends no longer require `sudo` to run on systems that use `udev` or `eudev`
 - Compilation now works on Debian without modification. Alpine is pending a fix for [this issue](https://github.com/JetBrains/kotlin-native/issues/3771)
 
+
 ## 0.3.1 (2020-01-13)
 
 #### Fixed 
 - Both frontends no longer require `sudo` to run on systems that use `systemd`
+
 
 ## 0.3.0 (2020-01-13)
 
@@ -115,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certain controls in the GTK frontend become inactive when a mode that doesn't support them is selected
 - `install` Gradle task, to make installation easier for both packagers and regular users who build from source
 - Scalable icon and desktop file for GTK frontend
+
 
 ## 0.2.0 (2020-01-06)
 

@@ -6,6 +6,10 @@ import com.serebit.wraith.core.prism.WraithPrism
 import kotlinx.cinterop.*
 import libusb.*
 
+fun initLibusb() = libusb_init(null).also {
+    if (it != LIBUSB_SUCCESS) error("Libusb initialization returned error code ${libusb_error_name(it)}.")
+}
+
 sealed class DeviceResult {
     class Success(val prism: WraithPrism) : DeviceResult()
     class Failure(val message: String) : DeviceResult()

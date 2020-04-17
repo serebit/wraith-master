@@ -1,15 +1,13 @@
 package com.serebit.wraith.cli
 
 import com.serebit.wraith.core.DeviceResult
+import com.serebit.wraith.core.initLibusb
 import com.serebit.wraith.core.obtainWraithPrism
 import com.serebit.wraith.core.prism.*
 import com.serebit.wraith.core.programVersion
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
-import libusb.LIBUSB_SUCCESS
-import libusb.libusb_error_name
 import libusb.libusb_exit
-import libusb.libusb_init
 import kotlin.String as KString
 
 fun main(args: Array<KString>) {
@@ -50,9 +48,7 @@ fun main(args: Array<KString>) {
 
     parser.parse(args)
 
-    libusb_init(null).also {
-        if (it != LIBUSB_SUCCESS) error("Libusb initialization returned error code ${libusb_error_name(it)}.")
-    }
+    initLibusb()
 
     if (verbose == true) print("Opening interface to device... ")
     when (val result: DeviceResult = obtainWraithPrism()) {
