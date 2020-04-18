@@ -81,6 +81,8 @@ sealed class PrismComponentWidgets<C : PrismComponent>(device: WraithPrism, val 
     protected open fun extraReload() = Unit
 
     protected open fun attachExtraWidgets(grid: Widget) = Unit
+
+    fun close() = ptr.asStableRef<CallbackData<*>>().dispose()
 }
 
 class LogoWidgets(wraith: WraithPrism) : PrismComponentWidgets<PrismLogoComponent>(wraith, wraith.logo)

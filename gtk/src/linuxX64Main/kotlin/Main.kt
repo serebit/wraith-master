@@ -21,7 +21,8 @@ fun main(args: Array<String>) {
     when (result) {
         is DeviceResult.Success -> app.connectSignalWithData("activate", StableRef.create(result.prism).asCPointer(),
             staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
-                it.createWindowOrNull { activate(ptr) } ?: runNoExtraWindowsDialog()
+                it.createWindowOrNull { activate(ptr.asStableRef<WraithPrism>().getAndDispose()) }
+                    ?: runNoExtraWindowsDialog()
             })
 
         is DeviceResult.Failure -> app.connectSignalWithData(
@@ -104,7 +105,7 @@ fun runNoExtraWindowsDialog() {
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-fun Widget.activate(prismPtr: COpaquePointer) {
+fun Widget.activate(wraith: WraithPrism) {
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.also { gtk_container_add(reinterpret(), it) }
     val mainNotebook = gtk_notebook_new()!!.apply {
         gtk_container_add(box.reinterpret(), this)
@@ -115,7 +116,6 @@ fun Widget.activate(prismPtr: COpaquePointer) {
     val fanGrid = mainNotebook.newSettingsPage("Fan").newSettingsGrid()
     val logoGrid = mainNotebook.newSettingsPage("Logo").newSettingsGrid()
 
-    val wraith = prismPtr.asStableRef<WraithPrism>().get()
     val ringWidgets = RingWidgets(wraith).apply { initialize(ringGrid) }
     val fanWidgets = FanWidgets(wraith).apply { initialize(fanGrid) }
     val logoWidgets = LogoWidgets(wraith).apply { initialize(logoGrid) }
@@ -173,9 +173,9 @@ fun Widget.activate(prismPtr: COpaquePointer) {
         saveOptionButtons.forEach { it.setSensitive(wraith.hasUnsavedChanges) }
     }
 
-    connectSignalWithData("delete-event", prismPtr,
+    connectSignalWithData("delete-event", callbackPtr,
         staticCFunction<Widget, CPointer<GdkEvent>, COpaquePointer, Boolean> { window, _, ptr ->
-            val prism = ptr.asStableRef<WraithPrism>().get()
+            val (prism, widgets, _) = ptr.asStableRef<CallbackData>().getAndDispose()
             if (prism.hasUnsavedChanges) {
                 val dialog = gtk_message_dialog_new(
                     window.reinterpret(), 0u, GtkMessageType.GTK_MESSAGE_QUESTION, GtkButtonsType.GTK_BUTTONS_YES_NO,
@@ -190,7 +190,10 @@ fun Widget.activate(prismPtr: COpaquePointer) {
                 }
 
                 gtk_widget_destroy(dialog)
+                widgets.forEach { it.close() }
             }
             false
         })
 }
+
+private fun <T : Any> StableRef<T>.getAndDispose(): T = get().also { dispose() }
