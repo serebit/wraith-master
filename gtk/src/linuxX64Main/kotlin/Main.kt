@@ -175,24 +175,38 @@ fun Widget.activate(wraith: WraithPrism) {
 
     connectSignalWithData("delete-event", callbackPtr,
         staticCFunction<Widget, CPointer<GdkEvent>, COpaquePointer, Boolean> { window, _, ptr ->
-            val (prism, widgets, _) = ptr.asStableRef<CallbackData>().getAndDispose()
+            var returnValue = false
+            val (prism, widgets, _) = ptr.asStableRef<CallbackData>().get()
             if (prism.hasUnsavedChanges) {
                 val dialog = gtk_message_dialog_new(
-                    window.reinterpret(), 0u, GtkMessageType.GTK_MESSAGE_QUESTION, GtkButtonsType.GTK_BUTTONS_YES_NO,
+                    window.reinterpret(), 0u, GtkMessageType.GTK_MESSAGE_QUESTION, GtkButtonsType.GTK_BUTTONS_NONE,
                     "%s", "You have unsaved changes. Would you like to save them?"
                 )!!
+                gtk_dialog_add_buttons(
+                    dialog.reinterpret(),
+                    "Yes", GTK_RESPONSE_YES,
+                    "No", GTK_RESPONSE_NO,
+                    "Cancel", GTK_RESPONSE_CANCEL,
+                    null
+                )
 
-                if (gtk_dialog_run(dialog.reinterpret()) == GTK_RESPONSE_YES) {
-                    prism.save()
-                } else {
-                    prism.restore()
-                    prism.apply(runCallback = false)
+                when (gtk_dialog_run(dialog.reinterpret())) {
+                    GTK_RESPONSE_YES -> prism.save()
+                    GTK_RESPONSE_NO -> {
+                        prism.restore()
+                        prism.apply(runCallback = false)
+                    }
+                    GTK_RESPONSE_CANCEL -> {
+                        gtk_widget_destroy(dialog)
+                        returnValue = true
+                    }
                 }
 
                 gtk_widget_destroy(dialog)
                 widgets.forEach { it.close() }
             }
-            false
+            ptr.asStableRef<CallbackData>().dispose()
+            returnValue
         })
 }
 
