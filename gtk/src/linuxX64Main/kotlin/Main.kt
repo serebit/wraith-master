@@ -30,10 +30,10 @@ fun main(args: Array<String>) {
             staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { _, ptr ->
                 val dialog = gtk_message_dialog_new(
                     null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK,
-                    "%s", ptr.asStableRef<String>().get()
-                )
+                    "%s", ptr.asStableRef<String>().getAndDispose()
+                )!!
 
-                gtk_dialog_run(dialog?.reinterpret())
+                gtk_dialog_run(dialog.reinterpret())
             })
     }
 

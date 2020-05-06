@@ -163,7 +163,7 @@ fun main(args: Array<KString>) {
 }
 
 private sealed class MirageValues {
-    data class On(val r: Int, val g: Int, val b: Int) : MirageValues()
+    class On(val r: Int, val g: Int, val b: Int) : MirageValues()
     object Off : MirageValues()
 }
 
