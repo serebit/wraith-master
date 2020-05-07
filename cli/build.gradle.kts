@@ -15,7 +15,8 @@ kotlin.linuxX64 {
 }
 
 tasks.register("package") {
-    dependsOn("build")
+    dependsOn("linkReleaseExecutableLinuxX64")
+    dependsOn("linuxX64ProcessResources")
     dependsOn(":core:package")
 
     doLast {
@@ -41,7 +42,7 @@ tasks.register("install") {
 }
 
 tasks.register("valgrind") {
-    dependsOn("build")
+    dependsOn("linkDebugExecutableLinuxX64")
 
     doLast {
         exec {

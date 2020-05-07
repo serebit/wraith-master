@@ -12,6 +12,7 @@ kotlin.linuxX64().compilations["main"].apply {
 
 tasks.register("package") {
     dependsOn("build")
+
     doLast {
         val resourcesDir = rootProject.buildDir.resolve("package/resources")
 
