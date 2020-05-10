@@ -38,7 +38,7 @@ tasks.register("package") {
         val builtResourcesDir = buildDir.resolve("processedResources/linuxX64/main")
         val resourcesDir = packageDir.resolve("resources")
 
-        val shouldStrip = properties["strip"] !in listOf(null, "false")
+        val shouldStrip = properties["strip"].let { it is String && (it.isEmpty() || it == "true") }
         buildDir.resolve("bin/linuxX64/releaseExecutable/gtk.kexe")
             .copyTo(packageDir.resolve("wraith-master-gtk"), overwrite = true)
             .also { if (shouldStrip) exec { commandLine("strip", it.absolutePath) } }

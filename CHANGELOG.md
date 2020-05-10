@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## Unreleased
+## 1.0.0 (2020-05-10)
 
 #### Added 
 - **Mirage frequency control**, the last major feature that required implementation
@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Increased width of morse textbox in GTK
 - Made overall GTK design more compact
 - In GTK, the Reset button no longer power-cycles the device
-- In GTK, the Save and Reset buttons now change their sensitivity based on whether the current values are the same as the saved values
+- In GTK: the Save, Reset, and mirage's Apply buttons now change their sensitivity based on whether the current values are the same as the saved values
 - In GTK, saved settings are restored both on app close and on app start
 - In GTK, reordered component tabs to reflect Cooler Master application
 
@@ -27,7 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reset button no longer segfaults after a few presses
 
 #### Meta 
-- Update Kotlin to 1.4-M1
+- Update Kotlin to 1.4-M1 (retains 1.3.7x build compatibility for Solus)
+- Update Gradle to 6.4
 - Code cleanup in GTK and core, with a focus on reducing total LoC without sacrificing looks or functionality
 - `distTar` Gradle task now produces a tarball with correct permissions
 - Added `strip` property to `package` Gradle task, which strips packaged binaries if enabled

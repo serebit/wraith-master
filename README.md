@@ -6,7 +6,7 @@
 
 ---
 
-Wraith Master is a graphical and command-line application for controlling the RGB LEDs on AMD's Wraith stock coolers. At the moment, the only supported cooler is the Wraith Prism, but there are plans to add other Wraith coolers as well.
+Wraith Master is a feature-complete graphical and command-line application for controlling the RGB LEDs on AMD's Wraith stock coolers. At the moment, the only supported cooler is the Wraith Prism, but there are plans to add other Wraith coolers as well.
 
 Designed for feature parity with the official Windows-only Cooler Master application, Wraith Master is intended to support all modes and settings that the Wraith Prism can use. Only one feature remains to be implemented (fan mirage color frequencies). As the Wraith coolers are capable of storing RGB configurations in-device, no daemon is required to maintain configurations, and the program can be uninstalled without fear of losing your settings.
 
@@ -22,7 +22,7 @@ If you're on Arch Linux or one of its derivatives, you can install both frontend
 
 #### Solus
 
-Solus has both frontends in the official repository. They can be installed either by running `sudo eopkg it wraith-master` in the terminal, or searching for the package in the Software Center.
+Solus has both frontends in the official repository. They can be installed either by running `sudo eopkg install wraith-master` in the terminal, or searching for the package in the Software Center.
 
 #### Other Distributions
 
