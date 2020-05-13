@@ -12,13 +12,13 @@ Designed for feature parity with the official Windows-only Cooler Master applica
 
 ## Supported Platforms
 
-Wraith Master supports all 64-bit Linux distributions that use glibc as their libc implementation. This dependence on glibc is not my choice, but a limitation of the software stack; Kotlin/Native is [incompatible with musl](https://github.com/JetBrains/kotlin-native/issues/3771) as of the time I am writing this. Once it gains compatibility with more libc implementations, I fully intend to take advantage of that compatibility.
+Wraith Master supports all 64-bit Linux distributions that use glibc as their libc implementation. This dependence on glibc is not my choice, but a limitation of the software stack; Kotlin/Native is [incompatible with musl](https://github.com/JetBrains/kotlin-native/issues/3771) as of the time I am writing this. Once it gains compatibility with more libc implementations, I fully intend to take advantage of that compatibility. Check out [issue #3](https://gitlab.com/serebit/wraith-master/-/issues/3) for more details.
 
 ## Installing
 
 #### Arch/Derivatives
 
-If you're on Arch Linux or one of its derivatives, you can install both frontends [from the AUR](https://aur.archlinux.org/packages/?K=wraith%2Dmaster), under `wraith-master-cli` for the CLI frontend and `wraith-master-gtk` for the GTK frontend. 
+If you're on Arch Linux or one of its derivatives, you can install both frontends [from the AUR](https://aur.archlinux.org/packages/?K=wraith%2Dmaster). If you'd rather not build from source, you'll want to install `wraith-master-bin`; otherwise, it's under `wraith-master-cli` for the CLI frontend and `wraith-master-gtk` for the GTK frontend.
 
 #### Solus
 
