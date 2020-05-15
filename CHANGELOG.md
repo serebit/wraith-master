@@ -5,12 +5,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## Unreleased
+
+#### Fixed 
+- More precise finding of `version.txt`, allowing version detection if the `installdir` is set to something other than `/usr` or `/usr/local`
+
+
 ## 1.0.0 (2020-05-10)
 
 #### Added 
 - **Mirage frequency control**, the last major feature that required implementation
 - "About" dialog in GTK, viewable by clicking the info button in the title bar
 - `version` option in CLI
+- Dialog box in GTK upon attempting to exit with unsaved changes
 
 #### Changed 
 - Increased width of morse textbox in GTK
