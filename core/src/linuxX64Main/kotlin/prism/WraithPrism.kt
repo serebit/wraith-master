@@ -120,3 +120,10 @@ fun WraithPrism.updateRingMorseText(text: String) {
     sendBytes(0x51, 0x73, 1, 0, *secondChunk)
     apply(runCallback = false)
 }
+
+fun WraithPrism.requestFirmwareVersion(): String = sendBytes(0x12, 0x20)
+    .subList(8, 34)
+    .filter { it != 0 }
+    .map { it.toChar() }
+    .joinToString("")
+    .toLowerCase()

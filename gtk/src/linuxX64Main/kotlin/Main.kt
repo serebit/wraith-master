@@ -106,6 +106,11 @@ fun runNoExtraWindowsDialog() {
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.activate(wraith: WraithPrism) {
+    val firmwareVersion = wraith.requestFirmwareVersion()
+    gtk_window_get_titlebar(reinterpret())!!.apply {
+        gtk_header_bar_set_subtitle(reinterpret(), "Wraith Prism, firmware $firmwareVersion")
+    }
+
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.also { gtk_container_add(reinterpret(), it) }
     val mainNotebook = gtk_notebook_new()!!.apply {
         gtk_container_add(box.reinterpret(), this)

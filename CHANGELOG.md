@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+#### Added 
+- Firmware version reporting
+
 #### Fixed 
 - More precise finding of `version.txt`, allowing version detection if the `installdir` is set to something other than `/usr` or `/usr/local`
 
