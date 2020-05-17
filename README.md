@@ -8,7 +8,7 @@
 
 Wraith Master is a feature-complete graphical and command-line application for controlling the RGB LEDs on AMD's Wraith stock coolers. At the moment, the only supported cooler is the Wraith Prism, but there are plans to add other Wraith coolers as well.
 
-Designed for feature parity with the official Windows-only Cooler Master application, Wraith Master is intended to support all modes and settings that the Wraith Prism can use. Only one feature remains to be implemented (fan mirage color frequencies). As the Wraith coolers are capable of storing RGB configurations in-device, no daemon is required to maintain configurations, and the program can be uninstalled without fear of losing your settings.
+Designed for feature parity with the official Windows-only Cooler Master application, Wraith Master supports all modes and settings that the Wraith Prism can use. As the Wraith coolers are capable of storing RGB configurations in-device, no daemon is required to maintain configurations, and the program can be uninstalled without fear of losing your settings.
 
 ## Supported Platforms
 
