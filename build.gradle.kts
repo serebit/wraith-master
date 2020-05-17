@@ -1,6 +1,5 @@
 plugins {
     kotlin("multiplatform") version "1.4-M1" apply false
-    id("com.dorongold.task-tree") version "1.5"
     base // to add clean task, for cleaning up package output
 }
 
