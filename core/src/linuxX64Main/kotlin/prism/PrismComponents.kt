@@ -154,8 +154,8 @@ enum class PrismRingMode(
 
 data class Color(val r: Int, val g: Int, val b: Int)
 enum class ColorSupport { NONE, SPECIFIC, ALL }
-enum class Speed { FASTEST, FAST, MEDIUM, SLOW, SLOWEST }
-enum class Brightness { HIGH, MEDIUM, LOW }
+enum class Speed { SLOWEST, SLOW, MEDIUM, FAST, FASTEST }
+enum class Brightness { LOW, MEDIUM, HIGH }
 enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE }
 
 val PrismMode.supportsBrightness get() = brightnesses.isNotEmpty()
