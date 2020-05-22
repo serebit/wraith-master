@@ -139,3 +139,23 @@ fun WraithPrism.requestFirmwareVersion(): String = sendBytes(0x12, 0x20)
     .map { it.toChar() }
     .joinToString("")
     .toLowerCase()
+
+fun WraithPrism.resetToDefault() {
+    enso = false
+
+    listOf(fan, logo).forEach {
+        it.mode = BasicPrismMode.CYCLE
+        it.speed = Speed.MEDIUM
+        it.brightness = Brightness.HIGH
+    }
+    ring.apply {
+        mode = PrismRingMode.RAINBOW
+        speed = Speed.MEDIUM
+        brightness = Brightness.HIGH
+    }
+    enableFanMirage(330, 330, 330)
+
+    components.forEach { setChannelValues(it) }
+    assignChannels()
+    apply()
+}
