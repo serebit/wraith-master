@@ -4,7 +4,7 @@ import com.serebit.wraith.core.prism.*
 import gtk3.*
 import kotlinx.cinterop.*
 
-sealed class PrismComponentWidgets<C : PrismComponent>(device: WraithPrism, val component: C) {
+sealed class PrismComponentWidgets<C : PrismComponent>(protected val device: WraithPrism, val component: C) {
     protected val ptr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
     var isReloading = false
 
@@ -59,22 +59,29 @@ sealed class PrismComponentWidgets<C : PrismComponent>(device: WraithPrism, val 
 
     fun reload() {
         isReloading = true
-        gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.ordinal)
+        if (device.enso) {
+            gtk_combo_box_set_active(modeBox.reinterpret(), -1)
+            (baseWidgets + extraWidgets).forEach { it.setSensitive(false) }
+        } else {
+            modeBox.setSensitive(true)
+            gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.ordinal)
 
-        val colorOrBlack = if (component.mode.colorSupport != ColorSupport.NONE) component.color else Color(0, 0, 0)
-        memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(colorOrBlack).ptr) }
+            val colorOrBlack = if (component.mode.colorSupport != ColorSupport.NONE) component.color else Color(0, 0, 0)
+            memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(colorOrBlack).ptr) }
 
-        val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
-        gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+            val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
+            gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
 
-        gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.ordinal.toDouble())
-        gtk_range_set_value(speedScale.reinterpret(), component.speed.ordinal.toDouble())
+            gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.ordinal.toDouble())
+            gtk_range_set_value(speedScale.reinterpret(), component.speed.ordinal.toDouble())
 
-        randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
-        colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !useRandomColor)
-        brightnessScale.setSensitive(component.mode.supportsBrightness)
-        speedScale.setSensitive(component.mode.supportsSpeed)
+            randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
+            colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !useRandomColor)
+            brightnessScale.setSensitive(component.mode.supportsBrightness)
+            speedScale.setSensitive(component.mode.supportsSpeed)
+        }
         extraReload()
+
         isReloading = false
     }
 
@@ -132,16 +139,23 @@ class FanWidgets(wraith: WraithPrism) : PrismComponentWidgets<PrismFanComponent>
     }
 
     override fun extraReload() {
-        mirageToggle.setSensitive(component.mode != BasicPrismMode.OFF)
-        mirageReload.setSensitive(component.mode != BasicPrismMode.OFF)
+        mirageToggle.setSensitive(component.mode != BasicPrismMode.OFF && !device.enso)
+        mirageReload.setSensitive(component.mode != BasicPrismMode.OFF && !device.enso)
         (mirageFreqWidgets + mirageLabels).forEach {
-            it.setSensitive(component.mode != BasicPrismMode.OFF && component.mirage)
+            it.setSensitive(component.mode != BasicPrismMode.OFF && component.mirage && !device.enso)
         }
     }
 
     override val extraLabels = listOf("Mirage")
     override fun attachExtraWidgets(grid: Widget) {
         gtk_grid_attach(grid.reinterpret(), mirageGrid, 1, baseWidgets.lastIndex + 1, 1, 2)
+    }
+
+    fun setMirageEnabled(redFreq: Int, greenFreq: Int, blueFreq: Int) {
+        gtk_switch_set_state(mirageToggle.reinterpret(), 1)
+        gtk_spin_button_set_value(mirageRedFrequency.reinterpret(), redFreq.toDouble())
+        gtk_spin_button_set_value(mirageGreenFrequency.reinterpret(), greenFreq.toDouble())
+        gtk_spin_button_set_value(mirageBlueFrequency.reinterpret(), blueFreq.toDouble())
     }
 }
 
@@ -223,8 +237,8 @@ class RingWidgets(prism: WraithPrism) : PrismComponentWidgets<PrismRingComponent
 
     override fun extraReload() {
         gtk_combo_box_set_active(directionComboBox.reinterpret(), component.direction.ordinal)
-        directionComboBox.setSensitive(component.mode.supportsDirection)
-        morseContainer.setSensitive(component.mode == PrismRingMode.MORSE)
+        directionComboBox.setSensitive(component.mode.supportsDirection && !device.enso)
+        morseContainer.setSensitive(component.mode == PrismRingMode.MORSE && !device.enso)
         if (component.mode != PrismRingMode.MORSE) morseHint?.let { hint -> gtk_widget_hide(hint) }
     }
 }

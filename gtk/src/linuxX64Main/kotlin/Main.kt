@@ -106,11 +106,6 @@ fun runNoExtraWindowsDialog() {
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.activate(wraith: WraithPrism) {
-    val firmwareVersion = wraith.requestFirmwareVersion()
-    gtk_window_get_titlebar(reinterpret())!!.apply {
-        gtk_header_bar_set_subtitle(reinterpret(), "Wraith Prism, firmware $firmwareVersion")
-    }
-
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.also { gtk_container_add(reinterpret(), it) }
     val mainNotebook = gtk_notebook_new()!!.apply {
         gtk_container_add(box.reinterpret(), this)
@@ -155,6 +150,28 @@ fun Widget.activate(wraith: WraithPrism) {
     val saveOptionButtons = listOf(resetButton, saveButton)
     val callbackData = CallbackData(wraith, listOf(ringWidgets, fanWidgets, logoWidgets), saveOptionButtons)
     val callbackPtr = StableRef.create(callbackData).asCPointer()
+
+    gtk_window_get_titlebar(reinterpret())!!.apply {
+        val firmwareVersion = wraith.requestFirmwareVersion()
+        gtk_header_bar_set_subtitle(reinterpret(), "Wraith Prism, firmware $firmwareVersion")
+
+        val resetToDefaultButton = iconButton("document-revert", null, callbackPtr, staticCFunction { _, ptr ->
+            val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
+            device.resetToDefault()
+
+            widgets.filterIsInstance<FanWidgets>().forEach { it.setMirageEnabled(330, 330, 330) }
+            widgets.forEach { it.reload() }
+        })
+        gtk_header_bar_pack_start(reinterpret(), resetToDefaultButton)
+
+        val enableEnsoMode = iconButton("gtk-select-color", null, callbackPtr, staticCFunction { widget, ptr ->
+            val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
+            device.enso = !device.enso
+            device.apply()
+            widgets.forEach { it.reload() }
+        })
+        gtk_header_bar_pack_start(reinterpret(), enableEnsoMode)
+    }
 
     resetButton.connectSignalWithData("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
         val (device, widgets, buttons) = ptr.asStableRef<CallbackData>().get()
