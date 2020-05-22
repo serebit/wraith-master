@@ -19,7 +19,6 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>) {
 
     init {
         sendBytes(0x41, 0x80) // power on
-        sendBytes(0x51, 0x96) // magic bytes
         restore()
         apply()
         val channels = getChannels()
@@ -120,6 +119,19 @@ fun WraithPrism.updateRingMorseText(text: String) {
     sendBytes(0x51, 0x73, 1, 0, *secondChunk)
     apply(runCallback = false)
 }
+
+var WraithPrism.enso: Boolean
+    get() = sendBytes(0x52, 0x96)[4] == 0x10
+    set(value) {
+        if (value) {
+            sendBytes(0x51, 0x96, 0, 0, 0x10)
+        } else {
+            sendBytes(0x51, 0x96)
+            components.forEach { setChannelValues(it) }
+            assignChannels()
+        }
+        save()
+    }
 
 fun WraithPrism.requestFirmwareVersion(): String = sendBytes(0x12, 0x20)
     .subList(8, 34)
