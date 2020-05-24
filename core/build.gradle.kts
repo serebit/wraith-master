@@ -28,10 +28,30 @@ tasks.register("install") {
 
     doLast {
         val resourcesDir = rootProject.buildDir.resolve("package/resources")
-        val installDir = file(properties["installdir"] as? String ?: "/usr/local")
+
+        val installMode = properties["installmode"] as? String
+        val packageRoot = properties["packageroot"] as? String
+
+        val installDirPath = properties["installdir"] as? String
+            ?: "/usr".takeIf { installMode == "system" || packageRoot != null && installMode != "local" }
+            ?: "/usr/local"
+
+        val installDir = if (packageRoot != null) {
+            file(packageRoot).resolve(installDirPath.removePrefix("/"))
+        } else {
+            file(installDirPath)
+        }
 
         if (file("/sbin/udevadm").exists() && properties["noudev"] == null) {
-            val udevDir = file(properties["udevdir"] as? String ?: "/etc/udev").resolve("rules.d")
+            val udevPath = properties["udevdir"] as? String
+                ?: "/usr/lib/udev".takeIf { installMode == "system" || packageRoot != null && installMode != "local" }
+                ?: "/etc/udev"
+
+            val udevDir = if (packageRoot != null) {
+                file(packageRoot).resolve(udevPath.removePrefix("/")).resolve("rules.d")
+            } else {
+                file(installDirPath).resolve("rules.d")
+            }
 
             resourcesDir.resolve("99-wraith-master.rules")
                 .copyTo(udevDir.resolve("99-wraith-master.rules"), overwrite = true)

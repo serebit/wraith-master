@@ -33,7 +33,18 @@ tasks.register("install") {
     dependsOn(":core:package")
 
     doLast {
-        val installDir = file(properties["installdir"] as? String ?: "/usr/local")
+        val installMode = properties["installmode"] as? String
+        val packageRoot = properties["packageroot"] as? String
+
+        val installDirPath = properties["installdir"] as? String
+            ?: "/usr".takeIf { installMode == "system" || packageRoot != null && installMode != "local" }
+            ?: "/usr/local"
+
+        val installDir = if (packageRoot != null) {
+            file(packageRoot).resolve(installDirPath.removePrefix("/"))
+        } else {
+            file(installDirPath)
+        }
 
         rootProject.buildDir.resolve("package/wraith-master")
             .copyTo(installDir.resolve("bin/wraith-master"), overwrite = true)
