@@ -38,7 +38,7 @@ There are precompiled binaries available for each release [here](https://gitlab.
 |--------------------|-------------------------------|-------------------------|
 | Debian/Derivatives | `libusb-1.0-0`, `libncurses5` | `glib2.0`, `libgtk-3.0` |
 | Arch/Derivatives   |                               | `gtk3`                  |
-| Fedora             |                               | `gtk3`                  |
+| Fedora             | `libxcrypt-compat`            | `gtk3`                  |
 | OpenSUSE           |                               | `glib2`, `gtk3`         |
 | Solus              |                               |                         |
 | Gentoo             | `dev-libs/libusb`             | `gtk+`                  |
