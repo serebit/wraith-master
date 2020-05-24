@@ -42,7 +42,9 @@ tasks.register("install") {
             file(installDirPath)
         }
 
-        if (file("/sbin/udevadm").exists() && properties["noudev"] == null) {
+        val forceUdev = (properties["forceudev"] as? String).let { it != null && it.isEmpty() }
+        val noUdev = (properties["noudev"] as? String).let { it != null && it.isEmpty() }
+        if (file("/sbin/udevadm").exists() && !noUdev || forceUdev) {
             val udevPath = properties["udevdir"] as? String
                 ?: "/usr/lib/udev".takeIf { installMode == "system" || packageRoot != null && installMode != "local" }
                 ?: "/etc/udev"
