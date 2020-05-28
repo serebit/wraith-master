@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added 
 - Firmware version reporting
-- Button in GTK header bar for resetting to default profile
-- Button in GTK header bar for toggling Ryzen Enso mode
+- Resetting to default profile
+- Toggle for Enso mode
 
 #### Fixed 
 - More precise finding of `version.txt`, allowing version detection if the `installdir` is set to something other than `/usr` or `/usr/local`

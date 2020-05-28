@@ -16,6 +16,33 @@ fun main(args: Array<KString>) {
         return
     }
 
+    if (args.size == 1 && args[0] == "--firmware-version") {
+        modifyWraithPrism(false) {
+            println("The connected Wraith Prism has firmware version ${requestFirmwareVersion()}")
+        }
+        return
+    }
+
+    if (args.size == 1 && args[0] == "--reset-to-default") {
+        modifyWraithPrism(false) {
+            resetToDefault()
+        }
+        return
+    }
+
+    if (args.size == 1 && args[0] == "--toggle-enso") {
+        modifyWraithPrism(false) {
+            enso = !enso
+            if (enso) {
+                println("Enabled enso mode.")
+            } else {
+                println("Disabled enso mode. Settings have been reset to factory defaults.")
+                resetToDefault()
+            }
+        }
+        return
+    }
+
     val parser = ArgParser("wraith-master")
 
     val component by parser.argument(ArgType.Choice(listOf("logo", "fan", "ring")))
@@ -44,7 +71,28 @@ fun main(args: Array<KString>) {
     val verbose by parser.option(ArgType.Boolean, description = "Print changes made to device LEDs to the console")
 
     @Suppress("UNUSED_VARIABLE")
-    val version by parser.option(ArgType.Boolean, shortName = "v", description = "Print program version and exit")
+    val version by parser.option(
+        ArgType.Boolean, shortName = "v",
+        description = "Print program version and exit. Ignored unless run as the only argument"
+    )
+
+    @Suppress("UNUSED_VARIABLE")
+    val resetToDefault by parser.option(
+        ArgType.Boolean, fullName = "reset-to-default",
+        description = "Resets the lights to their default configuration. Ignored unless run as the only argument"
+    )
+
+    @Suppress("UNUSED_VARIABLE")
+    val toggleEnso by parser.option(
+        ArgType.Boolean, fullName = "toggle-enso",
+        description = "Toggles Enso mode. Erases all settings when enabled. Ignored unless run as the only argument"
+    )
+
+    @Suppress("UNUSED_VARIABLE")
+    val firmwareVersion by parser.option(
+        ArgType.Boolean, fullName = "firmware-version",
+        description = "Reports the firmware version of the connected cooler. Ignored unless run as the only argument"
+    )
 
     parser.parse(args)
 
@@ -223,14 +271,33 @@ private object ColorArgType : ArgType<Color>(true) {
     }
 }
 
+private fun modifyWraithPrism(verbose: Boolean?, task: WraithPrism.() -> Unit) {
+    initLibusb()
+
+    if (verbose == true) print("Opening interface to device... ")
+    when (val result: DeviceResult = obtainWraithPrism()) {
+        is DeviceResult.Failure -> error(result.message)
+        is DeviceResult.Success -> result.prism.run {
+            if (verbose == true) println("Done.")
+            task()
+            if (enso) {
+                println("Warning: Modifications will not apply while enso mode is on.")
+            }
+            if (verbose == true) print("Closing USB interface... ")
+            close()
+            if (verbose == true) println("Done.")
+
+        }
+    }
+
+    libusb_exit(null)
+}
+
 private fun WraithPrism.finalize(component: PrismComponent, verbose: Boolean?) {
-    if (verbose == true) println("Applying changes")
+    if (verbose == true) print("Applying changes...")
     setChannelValues(component)
     assignChannels()
     apply()
     save()
-    if (verbose == true) print("Closing USB interface... ")
-    close()
     if (verbose == true) println("Done.")
-    libusb_exit(null)
 }
