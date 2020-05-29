@@ -125,12 +125,10 @@ var WraithPrism.enso: Boolean
     set(value) {
         if (value) {
             sendBytes(0x51, 0x96, 0, 0, 0x10)
+            save()
         } else {
             sendBytes(0x51, 0x96)
-            components.forEach { setChannelValues(it) }
-            assignChannels()
         }
-        save()
     }
 
 fun WraithPrism.requestFirmwareVersion(): String = sendBytes(0x12, 0x20)

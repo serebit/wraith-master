@@ -21,7 +21,7 @@ fun main(args: Array<String>) {
     when (result) {
         is DeviceResult.Success -> app.connectSignalWithData("activate", StableRef.create(result.prism).asCPointer(),
             staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
-                it.createWindowOrNull { activate(ptr.asStableRef<WraithPrism>().getAndDispose()) }
+                it.createWindowOrNull { activate(ptr.asStableRef<WraithPrism>().get()) }
                     ?: runNoExtraWindowsDialog()
             })
 
@@ -49,15 +49,7 @@ fun main(args: Array<String>) {
 @OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.createWindowOrNull(addWidgets: Widget.() -> Unit): Widget? =
     if (gtk_application_get_active_window(this) == null) gtk_application_window_new(this)!!.apply {
-        // unset focus on left click with mouse button
-        connectSignalWithData("button-press-event", null,
-            staticCFunction<Widget, CPointer<GdkEventButton>, Boolean> { it, event ->
-                if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
-                    gtk_window_set_focus(it.reinterpret(), null)
-                    gtk_window_set_focus_visible(it.reinterpret(), 0)
-                }
-                false
-            })
+        clearFocusOnClick()
 
         val headerBar = gtk_header_bar_new()!!.apply {
             gtk_header_bar_set_show_close_button(reinterpret(), 1)
@@ -88,6 +80,7 @@ fun runAboutDialog() {
             reinterpret(),
             "Copyright © 2020 Campbell Jones\nLicensed under the Apache License 2.0"
         )
+        clearFocusOnClick()
         gtk_dialog_run(reinterpret())
         gtk_widget_destroy(this)
     }
@@ -166,8 +159,13 @@ fun Widget.activate(wraith: WraithPrism) {
 
         val enableEnsoMode = iconButton("gtk-select-color", null, callbackPtr, staticCFunction { widget, ptr ->
             val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
-            device.enso = !device.enso
-            device.apply()
+            device.apply {
+                enso = !enso
+                if (!enso) {
+                    device.resetToDefault()
+                    save()
+                }
+            }
             widgets.forEach { it.reload() }
         })
         gtk_header_bar_pack_start(reinterpret(), enableEnsoMode)
@@ -233,3 +231,13 @@ fun Widget.activate(wraith: WraithPrism) {
 }
 
 private fun <T : Any> StableRef<T>.getAndDispose(): T = get().also { dispose() }
+
+@OptIn(ExperimentalUnsignedTypes::class)
+private fun Widget.clearFocusOnClick() = connectSignalWithData("button-press-event", null,
+    staticCFunction<Widget, CPointer<GdkEventButton>, Boolean> { it, event ->
+        if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
+            gtk_window_set_focus(it.reinterpret(), null)
+            gtk_window_set_focus_visible(it.reinterpret(), 0)
+        }
+        false
+    })

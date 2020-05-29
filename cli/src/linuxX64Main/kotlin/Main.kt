@@ -31,7 +31,6 @@ fun main(args: Array<KString>) {
                 println("Enabled enso mode.")
             } else {
                 println("Disabled enso mode. Settings have been reset to factory defaults.")
-                resetToDefault()
             }
         }
 
