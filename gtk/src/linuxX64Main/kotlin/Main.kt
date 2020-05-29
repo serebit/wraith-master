@@ -157,7 +157,7 @@ fun Widget.activate(wraith: WraithPrism) {
         })
         gtk_header_bar_pack_start(reinterpret(), resetToDefaultButton)
 
-        val enableEnsoMode = iconButton("gtk-select-color", null, callbackPtr, staticCFunction { widget, ptr ->
+        val enableEnsoMode = iconButton("gtk-select-color", null, callbackPtr, staticCFunction { _, ptr ->
             val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
             device.apply {
                 enso = !enso
