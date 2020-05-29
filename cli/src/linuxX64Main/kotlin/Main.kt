@@ -11,27 +11,21 @@ import libusb.libusb_exit
 import kotlin.String as KString
 
 fun main(args: Array<KString>) {
-    if (args.size == 1 && args[0] in listOf("-v", "--version")) {
-        println(programVersion?.let { "Wraith Master, version $it" } ?: "Wraith Master, unknown version")
-        return
-    }
+    if (args.singleOrNull() in listOf("-v", "--version"))
+        return println("Wraith Master, version ${programVersion ?: "unknown"}")
 
-    if (args.size == 1 && args[0] == "--firmware-version") {
-        modifyWraithPrism(false) {
+    if (args.singleOrNull() == "--firmware-version")
+        return modifyWraithPrism(false) {
             println("The connected Wraith Prism has firmware version ${requestFirmwareVersion()}")
         }
-        return
-    }
 
-    if (args.size == 1 && args[0] == "--reset-to-default") {
-        modifyWraithPrism(false) {
+    if (args.singleOrNull() == "--reset-to-default")
+        return modifyWraithPrism(false) {
             resetToDefault()
         }
-        return
-    }
 
-    if (args.size == 1 && args[0] == "--toggle-enso") {
-        modifyWraithPrism(false) {
+    if (args.singleOrNull() == "--toggle-enso")
+        return modifyWraithPrism(false) {
             enso = !enso
             if (enso) {
                 println("Enabled enso mode.")
@@ -40,8 +34,6 @@ fun main(args: Array<KString>) {
                 resetToDefault()
             }
         }
-        return
-    }
 
     val parser = ArgParser("wraith-master")
 
@@ -286,7 +278,6 @@ private fun modifyWraithPrism(verbose: Boolean?, task: WraithPrism.() -> Unit) {
             if (verbose == true) print("Closing USB interface... ")
             close()
             if (verbose == true) println("Done.")
-
         }
     }
 
