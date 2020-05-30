@@ -59,8 +59,8 @@ tasks.register("valgrind") {
         exec {
             isIgnoreExitValue = true
             workingDir = buildDir.resolve("bin/linuxX64/debugExecutable")
-            val programArgs = properties["cliargs"].toString().split(" ").toTypedArray()
-            val valgrindArgs = properties["valargs"].toString().split(" ").toTypedArray()
+            val programArgs = properties["cliargs"]?.toString()?.split(" ")?.toTypedArray() ?: emptyArray()
+            val valgrindArgs = properties["valargs"]?.toString()?.split(" ")?.toTypedArray() ?: emptyArray()
             commandLine("valgrind", *valgrindArgs, "./cli.kexe", *programArgs)
         }
     }

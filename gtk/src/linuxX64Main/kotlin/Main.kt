@@ -19,21 +19,32 @@ fun main(args: Array<String>) {
     val result = obtainWraithPrism()
 
     when (result) {
-        is DeviceResult.Success -> app.connectSignalWithData("activate", StableRef.create(result.prism).asCPointer(),
-            staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
-                it.createWindowOrNull { activate(ptr.asStableRef<WraithPrism>().get()) }
-                    ?: runNoExtraWindowsDialog()
+        is DeviceResult.Success -> {
+            val ref = StableRef.create(result.prism)
+
+            app.connectSignalWithData("activate", ref.asCPointer(),
+                staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
+                    it.createWindowOrNull { activate(ptr.asStableRef<WraithPrism>().get()) }
+                        ?: runNoExtraWindowsDialog()
+                })
+
+            app.connectSignalWithData("shutdown", ref.asCPointer(),
+            staticCFunction<CPointer<GApplication>, COpaquePointer, Unit> { _, ptr ->
+                ptr.asStableRef<WraithPrism>().dispose()
             })
+        }
 
         is DeviceResult.Failure -> app.connectSignalWithData(
             "activate", StableRef.create(result.message).asCPointer(),
             staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { _, ptr ->
                 val dialog = gtk_message_dialog_new(
                     null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK,
-                    "%s", ptr.asStableRef<String>().getAndDispose()
+                    "%s", ptr.asStableRef<String>().get()
                 )!!
 
                 gtk_dialog_run(dialog.reinterpret())
+
+                ptr.asStableRef<String>().dispose()
             })
     }
 
@@ -230,8 +241,6 @@ fun Widget.activate(wraith: WraithPrism) {
             returnValue
         })
 }
-
-private fun <T : Any> StableRef<T>.getAndDispose(): T = get().also { dispose() }
 
 @OptIn(ExperimentalUnsignedTypes::class)
 private fun Widget.clearFocusOnClick() = connectSignalWithData("button-press-event", null,
