@@ -216,16 +216,17 @@ fun Widget.activate(wraith: WraithPrism) {
                         prism.restore()
                         prism.apply(runCallback = false)
                     }
-                    GTK_RESPONSE_CANCEL -> {
-                        gtk_widget_destroy(dialog)
-                        returnValue = true
-                    }
+                    GTK_RESPONSE_CANCEL -> returnValue = true
                 }
 
                 gtk_widget_destroy(dialog)
-                widgets.forEach { it.close() }
             }
-            ptr.asStableRef<CallbackData>().dispose()
+
+            if (!returnValue) {
+                widgets.forEach { it.close() }
+                ptr.asStableRef<CallbackData>().dispose()
+            }
+
             returnValue
         })
 }
