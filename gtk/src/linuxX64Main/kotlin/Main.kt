@@ -29,9 +29,9 @@ fun main(args: Array<String>) {
                 })
 
             app.connectSignalWithData("shutdown", ref.asCPointer(),
-            staticCFunction<CPointer<GApplication>, COpaquePointer, Unit> { _, ptr ->
-                ptr.asStableRef<WraithPrism>().dispose()
-            })
+                staticCFunction<CPointer<GApplication>, COpaquePointer, Unit> { _, ptr ->
+                    ptr.asStableRef<WraithPrism>().dispose()
+                })
         }
 
         is DeviceResult.Failure -> app.connectSignalWithData(
@@ -60,7 +60,7 @@ fun main(args: Array<String>) {
 @OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.createWindowOrNull(addWidgets: Widget.() -> Unit): Widget? =
     if (gtk_application_get_active_window(this) == null) gtk_application_window_new(this)!!.apply {
-        clearFocusOnClick()
+        clearFocusOnClickOrEsc()
 
         val headerBar = gtk_header_bar_new()!!.apply {
             gtk_header_bar_set_show_close_button(reinterpret(), 1)
@@ -91,7 +91,7 @@ fun runAboutDialog() {
             reinterpret(),
             "Copyright © 2020 Campbell Jones\nLicensed under the Apache License 2.0"
         )
-        clearFocusOnClick()
+        clearFocusOnClickOrEsc()
         gtk_dialog_run(reinterpret())
         gtk_widget_destroy(this)
     }
@@ -243,11 +243,22 @@ fun Widget.activate(wraith: WraithPrism) {
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
-private fun Widget.clearFocusOnClick() = connectSignalWithData("button-press-event", null,
-    staticCFunction<Widget, CPointer<GdkEventButton>, Boolean> { it, event ->
-        if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
-            gtk_window_set_focus(it.reinterpret(), null)
-            gtk_window_set_focus_visible(it.reinterpret(), 0)
-        }
-        false
-    })
+private fun Widget.clearFocusOnClickOrEsc() {
+    connectSignalWithData("button-press-event", null,
+        staticCFunction<Widget, CPointer<GdkEventButton>, Boolean> { it, event ->
+            if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
+                gtk_window_set_focus(it.reinterpret(), null)
+                gtk_window_set_focus_visible(it.reinterpret(), 0)
+            }
+            false
+        })
+
+    connectSignalWithData("key-press-event", null,
+        staticCFunction<Widget, CPointer<GdkEventKey>, Boolean> { it, event ->
+            if (event.pointed.type == GDK_KEY_PRESS && event.pointed.keyval == 0xFF1Bu) {
+                gtk_window_set_focus(it.reinterpret(), null)
+                gtk_window_set_focus_visible(it.reinterpret(), 0)
+            }
+            false
+        })
+}
