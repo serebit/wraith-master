@@ -20,15 +20,15 @@ fun main(args: Array<String>) {
 
     when (result) {
         is DeviceResult.Success -> {
-            val ref = StableRef.create(result.prism)
+            val prismPtr = StableRef.create(result.prism).asCPointer()
 
-            app.connectSignalWithData("activate", ref.asCPointer(),
+            app.connectSignalWithData("activate", prismPtr,
                 staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
                     it.createWindowOrNull { activate(ptr.asStableRef<WraithPrism>().get()) }
                         ?: runNoExtraWindowsDialog()
                 })
 
-            app.connectSignalWithData("shutdown", ref.asCPointer(),
+            app.connectSignalWithData("shutdown", prismPtr,
                 staticCFunction<CPointer<GApplication>, COpaquePointer, Unit> { _, ptr ->
                     ptr.asStableRef<WraithPrism>().dispose()
                 })
@@ -44,6 +44,7 @@ fun main(args: Array<String>) {
 
                 gtk_dialog_run(dialog.reinterpret())
 
+                gtk_widget_destroy(dialog)
                 ptr.asStableRef<String>().dispose()
             })
     }
