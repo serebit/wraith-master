@@ -1,5 +1,5 @@
 plugins {
-    kotlin("multiplatform") version "1.4-M1" apply false
+    kotlin("multiplatform") version "1.4-M2" apply false
     base // to add clean task, for cleaning up package output
 }
 
