@@ -103,7 +103,7 @@ class FanWidgets(wraith: WraithPrism) : PrismComponentWidgets<PrismFanComponent>
         connectSignalWithData("state-set", ptr, staticCFunction<Widget, Int, COpaquePointer, Boolean> { _, state, ptr ->
             ptr.useWith<FanWidgets> { (_, widgets) ->
                 widgets.component.mirage = state != 0
-                (widgets.mirageFreqWidgets + widgets.mirageLabels).forEach {
+                (widgets.mirageFreqSpinners + widgets.mirageLabels).forEach {
                     it.setSensitive(widgets.component.mode != BasicPrismMode.OFF && widgets.component.mirage)
                 }
             }
@@ -111,18 +111,14 @@ class FanWidgets(wraith: WraithPrism) : PrismComponentWidgets<PrismFanComponent>
         })
     }
 
-    private val mirageRedFrequency = frequencySpinButton(ptr, staticCFunction { _, _, _ -> })
-    private val mirageGreenFrequency = frequencySpinButton(ptr, staticCFunction { _, _, _ -> })
-    private val mirageBlueFrequency = frequencySpinButton(ptr, staticCFunction { _, _, _ -> })
-    private val mirageFreqWidgets = listOf(mirageRedFrequency, mirageGreenFrequency, mirageBlueFrequency)
+    private val mirageFreqSpinners = List(3) { frequencySpinButton() } // red, green, blue; in order
 
     private val mirageReload = iconButton("gtk-ok", "Apply", ptr, staticCFunction { _, ptr ->
         ptr.useWith<FanWidgets> { (wraith, widgets) ->
             if (gtk_switch_get_active(widgets.mirageToggle.reinterpret()) == 1) {
-                val redFreq = gtk_spin_button_get_value_as_int(widgets.mirageRedFrequency.reinterpret())
-                val greenFreq = gtk_spin_button_get_value_as_int(widgets.mirageGreenFrequency.reinterpret())
-                val blueFreq = gtk_spin_button_get_value_as_int(widgets.mirageBlueFrequency.reinterpret())
-                wraith.enableFanMirage(redFreq, greenFreq, blueFreq)
+                val (red, green, blue) = widgets.mirageFreqSpinners
+                    .map { gtk_spin_button_get_value_as_int(it.reinterpret()) }
+                wraith.enableFanMirage(red, green, blue)
             } else {
                 wraith.disableFanMirage()
             }
@@ -134,14 +130,14 @@ class FanWidgets(wraith: WraithPrism) : PrismComponentWidgets<PrismFanComponent>
         gtk_grid_set_row_spacing(reinterpret(), 4u)
         gtk_grid_attach(reinterpret(), mirageToggle, 0, 0, 1, 1)
         gtk_grid_attach(reinterpret(), mirageReload, 2, 0, 1, 1)
-        mirageFreqWidgets.forEachIndexed { i, it -> gtk_grid_attach(reinterpret(), it, i, 1, 1, 1) }
+        mirageFreqSpinners.forEachIndexed { i, it -> gtk_grid_attach(reinterpret(), it, i, 1, 1, 1) }
         mirageLabels.forEachIndexed { i, it -> gtk_grid_attach(reinterpret(), it, i, 2, 1, 1) }
     }
 
     override fun extraReload() {
         mirageToggle.setSensitive(component.mode != BasicPrismMode.OFF && !device.enso)
         mirageReload.setSensitive(component.mode != BasicPrismMode.OFF && !device.enso)
-        (mirageFreqWidgets + mirageLabels).forEach {
+        (mirageFreqSpinners + mirageLabels).forEach {
             it.setSensitive(component.mode != BasicPrismMode.OFF && component.mirage && !device.enso)
         }
     }
@@ -153,9 +149,9 @@ class FanWidgets(wraith: WraithPrism) : PrismComponentWidgets<PrismFanComponent>
 
     fun setMirageEnabled(redFreq: Int, greenFreq: Int, blueFreq: Int) {
         gtk_switch_set_state(mirageToggle.reinterpret(), 1)
-        gtk_spin_button_set_value(mirageRedFrequency.reinterpret(), redFreq.toDouble())
-        gtk_spin_button_set_value(mirageGreenFrequency.reinterpret(), greenFreq.toDouble())
-        gtk_spin_button_set_value(mirageBlueFrequency.reinterpret(), blueFreq.toDouble())
+        mirageFreqSpinners.zip(listOf(redFreq, greenFreq, blueFreq)).forEach {
+            gtk_spin_button_set_value(it.first.reinterpret(), it.second.toDouble())
+        }
     }
 }
 

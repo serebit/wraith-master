@@ -100,14 +100,12 @@ fun gridScale(marks: Int, data: COpaquePointer, action: CallbackCFunction) =
         }.also { adjustment.connectSignalWithData("value-changed", data, action) }
     }
 
-fun frequencySpinButton(data: COpaquePointer, action: CallbackSpinCFunction) =
-    gtk_spin_button_new_with_range(45.0, 2000.0, 1.0)!!.apply {
-        gtk_spin_button_set_update_policy(reinterpret(), GtkSpinButtonUpdatePolicy.GTK_UPDATE_IF_VALID)
-        gtk_spin_button_set_numeric(reinterpret(), 1)
-        gtk_spin_button_set_value(reinterpret(), 330.0)
-        addCss("spinbutton button { padding: 2px; min-width: unset; }")
-        connectSignalWithData("change-value", data, action)
-    }
+fun frequencySpinButton() = gtk_spin_button_new_with_range(45.0, 2000.0, 1.0)!!.apply {
+    gtk_spin_button_set_update_policy(reinterpret(), GtkSpinButtonUpdatePolicy.GTK_UPDATE_IF_VALID)
+    gtk_spin_button_set_numeric(reinterpret(), 1)
+    gtk_spin_button_set_value(reinterpret(), 330.0)
+    addCss("spinbutton button { padding: 2px; min-width: unset; }")
+}
 
 inline fun <C : PrismComponent> WraithPrism.update(component: C, task: C.() -> Unit) {
     component.task()
