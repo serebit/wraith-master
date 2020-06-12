@@ -24,15 +24,15 @@ val Widget.text get() = gtk_entry_get_text(reinterpret())!!.toKString()
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.newSettingsPage(label: String) = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.apply {
     gtk_container_set_border_width(reinterpret(), 16u)
-    addCss("box { padding: 0 8px; }")
+    addCss("box { padding: 0 10px; }")
     gtk_widget_set_vexpand(this, 1)
     gtk_notebook_append_page(this@newSettingsPage.reinterpret(), this, gtk_label_new(label))
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.newSettingsGrid(): Widget = gtk_grid_new()!!.apply {
-    gtk_grid_set_column_spacing(reinterpret(), 72u)
-    gtk_grid_set_row_spacing(reinterpret(), 8u)
+    gtk_grid_set_column_spacing(reinterpret(), 64u)
+    gtk_grid_set_row_spacing(reinterpret(), 10u)
     gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_START)
     gtk_container_add(this@newSettingsGrid.reinterpret(), this)
 }
