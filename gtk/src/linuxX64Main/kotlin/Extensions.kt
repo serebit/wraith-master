@@ -31,7 +31,7 @@ fun Widget.newSettingsPage(label: String) = gtk_box_new(GtkOrientation.GTK_ORIEN
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.newSettingsGrid(): Widget = gtk_grid_new()!!.apply {
-    gtk_grid_set_column_spacing(reinterpret(), 32u)
+    gtk_grid_set_column_spacing(reinterpret(), 72u)
     gtk_grid_set_row_spacing(reinterpret(), 8u)
     gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_START)
     gtk_container_add(this@newSettingsGrid.reinterpret(), this)
