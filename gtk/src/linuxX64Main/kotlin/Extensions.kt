@@ -6,7 +6,6 @@ import kotlinx.cinterop.*
 
 typealias Widget = CPointer<GtkWidget>
 typealias CallbackCFunction = CPointer<CFunction<(Widget, COpaquePointer) -> Unit>>
-private typealias CallbackSpinCFunction = CPointer<CFunction<(Widget, GtkScrollType, COpaquePointer) -> Unit>>
 
 @OptIn(ExperimentalUnsignedTypes::class)
 fun <F : CFunction<*>> CPointer<*>.connectSignalWithData(signal: String, data: COpaquePointer?, action: CPointer<F>) =
