@@ -57,13 +57,13 @@ fun Widget.addCss(css: String) = gtk_widget_get_style_context(this)!!.apply {
     gtk_style_context_add_provider(this, provider.reinterpret(), GTK_STYLE_PROVIDER_PRIORITY_USER)
 }
 
-fun comboBox(elements: List<String>, data: COpaquePointer, action: CallbackCFunction) =
+fun comboBox(elements: List<String>, init: Widget.() -> Unit = {}) =
     gtk_combo_box_text_new()!!.apply {
         elements.forEach { gtk_combo_box_text_append_text(reinterpret(), it.toLowerCase().capitalize()) }
         gtk_widget_set_size_request(this, 96, -1)
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-        connectSignalWithData("changed", data, action)
+        init()
     }
 
 fun checkButton(label: String, data: COpaquePointer, action: CallbackCFunction) =
@@ -104,6 +104,12 @@ fun frequencySpinButton() = gtk_spin_button_new_with_range(45.0, 2000.0, 1.0)!!.
     gtk_spin_button_set_numeric(reinterpret(), 1)
     gtk_spin_button_set_value(reinterpret(), 330.0)
     addCss("spinbutton button { padding: 2px; min-width: unset; }")
+}
+
+fun Widget.getRgbaAsColor(): Color = memScoped {
+    alloc<GdkRGBA>()
+        .also { gtk_color_button_get_rgba(reinterpret(), it.ptr) }
+        .run { Color((255 * red).toInt(), (255 * green).toInt(), (255 * blue).toInt()) }
 }
 
 inline fun <C : PrismComponent> WraithPrism.update(component: C, task: C.() -> Unit) {

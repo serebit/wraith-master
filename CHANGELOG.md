@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Toggle for Enso mode
 - Focus clears on pressing the escape button
 
+#### Changed 
+- More padding in GTK, since it felt a bit cramped to some people
+
 #### Fixed 
 - More precise finding of `version.txt`, allowing version detection if the `installdir` is set to something other than `/usr` or `/usr/local`
 - Clear focus on click in the About dialog box

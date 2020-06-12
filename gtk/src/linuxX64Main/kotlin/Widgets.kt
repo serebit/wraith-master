@@ -8,16 +8,16 @@ sealed class PrismComponentWidgets<C : PrismComponent>(protected val device: Wra
     protected val ptr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
     var isReloading = false
 
-    private val modeBox = comboBox(component.modes.map { it.name }, ptr, staticCFunction { widget, ptr ->
-        ptr.use { it.wraith.updateMode(it.widgets, widget) }
+    private val modeBox = comboBox(component.modes.map { it.name }) {
+        connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { widget, ptr ->
+            ptr.use { it.wraith.updateMode(it.widgets, widget) }
+        })
+    }
+
+    private val colorButton = colorButton(ptr, onColorChange = staticCFunction { widget, ptr ->
+        ptr.useUpdateBasic { color = widget.getRgbaAsColor() }
     })
-    private val colorButton = colorButton(ptr, staticCFunction { widget, ptr ->
-        ptr.useUpdateBasic {
-            color = memScoped {
-                alloc<GdkRGBA>().also { gtk_color_button_get_rgba(widget.reinterpret(), it.ptr) }.toColor()
-            }
-        }
-    })
+
     private val randomizeColorCheckbox = checkButton("Randomize?", ptr, staticCFunction { widget, ptr ->
         ptr.useUpdateBasic {
             val isActive = gtk_toggle_button_get_active(widget.reinterpret())
@@ -27,11 +27,13 @@ sealed class PrismComponentWidgets<C : PrismComponent>(protected val device: Wra
             it.colorButton.setSensitive(isActive == 0)
         }
     })
+
     private val brightnessScale = gridScale(Brightness.values().size, ptr, staticCFunction { widget, ptr ->
         ptr.useUpdateBasic {
             brightness = Brightness.values()[gtk_adjustment_get_value(widget.reinterpret()).toInt()]
         }
     })
+
     private val speedScale = gridScale(Speed.values().size, ptr, staticCFunction { widget, ptr ->
         ptr.useUpdateBasic {
             speed = Speed.values()[gtk_adjustment_get_value(widget.reinterpret()).toInt()]
@@ -160,13 +162,14 @@ class RingWidgets(prism: WraithPrism) : PrismComponentWidgets<PrismRingComponent
     private var morseHintLabel: Widget? = null
     private var morseHint: Widget? = null
 
-    private val directionComboBox =
-        comboBox(RotationDirection.values().map { it.name }, ptr, staticCFunction { it, ptr ->
-            val text = gtk_combo_box_text_get_active_text(it.reinterpret())!!.toKString()
+    private val directionComboBox = comboBox(RotationDirection.values().map { it.name }) {
+        connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { widget, ptr ->
+            val text = gtk_combo_box_text_get_active_text(widget.reinterpret())!!.toKString()
             ptr.useUpdate<RingWidgets, PrismRingComponent> {
                 direction = RotationDirection.valueOf(text.toUpperCase())
             }
         })
+    }
 
     private val morseTextBox = gtk_entry_new()!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
@@ -257,8 +260,6 @@ private inline fun <W : PrismComponentWidgets<C>, C : PrismComponent> COpaquePoi
 
 private inline fun COpaquePointer.useUpdateBasic(task: PrismComponent.(PrismComponentWidgets<*>) -> Unit) =
     useUpdate(task)
-
-private fun GdkRGBA.toColor() = Color((255 * red).toInt(), (255 * green).toInt(), (255 * blue).toInt())
 
 private val String.hintText: String
     get() = when {
