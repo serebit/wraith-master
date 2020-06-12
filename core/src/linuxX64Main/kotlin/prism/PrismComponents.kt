@@ -152,7 +152,12 @@ enum class PrismRingMode(
     BREATHE(1, 0xFF, listOf(0x3C, 0x37, 0x31, 0x2C, 0x26), colorSupport = ColorSupport.ALL)
 }
 
-data class Color(val r: Int, val g: Int, val b: Int)
+data class Color(val r: Int, val g: Int, val b: Int) {
+    companion object {
+        val BLACK = Color(0, 0, 0)
+    }
+}
+
 enum class ColorSupport { NONE, SPECIFIC, ALL }
 enum class Speed { SLOWEST, SLOW, MEDIUM, FAST, FASTEST }
 enum class Brightness { LOW, MEDIUM, HIGH }

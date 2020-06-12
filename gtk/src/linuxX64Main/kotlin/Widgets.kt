@@ -7,6 +7,7 @@ import kotlinx.cinterop.*
 sealed class PrismComponentWidgets<C : PrismComponent>(protected val device: WraithPrism, val component: C) {
     protected val ptr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
     var isReloading = false
+        private set
 
     private val modeBox = comboBox(component.modes.map { it.name }) {
         connectSignalWithData("changed", ptr, staticCFunction<Widget, COpaquePointer, Unit> { widget, ptr ->
@@ -68,18 +69,27 @@ sealed class PrismComponentWidgets<C : PrismComponent>(protected val device: Wra
             modeBox.setSensitive(true)
             gtk_combo_box_set_active(modeBox.reinterpret(), component.mode.ordinal)
 
-            val colorOrBlack = if (component.mode.colorSupport != ColorSupport.NONE) component.color else Color(0, 0, 0)
-            memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(colorOrBlack).ptr) }
+            if (component.mode.colorSupport != ColorSupport.NONE) {
+                colorBox.setSensitive(true)
 
-            val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
-            gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+                memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(component.color).ptr) }
+
+                val useRandomColor = component.mode.colorSupport == ColorSupport.ALL && component.useRandomColor
+                gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), useRandomColor.toByte().toInt())
+
+                randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
+                colorButton.setSensitive(!useRandomColor)
+            } else {
+                colorBox.setSensitive(false)
+
+                gtk_toggle_button_set_active(randomizeColorCheckbox.reinterpret(), 0)
+                memScoped { gtk_color_button_set_rgba(colorButton.reinterpret(), gdkRgba(Color.BLACK).ptr) }
+            }
 
             gtk_range_set_value(brightnessScale.reinterpret(), component.brightness.ordinal.toDouble())
-            gtk_range_set_value(speedScale.reinterpret(), component.speed.ordinal.toDouble())
-
-            randomizeColorCheckbox.setSensitive(component.mode.colorSupport == ColorSupport.ALL)
-            colorButton.setSensitive(component.mode.colorSupport != ColorSupport.NONE && !useRandomColor)
             brightnessScale.setSensitive(component.mode.supportsBrightness)
+
+            gtk_range_set_value(speedScale.reinterpret(), component.speed.ordinal.toDouble())
             speedScale.setSensitive(component.mode.supportsSpeed)
         }
         extraReload()
