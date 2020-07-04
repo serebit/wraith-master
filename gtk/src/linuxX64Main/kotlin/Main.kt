@@ -160,27 +160,40 @@ fun Widget.activate(wraith: WraithPrism) {
         val firmwareVersion = wraith.requestFirmwareVersion()
         gtk_header_bar_set_subtitle(reinterpret(), "Wraith Prism, firmware $firmwareVersion")
 
-        val resetToDefaultButton = iconButton("document-revert", null, callbackPtr, staticCFunction { _, ptr ->
-            val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
-            device.resetToDefault()
+        val resetToDefaultButton = gtk_menu_item_new_with_label("Reset to Default")!!.apply {
+            connectSignalWithData("activate", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+                val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
+                device.resetToDefault()
 
-            widgets.filterIsInstance<FanWidgets>().forEach { it.setMirageEnabled(330, 330, 330) }
-            widgets.forEach { it.reload() }
-        })
-        gtk_header_bar_pack_start(reinterpret(), resetToDefaultButton)
+                widgets.filterIsInstance<FanWidgets>().forEach { it.setMirageEnabled(330, 330, 330) }
+                widgets.forEach { it.reload() }
+            })
+            gtk_widget_show(this)
+        }
 
-        val enableEnsoMode = iconButton("gtk-select-color", null, callbackPtr, staticCFunction { _, ptr ->
-            val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
-            device.apply {
-                enso = !enso
-                if (!enso) {
-                    device.resetToDefault()
-                    save()
+        val toggleEnsoModeButton = gtk_menu_item_new_with_label("Toggle Enso Mode")!!.apply {
+            connectSignalWithData("activate", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+                val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
+                device.apply {
+                    enso = !enso
+                    if (!enso) {
+                        device.resetToDefault()
+                        save()
+                    }
                 }
-            }
-            widgets.forEach { it.reload() }
-        })
-        gtk_header_bar_pack_start(reinterpret(), enableEnsoMode)
+                widgets.forEach { it.reload() }
+            })
+            gtk_widget_show(this)
+        }
+
+        val dropdownMenuButton = gtk_menu_button_new()!!.apply {
+            gtk_menu_button_set_popup(reinterpret(), gtk_menu_new()!!.apply {
+                gtk_menu_attach(reinterpret(), resetToDefaultButton, 0, 1, 0, 1)
+                gtk_menu_attach(reinterpret(), toggleEnsoModeButton, 0, 1, 1, 2)
+            })
+        }
+
+        gtk_header_bar_pack_start(reinterpret(), dropdownMenuButton)
     }
 
     resetButton.connectSignalWithData("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
