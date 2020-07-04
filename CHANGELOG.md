@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Increased width of morse textbox in GTK
 - Made overall GTK design more compact
 - In GTK, the Reset button no longer power-cycles the device
-- In GTK: the Save, Reset, and mirage's Apply buttons now change their sensitivity based on whether the current values are the same as the saved values
+- In GTK: the Save, Reset, and morse's Apply buttons now change their sensitivity based on whether the current values are the same as the saved values
 - In GTK, saved settings are restored both on app close and on app start
 - In GTK, reordered component tabs to reflect Cooler Master application
 
