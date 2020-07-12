@@ -22,19 +22,19 @@ fun main(args: Array<String>) {
         is DeviceResult.Success -> {
             val prismPtr = StableRef.create(result.prism).asCPointer()
 
-            app.connectSignalWithData("activate", prismPtr,
+            app.connectToSignal("activate", prismPtr,
                 staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
                     it.createWindowOrNull { activate(ptr.asStableRef<WraithPrism>().get()) }
                         ?: runNoExtraWindowsDialog()
                 })
 
-            app.connectSignalWithData("shutdown", prismPtr,
+            app.connectToSignal("shutdown", prismPtr,
                 staticCFunction<CPointer<GApplication>, COpaquePointer, Unit> { _, ptr ->
                     ptr.asStableRef<WraithPrism>().dispose()
                 })
         }
 
-        is DeviceResult.Failure -> app.connectSignalWithData(
+        is DeviceResult.Failure -> app.connectToSignal(
             "activate", StableRef.create(result.message).asCPointer(),
             staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { _, ptr ->
                 val dialog = gtk_message_dialog_new(
@@ -161,7 +161,7 @@ fun Widget.activate(wraith: WraithPrism) {
         gtk_header_bar_set_subtitle(reinterpret(), "Wraith Prism, firmware $firmwareVersion")
 
         val resetToDefaultButton = gtk_menu_item_new_with_label("Reset to Default")!!.apply {
-            connectSignalWithData("activate", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+            connectToSignal("activate", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
                 val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
                 device.resetToDefault()
 
@@ -172,7 +172,7 @@ fun Widget.activate(wraith: WraithPrism) {
         }
 
         val toggleEnsoModeButton = gtk_menu_item_new_with_label("Toggle Enso Mode")!!.apply {
-            connectSignalWithData("activate", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+            connectToSignal("activate", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
                 val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
                 device.apply {
                     enso = !enso
@@ -196,7 +196,7 @@ fun Widget.activate(wraith: WraithPrism) {
         gtk_header_bar_pack_start(reinterpret(), dropdownMenuButton)
     }
 
-    resetButton.connectSignalWithData("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+    resetButton.connectToSignal("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
         val (device, widgets, buttons) = ptr.asStableRef<CallbackData>().get()
         device.restore()
         device.apply()
@@ -208,7 +208,7 @@ fun Widget.activate(wraith: WraithPrism) {
         buttons.forEach { it.setSensitive(false) }
     })
 
-    saveButton.connectSignalWithData("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+    saveButton.connectToSignal("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
         val (device, _, buttons) = ptr.asStableRef<CallbackData>().get()
         device.save()
         buttons.forEach { it.setSensitive(false) }
@@ -218,7 +218,7 @@ fun Widget.activate(wraith: WraithPrism) {
         saveOptionButtons.forEach { it.setSensitive(wraith.hasUnsavedChanges) }
     }
 
-    connectSignalWithData("delete-event", callbackPtr,
+    connectToSignal("delete-event", callbackPtr,
         staticCFunction<Widget, CPointer<GdkEvent>, COpaquePointer, Boolean> { window, _, ptr ->
             var returnValue = false
             val (prism, widgets, _) = ptr.asStableRef<CallbackData>().get()
@@ -258,7 +258,7 @@ fun Widget.activate(wraith: WraithPrism) {
 
 @OptIn(ExperimentalUnsignedTypes::class)
 private fun Widget.clearFocusOnClickOrEsc() {
-    connectSignalWithData("button-press-event", null,
+    connectToSignal("button-press-event", null,
         staticCFunction<Widget, CPointer<GdkEventButton>, Boolean> { it, event ->
             if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
                 gtk_window_set_focus(it.reinterpret(), null)
@@ -267,7 +267,7 @@ private fun Widget.clearFocusOnClickOrEsc() {
             false
         })
 
-    connectSignalWithData("key-press-event", null,
+    connectToSignal("key-press-event", null,
         staticCFunction<Widget, CPointer<GdkEventKey>, Boolean> { it, event ->
             if (event.pointed.type == GDK_KEY_PRESS && event.pointed.keyval == 0xFF1Bu) {
                 gtk_window_set_focus(it.reinterpret(), null)

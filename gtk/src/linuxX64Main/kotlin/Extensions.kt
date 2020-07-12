@@ -5,10 +5,12 @@ import gtk3.*
 import kotlinx.cinterop.*
 
 typealias Widget = CPointer<GtkWidget>
-typealias CallbackCFunction = CPointer<CFunction<(Widget, COpaquePointer) -> Unit>>
+typealias StandardCallbackFunc = CFunction<(Widget, COpaquePointer) -> Unit>
+typealias IconPressCallbackFunc = CFunction<(Widget, GtkEntryIconPosition, CPointer<GdkEvent>, COpaquePointer) -> Unit>
+typealias StateSetCallbackFunc = CFunction<(Widget, Int, COpaquePointer) -> Boolean>
 
 @OptIn(ExperimentalUnsignedTypes::class)
-fun <F : CFunction<*>> CPointer<*>.connectSignalWithData(signal: String, data: COpaquePointer?, action: CPointer<F>) =
+fun <F : CFunction<*>> CPointer<*>.connectToSignal(signal: String, data: COpaquePointer?, action: CPointer<F>) =
     g_signal_connect_data(reinterpret(), signal, action.reinterpret(), data, null, 0u)
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -66,26 +68,26 @@ fun comboBox(elements: List<String>, init: Widget.() -> Unit = {}) =
         init()
     }
 
-fun checkButton(label: String, data: COpaquePointer, action: CallbackCFunction) =
+fun checkButton(label: String, data: COpaquePointer, action: CPointer<StandardCallbackFunc>) =
     gtk_check_button_new_with_label(label)!!.apply {
-        connectSignalWithData("toggled", data, action)
+        connectToSignal("toggled", data, action)
     }
 
-fun colorButton(ptr: COpaquePointer, onColorChange: CallbackCFunction) = gtk_color_button_new()!!.apply {
+fun colorButton(ptr: COpaquePointer, onColorChange: CPointer<StandardCallbackFunc>) = gtk_color_button_new()!!.apply {
     gtk_color_button_set_use_alpha(reinterpret(), 0)
     gtk_widget_set_size_request(this, 96, -1)
-    connectSignalWithData("color-set", ptr, onColorChange)
+    connectToSignal("color-set", ptr, onColorChange)
 }
 
-fun iconButton(iconName: String, text: String?, ptr: COpaquePointer?, onClick: CallbackCFunction) =
+fun iconButton(iconName: String, text: String?, ptr: COpaquePointer?, onClick: CPointer<StandardCallbackFunc>) =
     gtk_button_new_from_icon_name(iconName, GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
         text?.let { gtk_button_set_label(reinterpret(), it) }
         gtk_button_set_always_show_image(reinterpret(), 1)
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-        connectSignalWithData("clicked", ptr, onClick)
+        connectToSignal("clicked", ptr, onClick)
     }
 
-fun gridScale(marks: Int, data: COpaquePointer, action: CallbackCFunction) =
+fun gridScale(marks: Int, data: COpaquePointer, action: CPointer<StandardCallbackFunc>) =
     gtk_adjustment_new(0.0, 0.0, marks.toDouble() - 1, 1.0, 0.0, 0.0)!!.let { adjustment ->
         gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {
             gtk_scale_set_digits(reinterpret(), 0)
@@ -96,7 +98,7 @@ fun gridScale(marks: Int, data: COpaquePointer, action: CallbackCFunction) =
             for (i in 0 until marks) {
                 gtk_scale_add_mark(reinterpret(), i.toDouble(), GtkPositionType.GTK_POS_BOTTOM, null)
             }
-        }.also { adjustment.connectSignalWithData("value-changed", data, action) }
+        }.also { adjustment.connectToSignal("value-changed", data, action) }
     }
 
 fun frequencySpinButton() = gtk_spin_button_new_with_range(45.0, 2000.0, 1.0)!!.apply {

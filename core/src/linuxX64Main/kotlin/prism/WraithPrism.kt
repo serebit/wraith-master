@@ -96,20 +96,21 @@ private fun Int.mirageFreqBytes(): List<Int> {
     return listOf(multiplicand, floor(rem % 1 * 256), floor(rem)).map { it.toInt() }
 }
 
-fun WraithPrism.enableFanMirage(redFreq: Int, greenFreq: Int, blueFreq: Int) {
-    // fix weird offsets by disabling fan mirage, then waiting for a bit before re-enabling
-    disableFanMirage()
-    memScoped {
-        nanosleep(alloc<timespec>().apply { tv_nsec = 22200000 }.ptr, null)
-    }
-    val (rm, ri, rd) = redFreq.mirageFreqBytes()
-    val (gm, gi, gd) = greenFreq.mirageFreqBytes()
-    val (bm, bi, bd) = blueFreq.mirageFreqBytes()
-    sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, rm, ri, rd, 3, gm, gi, gd, 4, bm, bi, bd)
-}
-
-fun WraithPrism.disableFanMirage() =
+fun WraithPrism.pushFanMirageState() = fan.mirageState.let { state ->
+    // always send the disable bytes
     sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, 0, 0xFF, 0x4A, 3, 0, 0xFF, 0x4A, 4, 0, 0xFF, 0x4A)
+
+    if (state is MirageState.On) {
+        // fix weird offsets by waiting for a bit before re-enabling
+        memScoped {
+            nanosleep(alloc<timespec>().apply { tv_nsec = 22200000 }.ptr, null)
+        }
+        val (rm, ri, rd) = state.redFreq.mirageFreqBytes()
+        val (gm, gi, gd) = state.greenFreq.mirageFreqBytes()
+        val (bm, bi, bd) = state.blueFreq.mirageFreqBytes()
+        sendBytes(0x51, 0x71, 0, 0, 1, 0, 0xFF, 0x4A, 2, rm, ri, rd, 3, gm, gi, gd, 4, bm, bi, bd)
+    }
+}
 
 fun WraithPrism.updateRingMorseText(text: String) {
     val chunks = text.parseMorseOrTextToBytes().also { ring.savedMorseBytes = it }.chunked(60)
@@ -151,7 +152,8 @@ fun WraithPrism.resetToDefault() {
         speed = Speed.MEDIUM
         brightness = Brightness.HIGH
     }
-    enableFanMirage(330, 330, 330)
+    fan.mirageState = MirageState.DEFAULT
+    pushFanMirageState()
 
     components.forEach { setChannelValues(it) }
     assignChannels()

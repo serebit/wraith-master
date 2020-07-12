@@ -11,77 +11,123 @@ import libusb.libusb_exit
 import kotlin.String as KString
 
 fun main(args: Array<KString>) {
-    if (args.singleOrNull() in listOf("-v", "--version"))
-        return println("Wraith Master, version ${programVersion ?: "unknown"}")
+    args.singleOrNull()?.let {
+        if (it in listOf("-v", "--version"))
+            return println("Wraith Master, version ${programVersion ?: "unknown"}")
 
-    if (args.singleOrNull() == "--firmware-version")
-        return modifyWraithPrism(false) {
-            println("The connected Wraith Prism has firmware version ${requestFirmwareVersion()}")
-        }
-
-    if (args.singleOrNull() == "--reset-to-default")
-        return modifyWraithPrism(false) {
-            resetToDefault()
-        }
-
-    if (args.singleOrNull() == "--toggle-enso")
-        return modifyWraithPrism(false) {
-            enso = !enso
-            if (enso) {
-                println("Enabled enso mode.")
-            } else {
-                println("Disabled enso mode. Settings have been reset to factory defaults.")
+        if (it in listOf("-f", "--firmwareversion"))
+            return modifyWraithPrism(false) {
+                println("The connected Wraith Prism has firmware version ${requestFirmwareVersion()}")
             }
-        }
+
+        if (it in listOf("-R", "--resettodefault"))
+            return modifyWraithPrism(false) {
+                resetToDefault()
+            }
+
+        if (it in listOf("-e", "--toggleenso"))
+            return modifyWraithPrism(false) {
+                enso = !enso
+                if (enso) {
+                    println("Enabled enso mode.")
+                } else {
+                    println("Disabled enso mode. Settings have been reset to factory defaults.")
+                }
+            }
+    }
 
     val parser = ArgParser("wraith-master")
 
     val component by parser.argument(ArgType.Choice(listOf("logo", "fan", "ring")))
 
-    val allModes: List<PrismMode> = (PrismRingMode.values().toList() + BasicPrismMode.values().toList())
-    val modeNames = allModes.map { it.name.toLowerCase() }.distinct()
+    val basicModes: List<KString> = BasicPrismMode.values().map { it.name.toLowerCase() }
+    val ringModes: List<KString> = PrismRingMode.values().map { it.name.toLowerCase() }
+    val modeNames = (basicModes union ringModes).toList()
 
     val mode by parser.option(
-        ArgType.Choice(modeNames), shortName = "m",
-        description = "(Modes ${modeNames - BasicPrismMode.values()
-            .map { it.name.toLowerCase() }} are only supported by ring component)"
+        ArgType.Choice(modeNames),
+        shortName = "m",
+        description = "(Modes $ringModes are only supported by ring component)"
     )
-    val color by parser.option(ColorArgType, shortName = "c")
-    val brightness by parser.option(ArgType.Int, shortName = "b", description = "Value from 1 to 3")
-    val speed by parser.option(ArgType.Int, shortName = "s", description = "Value from 1 to 5")
+
+    val color by parser.option(
+        ColorArgType,
+        shortName = "c",
+        description = "The color of the component's LEDs"
+    )
+
+    val brightness by parser.option(
+        ArgType.Int,
+        shortName = "b",
+        description = "The brightness of the component's LEDs. Value can range from 1 to 3"
+    )
+
+    val speed by parser.option(
+        ArgType.Int,
+        shortName = "s",
+        description = "The speed of the pattern for the component's LEDs. Value can range from 1 to 5"
+    )
+
     val direction by parser.option(
         ArgType.Choice(listOf("clockwise", "counterclockwise")),
-        shortName = "d", description = "Only supported by ring modes swirl and chase"
+        shortName = "d",
+        description = "The direction of the ring mode's rotation. Only supported by ring modes swirl and chase"
     )
-    val randomColor by parser.option(ArgType.Boolean, fullName = "random-color")
-    val mirage by parser.option(MirageArgType, description = "Enable or disable fan mirage")
+
+    val randomColor by parser.option(
+        ArgType.Boolean,
+        shortName = "r",
+        fullName = "randomcolor",
+        description = "Enables or disables random color cycling for the component's LEDs"
+    )
+
+    val mirage by parser.option(
+        MirageArgType,
+        shortName = "M",
+        description = "The fan LED mirage frequencies"
+    )
+
     val morseText by parser.option(
-        ArgType.String, "morse-text",
-        description = "Plaintext or morse code to apply to the morse code mode"
+        ArgType.String,
+        shortName = "t",
+        fullName = "morsetext",
+        description = "Plaintext or morse code for the ring to use when the morse mode is selected"
     )
-    val verbose by parser.option(ArgType.Boolean, description = "Print changes made to device LEDs to the console")
+
+    val verbose by parser.option(
+        ArgType.Boolean,
+        shortName = "V",
+        description = "Print changes made to device LEDs to the console"
+    )
 
     @Suppress("UNUSED_VARIABLE")
     val version by parser.option(
-        ArgType.Boolean, shortName = "v",
+        ArgType.Boolean,
+        shortName = "v",
         description = "Print program version and exit. Ignored unless run as the only argument"
     )
 
     @Suppress("UNUSED_VARIABLE")
     val resetToDefault by parser.option(
-        ArgType.Boolean, fullName = "reset-to-default",
+        ArgType.Boolean,
+        shortName = "R",
+        fullName = "resettodefault",
         description = "Resets the lights to their default configuration. Ignored unless run as the only argument"
     )
 
     @Suppress("UNUSED_VARIABLE")
     val toggleEnso by parser.option(
-        ArgType.Boolean, fullName = "toggle-enso",
+        ArgType.Boolean,
+        shortName = "e",
+        fullName = "toggleenso",
         description = "Toggles Enso mode. Erases all settings when enabled. Ignored unless run as the only argument"
     )
 
     @Suppress("UNUSED_VARIABLE")
     val firmwareVersion by parser.option(
-        ArgType.Boolean, fullName = "firmware-version",
+        ArgType.Boolean,
+        shortName = "f",
+        fullName = "firmwareversion",
         description = "Reports the firmware version of the connected cooler. Ignored unless run as the only argument"
     )
 
@@ -184,15 +230,18 @@ fun main(args: Array<KString>) {
                     prism.updateRingMorseText(it)
                 }
             } else if (prismComponent is PrismFanComponent) mirage?.let {
-                if (prismComponent.mode == BasicPrismMode.OFF)
+                if (prismComponent.mode == BasicPrismMode.OFF) {
                     shortCircuit("Currently selected mode does not support fan mirage")
+                }
+                prism.fan.mirageState = it
+                prism.pushFanMirageState()
 
-                if (it is MirageValues.On) {
-                    if (verbose == true) println("  Enabling mirage, setting frequencies to ${it.r},${it.g},${it.b}")
-                    prism.enableFanMirage(it.r, it.g, it.b)
-                } else {
-                    if (verbose == true) println("  Disabling mirage")
-                    prism.disableFanMirage()
+                if (verbose == true) {
+                    if (it is MirageState.On) {
+                        println("  Enabling mirage, setting frequencies to ${it.redFreq},${it.greenFreq},${it.blueFreq}")
+                    } else {
+                        println("  Disabling mirage")
+                    }
                 }
             }
 
@@ -201,28 +250,23 @@ fun main(args: Array<KString>) {
     }
 }
 
-private sealed class MirageValues {
-    class On(val r: Int, val g: Int, val b: Int) : MirageValues()
-    object Off : MirageValues()
-}
-
-private object MirageArgType : ArgType<MirageValues>(true) {
+private object MirageArgType : ArgType<MirageState>(true) {
     private val commaSeparatedChannelPattern = "(\\d{2,4}),(\\d{2,4}),(\\d{2,4})".toRegex() // r,g,b
 
     override val description = """{ Value should be three frequencies in the format "r,g,b", each within the range 
         |45-2000 (e.g. "330,330,330"), or one of the strings "on" or "off" }""".trimMargin().replace("\n", "")
 
-    override fun convert(value: KString, name: KString): MirageValues {
+    override fun convert(value: KString, name: KString): MirageState {
         commaSeparatedChannelPattern.matchEntire(value)
             ?.groupValues?.drop(1)
             ?.mapNotNull { it.toIntOrNull() }
             ?.filter { it in 45..2000 }
             ?.takeIf { it.size == 3 }
-            ?.let { return MirageValues.On(it[0], it[1], it[2]) }
+            ?.let { return MirageState.On(it[0], it[1], it[2]) }
 
         return when (value.toLowerCase()) {
-            "on" -> MirageValues.On(330, 330, 330)
-            "off" -> MirageValues.Off
+            "on" -> MirageState.On(330, 330, 330)
+            "off" -> MirageState.Off
             else -> error(
                 """Option $name is expected to be either three comma-separated values, or one of the strings
                 | "on" or "off".""".trimMargin().replace("\n", "")
@@ -236,7 +280,7 @@ private object ColorArgType : ArgType<Color>(true) {
     private val commaSeparatedChannelPattern = "(\\d{1,3}),(\\d{1,3}),(\\d{1,3})".toRegex() // r,g,b
     private val hexColorPattern = "#?[\\da-fA-F]{6}".toRegex() // RRGGBB
 
-    override val description = "{ Color with format r,g,b or RRGGBB }"
+    override val description = "{ Color with format r,g,b in decimal or RRGGBB in hex }"
     override fun convert(value: KString, name: KString): Color {
         commaSeparatedChannelPattern.matchEntire(value)
             ?.groupValues?.drop(1)

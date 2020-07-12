@@ -20,12 +20,13 @@ interface BasicPrismComponent : PrismComponent {
 }
 
 class BasicPrismComponentDelegate(initialValues: ChannelValues, override val channel: Int) : BasicPrismComponent {
-    override val modes: List<BasicPrismMode> = BasicPrismMode.values().toList()
     override lateinit var mode: BasicPrismMode
-    override var color = Color(0, 0, 0)
+    override lateinit var speed: Speed
+    override lateinit var brightness: Brightness
+    override lateinit var color: Color
     override var useRandomColor = false
-    override var speed = Speed.MEDIUM
-    override var brightness = Brightness.MEDIUM
+
+    override val modes: List<BasicPrismMode> = BasicPrismMode.values().toList()
     override var savedByteValues: List<Int> = emptyList()
 
     init {
@@ -35,9 +36,15 @@ class BasicPrismComponentDelegate(initialValues: ChannelValues, override val cha
 
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
         mode = BasicPrismMode.values().first { it.mode == channelValues.mode }
-        if (mode != BasicPrismMode.CYCLE) color = channelValues.color
-        if (mode.colorSupport == ColorSupport.ALL) useRandomColor = channelValues.colorSource == 0x80
-        speed = mode.speeds.indexOfOrNull(channelValues.speed)?.let { Speed.values()[it] } ?: Speed.MEDIUM
+
+        color = if (mode.colorSupport != ColorSupport.NONE) channelValues.color else Color.BLACK
+
+        useRandomColor = mode.colorSupport == ColorSupport.ALL && channelValues.colorSource == 0x80
+
+        speed = mode.speeds.indexOfOrNull(channelValues.speed)
+            ?.let { Speed.values()[it] }
+            ?: Speed.MEDIUM
+
         brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)
             ?.let { Brightness.values()[it] }
             ?: Brightness.MEDIUM
@@ -52,13 +59,10 @@ class BasicPrismComponentDelegate(initialValues: ChannelValues, override val cha
         }
 }
 
-class PrismLogoComponent(initialValues: ChannelValues) :
-    BasicPrismComponent by BasicPrismComponentDelegate(initialValues, 5)
+class PrismLogoComponent(initial: ChannelValues) : BasicPrismComponent by BasicPrismComponentDelegate(initial, 5)
 
-class PrismFanComponent(initialValues: ChannelValues) :
-    BasicPrismComponent by BasicPrismComponentDelegate(initialValues, 6) {
-
-    var mirage = false
+class PrismFanComponent(initial: ChannelValues) : BasicPrismComponent by BasicPrismComponentDelegate(initial, 6) {
+    var mirageState: MirageState = MirageState.Off // no hardware getter, so it starts as off due to being unknown
 }
 
 class PrismRingComponent(initialValues: ChannelValues) : PrismComponent {
@@ -80,12 +84,18 @@ class PrismRingComponent(initialValues: ChannelValues) : PrismComponent {
 
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
         mode = PrismRingMode.values().first { it.channel == channelValues.channel }
-        color = channelValues.let { if (mode.colorSupport != ColorSupport.NONE) it.color else Color(0, 0, 0) }
-        speed = mode.speeds.indexOfOrNull(channelValues.speed)?.let { Speed.values()[it] } ?: Speed.MEDIUM
+
+        color = if (mode.colorSupport != ColorSupport.NONE) channelValues.color else Color.BLACK
+
+        speed = mode.speeds.indexOfOrNull(channelValues.speed)
+            ?.let { Speed.values()[it] }
+            ?: Speed.MEDIUM
+
         brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)
             ?.let { Brightness.values()[it] }
             ?: Brightness.MEDIUM
-        if (mode.colorSupport == ColorSupport.ALL) useRandomColor = channelValues.colorSource and 0x80 != 0
+
+        useRandomColor = mode.colorSupport == ColorSupport.ALL && (channelValues.colorSource and 0x80 != 0)
 
         direction = if (mode.supportsDirection) {
             RotationDirection.values()[channelValues.colorSource and 1]
@@ -155,6 +165,15 @@ enum class PrismRingMode(
 data class Color(val r: Int, val g: Int, val b: Int) {
     companion object {
         val BLACK = Color(0, 0, 0)
+    }
+}
+
+sealed class MirageState {
+    class On(val redFreq: Int, val greenFreq: Int, val blueFreq: Int) : MirageState()
+    object Off : MirageState()
+
+    companion object {
+        val DEFAULT = On(330, 330, 330)
     }
 }
 
