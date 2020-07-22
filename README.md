@@ -26,13 +26,15 @@ Solus has both frontends in the official repository. They can be installed eithe
 
 #### Other Distributions
 
-There are precompiled binaries available for each release [here](https://gitlab.com/serebit/wraith-master/-/releases).
+There are precompiled binaries available for each release [here](https://gitlab.com/serebit/wraith-master/-/releases). For versions 1.0.0 and newer, prebuilt packages for Ubuntu/Debian and Fedora are also available on the releases page.
 
 ## Screenshots
 
 ![Screenshot][wraith-master-screenshot]
 
 ## Runtime Dependencies
+
+These dependencies only need to be manually installed if you either built the software yourself, or are using a standalone binary rather than a distribution package (which would prompt these dependencies to install).
 
 | Distribution       | Shared Dependencies           | GTK-Only                |
 |--------------------|-------------------------------|-------------------------|
@@ -42,6 +44,12 @@ There are precompiled binaries available for each release [here](https://gitlab.
 | OpenSUSE           |                               | `glib2`, `gtk3`         |
 | Solus              |                               |                         |
 | Gentoo             | `dev-libs/libusb`             | `gtk+`                  |
+
+## Architecture
+
+Wraith Master uses the Kotlin programming language and its LLVM backend (also known as Kotlin/Native). This backend provides semi-transparent interop with C libraries, which Wraith Master makes use of for two common libraries—libusb for communication with the Wraith Prism, and libgtk (version 3) for the graphical user interface. The backend itself also requires glibc to be in use, as explained above, though this may change in the future.
+
+As Kotlin/Native uses LLVM as its backend, it compiles directly to native executables of rather paltry size. This is one of the reasons Kotlin/Native was used over the more common JVM backend for Kotlin; a JVM is required to build the software, but not to use it.
 
 ## Building from Source
 
