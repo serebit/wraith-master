@@ -24,8 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Meta 
 - Remove `taskTree` gradle plugin, as it is no longer needed
 - Fix valgrind tasks
-- Update Kotlin to 1.4-M3
-- Update Gradle to 6.5.1
+- Update Kotlin to 1.4.0-rc
+- Update Gradle to 6.6-rc-3
 
 
 ## 1.0.0 (2020-05-10)

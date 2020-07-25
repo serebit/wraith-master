@@ -1,5 +1,6 @@
 plugins {
-    kotlin("multiplatform") version "1.4-M3" apply false
+    kotlin("multiplatform") version "1.4.0-rc" apply false
+    id("com.github.ben-manes.versions") version "0.29.0"
     base // to add clean task, for cleaning up package output
 }
 
