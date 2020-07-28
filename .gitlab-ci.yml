@@ -31,3 +31,27 @@ build:
       - README.md
       - LICENSE.md
       - FUNDING.yml
+
+release-tar:
+  stage: release
+  needs: build
+  when: manual
+  only: master
+  script: ./gradlew distTar
+  artifacts:
+    paths:
+      - "build/dist/*.tar.*"
+
+release-deb:
+  stage: release
+  needs: build
+  when: manual
+  only: master
+  script:
+    - ./gradlew install -Ppackageroot=build/debian/wraith-master
+    - install -D resources/debian-control.txt build/debian/wraith-master/DEBIAN/control
+    - cd debian
+    - dpkg-deb -b wraith-master
+  artifacts:
+    paths:
+      - "build/debian/wraith-master.deb"

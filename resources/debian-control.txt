@@ -1,0 +1,9 @@
+Package: wraith-master
+Version: 1.1.0-dev
+Section: custom
+Priority: optional
+Architecture: amd64
+Essential: no
+Installed-Size: 1024
+Maintainer: serebit
+Description: A Wraith Prism RGB control application for Linux, built with GTK+ and Kotlin/Native.
