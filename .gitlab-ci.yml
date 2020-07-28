@@ -34,7 +34,7 @@ build:
 
 release-tar:
   stage: release
-  needs: build
+  needs: [ build ]
   when: manual
   only:
     refs:
@@ -46,7 +46,7 @@ release-tar:
 
 release-deb:
   stage: release
-  needs: build
+  needs: [ build ]
   when: manual
   only:
     refs:
