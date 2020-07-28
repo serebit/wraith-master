@@ -33,7 +33,7 @@ build:
       - FUNDING.yml
 
 release-tar:
-  stage: release
+  stage: deploy
   needs: [ build ]
   when: manual
   only:
@@ -45,7 +45,7 @@ release-tar:
       - "build/dist/*.tar.*"
 
 release-deb:
-  stage: release
+  stage: deploy
   needs: [ build ]
   when: manual
   only:
