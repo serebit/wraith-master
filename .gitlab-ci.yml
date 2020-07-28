@@ -36,7 +36,9 @@ release-tar:
   stage: release
   needs: build
   when: manual
-  only: master
+  only:
+    refs:
+      - master
   script: ./gradlew distTar
   artifacts:
     paths:
@@ -46,7 +48,9 @@ release-deb:
   stage: release
   needs: build
   when: manual
-  only: master
+  only:
+    refs:
+      - master
   script:
     - ./gradlew install -Ppackageroot=build/debian/wraith-master
     - install -D resources/debian-control.txt build/debian/wraith-master/DEBIAN/control
