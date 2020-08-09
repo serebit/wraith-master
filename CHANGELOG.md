@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## Unreleased
+## 1.1.0 (2020-08-09)
 
 #### Added 
 - Firmware version reporting
@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove `taskTree` gradle plugin, as it is no longer needed
 - Fix valgrind tasks
 - Update Kotlin to 1.4.0-rc
-- Update Gradle to 6.6-rc-3
+- Update Gradle to 6.6-rc-6
 
 
 ## 1.0.0 (2020-05-10)
