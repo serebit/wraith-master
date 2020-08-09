@@ -15,9 +15,7 @@ kotlin.linuxX64 {
 }
 
 tasks.register("package") {
-    dependsOn("linkReleaseExecutableLinuxX64")
-    dependsOn("linuxX64ProcessResources")
-    dependsOn(":core:package")
+    dependsOn(":core:package", "linkReleaseExecutableLinuxX64", "linuxX64ProcessResources")
 
     doLast {
         val shouldStrip = properties["strip"] !in listOf(null, "false")
@@ -29,8 +27,7 @@ tasks.register("package") {
 }
 
 tasks.register("install") {
-    dependsOn("package")
-    dependsOn(":core:package")
+    dependsOn(":core:install", "package")
 
     doLast {
         val installMode = properties["installmode"] as? String

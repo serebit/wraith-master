@@ -15,8 +15,7 @@ allprojects {
 }
 
 tasks.register("distTar") {
-    dependsOn(":cli:package")
-    dependsOn(":gtk:package")
+    dependsOn(":cli:package", ":gtk:package")
 
     doLast {
         val packageDir = buildDir.resolve("package")

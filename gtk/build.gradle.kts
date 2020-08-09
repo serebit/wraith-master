@@ -29,9 +29,7 @@ kotlin.linuxX64 {
 }
 
 tasks.register("package") {
-    dependsOn("linkReleaseExecutableLinuxX64")
-    dependsOn("linuxX64ProcessResources")
-    dependsOn(":core:package")
+    dependsOn(":core:package", "linkReleaseExecutableLinuxX64", "linuxX64ProcessResources")
 
     doLast {
         val packageDir = rootProject.buildDir.resolve("package")
@@ -53,8 +51,7 @@ tasks.register("package") {
 }
 
 tasks.register("install") {
-    dependsOn("package")
-    dependsOn(":core:install")
+    dependsOn(":core:install", "package")
 
     doLast {
         val packageDir = rootProject.buildDir.resolve("package")
