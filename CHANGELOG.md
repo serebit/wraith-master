@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - More precise finding of `version.txt`, allowing version detection if the `installdir` is set to something other than `/usr` or `/usr/local`
 - Clear focus on click in the About dialog box
 - Prevent potentially weird behavior or crashing with better memory management
+- [#10](https://gitlab.com/serebit/wraith-master/-/issues/10) - Remove "plugdev" group requirement to resolve udev error on Fedora
 
 #### Meta 
 - Remove `taskTree` gradle plugin, as it is no longer needed
