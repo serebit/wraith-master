@@ -154,6 +154,10 @@ class FanWidgets(wraith: WraithPrism) : PrismComponentWidgets<PrismFanComponent>
     }
 
     override fun extraReload() {
+        gtk_switch_set_state(
+            mirageToggle.reinterpret(),
+            (component.mirageState is MirageState.On).toByte().toInt()
+        )
         mirageToggle.setSensitive(component.mode != BasicPrismMode.OFF && !device.enso)
         mirageReload.setSensitive(component.mode != BasicPrismMode.OFF && !device.enso)
         (mirageFreqSpinners + mirageLabels).forEach {
