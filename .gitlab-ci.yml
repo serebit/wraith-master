@@ -52,7 +52,7 @@ release-deb:
     refs:
       - master
   script:
-    - ./gradlew install -Ppackageroot=build/debian/wraith-master
+    - ./gradlew install -Ppackageroot=$CI_PROJECT_DIR/build/debian/wraith-master
     - install -D resources/debian-control.txt build/debian/wraith-master/DEBIAN/control
     - cd build/debian
     - dpkg-deb -b wraith-master
