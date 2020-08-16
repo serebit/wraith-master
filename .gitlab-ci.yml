@@ -30,6 +30,7 @@ build:
     changes:
       - README.md
       - LICENSE.md
+      - CHANGELOG.md
       - FUNDING.yml
 
 release-tar:
