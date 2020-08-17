@@ -16,14 +16,10 @@ kotlin.linuxX64 {
             includePaths.associateWith { headers }.flatMap { (key, value) -> value.map { key + it } }.also {
                 includeDirs(*it.toTypedArray())
             }
-
-            // extra includes
-            includeDirs(
-                "/opt/local/lib/glib-2.0/include",
-                "/usr/lib/x86_64-linux-gnu/glib-2.0/include",
-                "/usr/local/lib/glib-2.0/include"
-            )
         }
+
+        kotlinOptions.freeCompilerArgs = listOf("-Xallocator=mimalloc")
+
         binaries.executable { entryPoint = "com.serebit.wraith.gtk.main" }
     }
 }

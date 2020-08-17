@@ -1,16 +1,16 @@
 package com.serebit.wraith.core.prism
 
-import cnames.structs.libusb_device_handle
+import hidapi.hid_close
+import hidapi.hid_device
+import hidapi.hid_read
+import hidapi.hid_write
 import kotlinx.cinterop.*
-import libusb.libusb_close
-import libusb.libusb_interrupt_transfer
-import libusb.libusb_release_interface
 import platform.posix.nanosleep
 import platform.posix.timespec
 import kotlin.math.floor
 
 @OptIn(ExperimentalUnsignedTypes::class)
-class WraithPrism(private val handle: CPointer<libusb_device_handle>) {
+class WraithPrism(private val handle: CPointer<hid_device>) {
     val components get() = listOf(logo, fan, ring)
     val logo: PrismLogoComponent
     val fan: PrismFanComponent
@@ -28,19 +28,14 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>) {
     }
 
     fun sendBytes(vararg bytes: Int, filler: Int = 0): List<Int> {
-        transfer(ENDPOINT_OUT, UByteArray(64) { (bytes.getOrNull(it) ?: filler).toUByte() })
-        return transfer(ENDPOINT_IN, UByteArray(64))
+        return transfer(UByteArray(64) { (bytes.getOrNull(it) ?: filler).toUByte() }).map { it.toInt() }
     }
 
-    private fun transfer(endpoint: UByte, bytes: UByteArray) = memScoped {
-        val byteValues = bytes.toCValues().ptr
-        libusb_interrupt_transfer(handle, endpoint, byteValues, bytes.size, null, 1000u).let { err ->
-            check(err == 0) { "Failed to transfer to device endpoint $endpoint with error code $err." }
-        }
-        byteValues.pointed.readValues(bytes.size)
-            .getBytes()
-            .toUByteArray()
-            .map { byte -> byte.toInt() }
+    private fun transfer(writeBytes: UByteArray): UByteArray = memScoped {
+        hid_write(handle, writeBytes.toCValues().ptr, writeBytes.size.toULong())
+        val readBytes = UByteArray(writeBytes.size).toCValues().ptr
+        hid_read(handle, readBytes, writeBytes.size.toULong())
+        readBytes.pointed.readValues(writeBytes.size).getBytes().toUByteArray()
     }
 
     fun setChannelValues(component: PrismComponent) =
@@ -52,16 +47,7 @@ class WraithPrism(private val handle: CPointer<libusb_device_handle>) {
     fun getChannels() = sendBytes(0x52, 0xA0, 1, 0, 0, 3, 0, 0)
     fun getChannelValues(channel: Int) = ChannelValues(sendBytes(0x52, 0x2C, 1, 0, channel))
 
-    fun close() {
-        libusb_release_interface(handle, HID_INTERFACE)
-        libusb_close(handle)
-    }
-
-    companion object {
-        private const val ENDPOINT_IN: UByte = 0x83u
-        private const val ENDPOINT_OUT: UByte = 4u
-        private const val HID_INTERFACE: Int = 1
-    }
+    fun close() = hid_close(handle)
 }
 
 class ChannelValues(private val values: List<Int>) {

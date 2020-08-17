@@ -9,6 +9,7 @@ kotlin.linuxX64 {
             languageSettings.useExperimentalAnnotation("kotlin.Experimental")
         }
         enableEndorsedLibs = true
+        kotlinOptions.freeCompilerArgs = listOf("-Xallocator=mimalloc")
     }
 
     binaries.executable { entryPoint = "com.serebit.wraith.cli.main" }
