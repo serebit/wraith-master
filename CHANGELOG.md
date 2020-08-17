@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased - Branch 1.2.0-dev
 
+#### Changed 
+- **Switched from libusb to HIDAPI**. This requires an update of your installed udev rules if you installed Wraith Master manually. 
+
 #### Meta 
 - Updated Kotlin to 1.4.0
 
