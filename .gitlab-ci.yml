@@ -35,7 +35,8 @@ build:
 
 release-tar:
   stage: deploy
-  needs: [ build ]
+  dependencies:
+    - build
   when: manual
   only:
     refs:
@@ -47,7 +48,8 @@ release-tar:
 
 release-deb:
   stage: deploy
-  needs: [ build ]
+  dependencies:
+    - build
   when: manual
   only:
     refs:
