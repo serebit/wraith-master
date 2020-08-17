@@ -8,6 +8,8 @@ kotlin.linuxX64().compilations["main"].apply {
     cinterops.create("hidapi") {
         includeDirs("/opt/local/include", "/usr/include", "/usr/local/include")
     }
+
+    kotlinOptions.freeCompilerArgs = listOf("-Xallocator=mimalloc")
 }
 
 tasks.register("package") {
