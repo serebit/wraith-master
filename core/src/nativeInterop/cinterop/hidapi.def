@@ -1,0 +1,4 @@
+headers = hidapi/hidapi.h
+headerFilter = hidapi/*
+package = hidapi
+linkerOpts.linux = -L/usr/lib -L/usr/lib64 -L/usr/lib/x86_64-linux-gnu -lhidapi-hidraw

@@ -17,3 +17,6 @@ out/
 
 # IntelliJ process attachment files
 .attach_pid*
+
+# JVM heap dump
+*.hprof

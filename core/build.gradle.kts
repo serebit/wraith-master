@@ -5,7 +5,7 @@ plugins {
 kotlin.linuxX64().compilations["main"].apply {
     defaultSourceSet.languageSettings.useExperimentalAnnotation("kotlin.Experimental")
 
-    cinterops.create("libusb") {
+    cinterops.create("hidapi") {
         includeDirs("/opt/local/include", "/usr/include", "/usr/local/include")
     }
 }

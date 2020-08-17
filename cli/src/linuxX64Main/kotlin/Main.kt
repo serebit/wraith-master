@@ -1,13 +1,12 @@
 package com.serebit.wraith.cli
 
 import com.serebit.wraith.core.DeviceResult
-import com.serebit.wraith.core.initLibusb
 import com.serebit.wraith.core.obtainWraithPrism
 import com.serebit.wraith.core.prism.*
 import com.serebit.wraith.core.programVersion
+import hidapi.hid_exit
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
-import libusb.libusb_exit
 import kotlin.String as KString
 
 fun main(args: Array<KString>) {
@@ -132,8 +131,6 @@ fun main(args: Array<KString>) {
     )
 
     parser.parse(args)
-
-    initLibusb()
 
     if (verbose == true) print("Opening interface to device... ")
     when (val result: DeviceResult = obtainWraithPrism()) {
@@ -307,8 +304,6 @@ private object ColorArgType : ArgType<Color>(true) {
 }
 
 private fun modifyWraithPrism(verbose: Boolean?, task: WraithPrism.() -> Unit) {
-    initLibusb()
-
     if (verbose == true) print("Opening interface to device... ")
     when (val result: DeviceResult = obtainWraithPrism()) {
         is DeviceResult.Failure -> error(result.message)
@@ -324,7 +319,7 @@ private fun modifyWraithPrism(verbose: Boolean?, task: WraithPrism.() -> Unit) {
         }
     }
 
-    libusb_exit(null)
+    hid_exit()
 }
 
 private fun WraithPrism.finalize(component: PrismComponent, verbose: Boolean?) {
@@ -333,5 +328,6 @@ private fun WraithPrism.finalize(component: PrismComponent, verbose: Boolean?) {
     assignChannels()
     apply()
     save()
+    hid_exit()
     if (verbose == true) println("Done.")
 }

@@ -1,13 +1,12 @@
 package com.serebit.wraith.gtk
 
 import com.serebit.wraith.core.DeviceResult
-import com.serebit.wraith.core.initLibusb
 import com.serebit.wraith.core.obtainWraithPrism
 import com.serebit.wraith.core.prism.*
 import com.serebit.wraith.core.programVersion
 import gtk3.*
+import hidapi.hid_exit
 import kotlinx.cinterop.*
-import libusb.libusb_exit
 import kotlin.system.exitProcess
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -15,7 +14,6 @@ fun main(args: Array<String>) {
     val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
     val status: Int
 
-    initLibusb()
     val result = obtainWraithPrism()
 
     when (result) {
@@ -53,7 +51,7 @@ fun main(args: Array<String>) {
     g_object_unref(app)
 
     if (result is DeviceResult.Success) result.prism.close()
-    libusb_exit(null)
+    hid_exit()
 
     if (status != 0) exitProcess(status)
 }
