@@ -9,13 +9,14 @@ kotlin.linuxX64 {
             languageSettings.useExperimentalAnnotation("kotlin.Experimental")
         }
         enableEndorsedLibs = true
+
         kotlinOptions.freeCompilerArgs = listOf("-Xallocator=mimalloc")
     }
 
     binaries.executable { entryPoint = "com.serebit.wraith.cli.main" }
 }
 
-tasks.register("package") {
+val `package` by tasks.registering {
     dependsOn(":core:package", "linkReleaseExecutableLinuxX64", "linuxX64ProcessResources")
 
     doLast {
@@ -28,7 +29,7 @@ tasks.register("package") {
 }
 
 tasks.register("install") {
-    dependsOn(":core:install", "package")
+    dependsOn(":core:install", `package`)
 
     doLast {
         val installMode = properties["installmode"] as? String
