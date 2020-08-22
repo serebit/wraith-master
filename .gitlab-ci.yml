@@ -54,7 +54,7 @@ release-deb:
   dependencies: [ build ]
   when: manual
   only:
-    refs: [ master ]
+    refs: [ release ]
   script:
     - gradle install -Ppackageroot=$CI_PROJECT_DIR/build/debian/wraith-master
     - install -D resources/debian-control.txt build/debian/wraith-master/DEBIAN/control
