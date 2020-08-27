@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Meta 
 - Update Kotlin to 1.4.0
-- Update Gradle to 6.6
+- Update Gradle wrapper to 6.6.1
 
 
 ## 1.1.0 (2020-08-09)
