@@ -25,7 +25,7 @@ tasks.register("distTar") {
 
             tempDir.resolve("wraith-master").setExecutable(true)
             tempDir.resolve("wraith-master-gtk").setExecutable(true)
-            exec { workingDir = temporaryDir; commandLine("tar", "-cJf", tarballName, tempDir.name) }
+            exec { workingDir = temporaryDir; commandLine("tar", "-cf", tarballName, tempDir.name) }
         }
 
         temporaryDir.resolve(tarballName).copyTo(buildDir.resolve("dist/$tarballName"), true)
