@@ -1,7 +1,12 @@
 [Desktop Entry]
-Version=1.0
+Encoding=UTF-8
+Version=1.1
 Type=Application
+
+TryExec=wraith-master-gtk
+Exec=wraith-master-gtk
+
 Name=Wraith Master
 Comment=An application for controlling the RGB LEDs on the AMD Wraith Prism CPU cooler
-Exec=wraith-master-gtk
+Categories=System;Monitor;HardwareSettings;GTK
 Icon=wraith-master
