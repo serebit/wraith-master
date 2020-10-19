@@ -8,6 +8,10 @@ variables:
   KONAN_DEPS: "clang-llvm-8.0.0-linux-x86-64 libffi-3.2.1-2-linux-x86-64 target-gcc-toolchain-3-linux-x86-64 lldb-2-linux"
 
 before_script:
+  # invalidate Gradle caches if the Gradle version changed
+  - if [[ ! -f gradle_checksum.txt || $(sha256sum /usr/bin/gradle) != $(cat gradle_checksum.txt) ]]; then
+  - rm -rf $GRADLE_USER_HOME/caches/ .gradle/*.*/
+  - fi
   - mkdir -p "$KONAN_DEPS_CACHE" "$KONAN_DATA_DIR/dependencies/"
   - for DEP in $KONAN_DEPS; do
   - if [ ! -f "$KONAN_DEPS_CACHE/$DEP.tar.gz" ]; then
@@ -20,6 +24,7 @@ before_script:
 after_script:
   - rm -f "$GRADLE_USER_HOME/caches/**/"{*.lock,gc.properties}
   - find "$GRADLE_USER_HOME/caches/" -type d -empty -delete
+  - sha256sum /usr/bin/gradle > gradle_checksum.txt
 
 cache: &global_cache
   key: one-key-to-rule-them-all
@@ -30,6 +35,7 @@ cache: &global_cache
     - $KONAN_DEPS_CACHE/
     - .gradle/{*.*,buildOutputCleanup}/
     - ./**/build/{classes,bin}/
+    - gradle_checksum.txt
   policy: pull
 
 build:
@@ -46,6 +52,8 @@ release-tar:
   only:
     refs: [ release ]
   script: gradle distTar
+  cache:
+    <<: *global_cache
   artifacts:
     paths: [ "build/dist/*.tar.*" ]
 
@@ -61,5 +69,7 @@ release-deb:
     - install -D resources/debian-control.txt build/debian/wraith-master/DEBIAN/control
     - cd build/debian
     - dpkg-deb -b wraith-master
+  cache:
+    <<: *global_cache
   artifacts:
     paths: [ "build/debian/*.deb" ]
