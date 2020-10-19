@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased - 1.2.0-dev
 
 #### Changed 
-- Switch from libusb to HIDAPI. This makes the startup time of the GTK frontend, and the execution time of the CLI frontend, about 5x faster. Requires an update of your installed udev rules if you installed Wraith Master manually—if you installed via a distro package (`deb`, `rpm`, AUR, Solus, etc), this update to the udev rules will be performed automatically. 
+- Removed `libusb_reset_device` call in initialization code. Makes initialization time 27x faster, which results in a 10x speedup for the CLI frontend (tested on my machine, may vary by hardware)
 - Switch to the experimental mimalloc allocator for Kotlin object allocation, which slightly improves runtime performance and memory usage
 
 #### Fixed
@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Meta 
 - Update Kotlin to 1.4.10
-- Update Gradle wrapper to 6.6.1
+- Update Gradle wrapper to 6.7
 
 
 ## 1.1.0 (2020-08-09)

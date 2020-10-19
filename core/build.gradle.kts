@@ -5,7 +5,7 @@ plugins {
 kotlin.linuxX64().compilations["main"].apply {
     defaultSourceSet.languageSettings.useExperimentalAnnotation("kotlin.Experimental")
 
-    cinterops.create("hidapi") {
+    cinterops.create("libusb") {
         includeDirs("/opt/local/include", "/usr/include", "/usr/local/include")
     }
 
@@ -54,7 +54,7 @@ tasks.register("install") {
             val udevDir = if (packageRoot != null) {
                 file(packageRoot).resolve(udevPath.removePrefix("/")).resolve("rules.d")
             } else {
-                file(installDirPath).resolve("rules.d")
+                file(udevPath).resolve("rules.d")
             }
 
             resourcesDir.resolve("99-wraith-master.rules")

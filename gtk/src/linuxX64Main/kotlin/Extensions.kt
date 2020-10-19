@@ -68,17 +68,6 @@ fun comboBox(elements: List<String>, init: Widget.() -> Unit = {}) =
         init()
     }
 
-fun checkButton(label: String, data: COpaquePointer, action: CPointer<StandardCallbackFunc>) =
-    gtk_check_button_new_with_label(label)!!.apply {
-        connectToSignal("toggled", data, action)
-    }
-
-fun colorButton(ptr: COpaquePointer, onColorChange: CPointer<StandardCallbackFunc>) = gtk_color_button_new()!!.apply {
-    gtk_color_button_set_use_alpha(reinterpret(), 0)
-    gtk_widget_set_size_request(this, 96, -1)
-    connectToSignal("color-set", ptr, onColorChange)
-}
-
 fun iconButton(iconName: String, text: String?, ptr: COpaquePointer?, onClick: CPointer<StandardCallbackFunc>) =
     gtk_button_new_from_icon_name(iconName, GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
         text?.let { gtk_button_set_label(reinterpret(), it) }
@@ -114,21 +103,23 @@ fun Widget.getRgbaAsColor(): Color = memScoped {
         .run { Color((255 * red).toInt(), (255 * green).toInt(), (255 * blue).toInt()) }
 }
 
-inline fun <C : PrismComponent> WraithPrism.update(component: C, task: C.() -> Unit) {
-    component.task()
-    setChannelValues(component)
-    assignChannels()
-    apply()
-}
+@OptIn(ExperimentalUnsignedTypes::class)
+fun Widget.clearFocusOnClickOrEsc() {
+    connectToSignal("button-press-event", null,
+        staticCFunction<Widget, CPointer<GdkEventButton>, Boolean> { it, event ->
+            if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
+                gtk_window_set_focus(it.reinterpret(), null)
+                gtk_window_set_focus_visible(it.reinterpret(), 0)
+            }
+            false
+        })
 
-fun WraithPrism.updateMode(widgets: PrismComponentWidgets<*>, comboBox: Widget) = update(widgets.component) {
-    val text = gtk_combo_box_text_get_active_text(comboBox.reinterpret())!!.toKString()
-    when (this) {
-        is PrismRingComponent -> {
-            mode = PrismRingMode.valueOf(text.toUpperCase())
-            assignValuesFromChannel(getChannelValues(mode.channel))
-        }
-        is BasicPrismComponent -> mode = BasicPrismMode.valueOf(text.toUpperCase())
-    }
-    widgets.reload()
+    connectToSignal("key-press-event", null,
+        staticCFunction<Widget, CPointer<GdkEventKey>, Boolean> { it, event ->
+            if (event.pointed.type == GDK_KEY_PRESS && event.pointed.keyval == 0xFF1Bu) {
+                gtk_window_set_focus(it.reinterpret(), null)
+                gtk_window_set_focus_visible(it.reinterpret(), 0)
+            }
+            false
+        })
 }

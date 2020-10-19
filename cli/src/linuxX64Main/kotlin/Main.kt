@@ -4,35 +4,27 @@ import com.serebit.wraith.core.DeviceResult
 import com.serebit.wraith.core.obtainWraithPrism
 import com.serebit.wraith.core.prism.*
 import com.serebit.wraith.core.programVersion
-import hidapi.hid_exit
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlin.String as KString
 
 fun main(args: Array<KString>) {
-    args.singleOrNull()?.let {
-        if (it in listOf("-v", "--version"))
-            return println("Wraith Master, version ${programVersion ?: "unknown"}")
-
-        if (it in listOf("-f", "--firmwareversion"))
-            return modifyWraithPrism(false) {
-                println("The connected Wraith Prism has firmware version ${requestFirmwareVersion()}")
+    when (args.singleOrNull()) {
+        "-v", "--version" -> return println("Wraith Master, version ${programVersion ?: "unknown"}")
+        "-f", "--firmwareversion" -> return modifyWraithPrism(false) {
+            println("The connected Wraith Prism has firmware version ${requestFirmwareVersion()}")
+        }
+        "-R", "--resettodefault" -> return modifyWraithPrism(false) {
+            resetToDefault()
+        }
+        "-e", "--toggleenso" -> return modifyWraithPrism(false) {
+            enso = !enso
+            if (enso) {
+                println("Enabled enso mode.")
+            } else {
+                println("Disabled enso mode. Settings have been reset to factory defaults.")
             }
-
-        if (it in listOf("-R", "--resettodefault"))
-            return modifyWraithPrism(false) {
-                resetToDefault()
-            }
-
-        if (it in listOf("-e", "--toggleenso"))
-            return modifyWraithPrism(false) {
-                enso = !enso
-                if (enso) {
-                    println("Enabled enso mode.")
-                } else {
-                    println("Disabled enso mode. Settings have been reset to factory defaults.")
-                }
-            }
+        }
     }
 
     val parser = ArgParser("wraith-master")
@@ -200,13 +192,13 @@ fun main(args: Array<KString>) {
             }
 
             brightness?.let {
-                if (!prismComponent.mode.supportsBrightness)
+                if (prismComponent.mode.brightnesses.isEmpty())
                     shortCircuit("Currently selected mode does not support setting the brightness level")
                 if (verbose == true) println("  Setting brightness to level $it")
                 prismComponent.brightness = Brightness.values()[it - 1]
             }
             speed?.let {
-                if (!prismComponent.mode.supportsSpeed)
+                if (prismComponent.mode.speeds.isEmpty())
                     shortCircuit("Currently selected mode does not support the speed setting")
                 if (verbose == true) println("  Setting speed to level $it")
                 prismComponent.speed = Speed.values()[it - 1]
@@ -250,8 +242,8 @@ fun main(args: Array<KString>) {
 private object MirageArgType : ArgType<MirageState>(true) {
     private val commaSeparatedChannelPattern = "(\\d{2,4}),(\\d{2,4}),(\\d{2,4})".toRegex() // r,g,b
 
-    override val description = """{ Value should be three frequencies in the format "r,g,b", each within the range 
-        |45-2000 (e.g. "330,330,330"), or one of the strings "on" or "off" }""".trimMargin().replace("\n", "")
+    override val description =
+        """{ Value should be three frequencies in the format "r,g,b", each within the range 45-2000 (e.g. "330,330,330"), or one of the strings "on" or "off" }"""
 
     override fun convert(value: KString, name: KString): MirageState {
         commaSeparatedChannelPattern.matchEntire(value)
@@ -264,10 +256,7 @@ private object MirageArgType : ArgType<MirageState>(true) {
         return when (value.toLowerCase()) {
             "on" -> MirageState.On(330, 330, 330)
             "off" -> MirageState.Off
-            else -> error(
-                """Option $name is expected to be either three comma-separated values, or one of the strings
-                | "on" or "off".""".trimMargin().replace("\n", "")
-            )
+            else -> error("""Option $name is expected to be either three comma-separated values, or one of the strings "on" or "off".""")
         }
     }
 }
@@ -294,12 +283,7 @@ private object ColorArgType : ArgType<Color>(true) {
                 return Color(r, g, b)
             }
 
-        error(
-            """
-                |Option $name is expected to be a color, either represented by channel values separated by commas (such 
-                |as 255,128,0) or a hex color (such as 03A9F4).
-            """.trimMargin().replace("\n", "")
-        )
+        error("""Option $name is expected to be a color, either represented by channel values separated by commas (such as 255,128,0) or a hex color (such as 03A9F4).""")
     }
 }
 
@@ -318,16 +302,14 @@ private fun modifyWraithPrism(verbose: Boolean?, task: WraithPrism.() -> Unit) {
             if (verbose == true) println("Done.")
         }
     }
-
-    hid_exit()
 }
 
-private fun WraithPrism.finalize(component: PrismComponent, verbose: Boolean?) {
+private fun WraithPrism.finalize(component: PrismComponent<*>, verbose: Boolean?) {
     if (verbose == true) print("Applying changes...")
-    setChannelValues(component)
+    component.submitValues()
     assignChannels()
     apply()
     save()
-    hid_exit()
+    close()
     if (verbose == true) println("Done.")
 }

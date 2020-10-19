@@ -1,54 +1,56 @@
 package com.serebit.wraith.core.prism
 
-interface PrismComponent {
+import com.serebit.wraith.core.UsbInterface
+
+interface PrismComponent<M : PrismMode> {
+    var mode: M
     val byteValues: List<Int>
     var savedByteValues: List<Int>
 
-    val mode: PrismMode
-    val modes: List<PrismMode>
     val channel: Int
     var color: Color
     var speed: Speed
     var brightness: Brightness
     var useRandomColor: Boolean
 
-    fun assignValuesFromChannel(channelValues: ChannelValues)
+    fun reloadValues()
+    fun submitValues()
 }
 
-interface BasicPrismComponent : PrismComponent {
-    override var mode: BasicPrismMode
+private fun PrismComponent<*>.assignCommonValuesFromChannel(mode: PrismMode, channelValues: ChannelValues) {
+    color = if (mode.colorSupport != ColorSupport.NONE) channelValues.color else Color.BLACK
+    useRandomColor = mode.colorSupport == ColorSupport.ALL && (channelValues.colorSource and 0x80 != 0)
+
+    speed = mode.speeds.indexOfOrNull(channelValues.speed)
+        ?.let { Speed.values()[it] }
+        ?: Speed.MEDIUM
+
+    brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)
+        ?.let { Brightness.values()[it] }
+        ?: Brightness.MEDIUM
 }
 
-class BasicPrismComponentDelegate(initialValues: ChannelValues, override val channel: Int) : BasicPrismComponent {
+class BasicPrismComponentDelegate(private val usb: UsbInterface, override val channel: Int) :
+    PrismComponent<BasicPrismMode> {
     override lateinit var mode: BasicPrismMode
     override lateinit var speed: Speed
     override lateinit var brightness: Brightness
     override lateinit var color: Color
     override var useRandomColor = false
-
-    override val modes: List<BasicPrismMode> = BasicPrismMode.values().toList()
     override var savedByteValues: List<Int> = emptyList()
 
     init {
-        assignValuesFromChannel(initialValues)
+        reloadValues()
         savedByteValues = byteValues
     }
 
-    override fun assignValuesFromChannel(channelValues: ChannelValues) {
+    override fun reloadValues() {
+        val channelValues = usb.fetchChannelValues(channel)
         mode = BasicPrismMode.values().first { it.mode == channelValues.mode }
-
-        color = if (mode.colorSupport != ColorSupport.NONE) channelValues.color else Color.BLACK
-
-        useRandomColor = mode.colorSupport == ColorSupport.ALL && channelValues.colorSource == 0x80
-
-        speed = mode.speeds.indexOfOrNull(channelValues.speed)
-            ?.let { Speed.values()[it] }
-            ?: Speed.MEDIUM
-
-        brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)
-            ?.let { Brightness.values()[it] }
-            ?: Brightness.MEDIUM
+        assignCommonValuesFromChannel(mode, channelValues)
     }
+
+    override fun submitValues() = usb.submitChannelValues(byteValues)
 
     override val byteValues: List<Int>
         get() {
@@ -59,14 +61,15 @@ class BasicPrismComponentDelegate(initialValues: ChannelValues, override val cha
         }
 }
 
-class PrismLogoComponent(initial: ChannelValues) : BasicPrismComponent by BasicPrismComponentDelegate(initial, 5)
+class PrismLogoComponent(usb: UsbInterface, channel: Int) :
+    PrismComponent<BasicPrismMode> by BasicPrismComponentDelegate(usb, channel)
 
-class PrismFanComponent(initial: ChannelValues) : BasicPrismComponent by BasicPrismComponentDelegate(initial, 6) {
+class PrismFanComponent(usb: UsbInterface, channel: Int) :
+    PrismComponent<BasicPrismMode> by BasicPrismComponentDelegate(usb, channel) {
     var mirageState: MirageState = MirageState.Off // no hardware getter, so it starts as off due to being unknown
 }
 
-class PrismRingComponent(initialValues: ChannelValues) : PrismComponent {
-    override val modes: List<PrismRingMode> = PrismRingMode.values().toList()
+class PrismRingComponent(private val usb: UsbInterface, channel: Int) : PrismComponent<PrismRingMode> {
     override lateinit var mode: PrismRingMode
     override val channel: Int get() = mode.channel
     override lateinit var color: Color
@@ -78,31 +81,23 @@ class PrismRingComponent(initialValues: ChannelValues) : PrismComponent {
     var savedMorseBytes: List<Int>? = null
 
     init {
-        assignValuesFromChannel(initialValues)
+        mode = PrismRingMode.values().first { it.channel == channel }
+        reloadValues()
         savedByteValues = byteValues
     }
 
-    override fun assignValuesFromChannel(channelValues: ChannelValues) {
+    override fun reloadValues() {
+        val channelValues = usb.fetchChannelValues(channel)
         mode = PrismRingMode.values().first { it.channel == channelValues.channel }
-
-        color = if (mode.colorSupport != ColorSupport.NONE) channelValues.color else Color.BLACK
-
-        speed = mode.speeds.indexOfOrNull(channelValues.speed)
-            ?.let { Speed.values()[it] }
-            ?: Speed.MEDIUM
-
-        brightness = mode.brightnesses.indexOfOrNull(channelValues.brightness)
-            ?.let { Brightness.values()[it] }
-            ?: Brightness.MEDIUM
-
-        useRandomColor = mode.colorSupport == ColorSupport.ALL && (channelValues.colorSource and 0x80 != 0)
-
         direction = if (mode.supportsDirection) {
             RotationDirection.values()[channelValues.colorSource and 1]
         } else {
             RotationDirection.CLOCKWISE
         }
+        assignCommonValuesFromChannel(mode, channelValues)
     }
+
+    override fun submitValues() = usb.submitChannelValues(byteValues)
 
     override val byteValues: List<Int>
         get() {
@@ -182,5 +177,9 @@ enum class Speed { SLOWEST, SLOW, MEDIUM, FAST, FASTEST }
 enum class Brightness { LOW, MEDIUM, HIGH }
 enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE }
 
-val PrismMode.supportsBrightness get() = brightnesses.isNotEmpty()
-val PrismMode.supportsSpeed get() = speeds.isNotEmpty()
+private fun UsbInterface.fetchChannelValues(channel: Int): ChannelValues =
+    ChannelValues(sendBytes(0x52, 0x2C, 1, 0, channel))
+
+private fun UsbInterface.submitChannelValues(byteValues: List<Int>) {
+    sendBytes(0x51, 0x2C, 1, 0, *byteValues.toIntArray(), 0, 0, 0, filler = 0xFF)
+}

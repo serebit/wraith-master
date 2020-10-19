@@ -2,11 +2,12 @@ package com.serebit.wraith.gtk
 
 import com.serebit.wraith.core.DeviceResult
 import com.serebit.wraith.core.obtainWraithPrism
-import com.serebit.wraith.core.prism.*
-import com.serebit.wraith.core.programVersion
+import com.serebit.wraith.core.prism.WraithPrism
+import com.serebit.wraith.core.prism.hasUnsavedChanges
+import com.serebit.wraith.core.prism.resetToDefault
 import gtk3.*
-import hidapi.hid_exit
 import kotlinx.cinterop.*
+import libusb.libusb_exit
 import kotlin.system.exitProcess
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -51,7 +52,7 @@ fun main(args: Array<String>) {
     g_object_unref(app)
 
     if (result is DeviceResult.Success) result.prism.close()
-    hid_exit()
+    libusb_exit(null)
 
     if (status != 0) exitProcess(status)
 }
@@ -79,34 +80,6 @@ fun CPointer<GtkApplication>.createWindowOrNull(addWidgets: Widget.() -> Unit): 
         gtk_widget_show_all(this)
     } else null
 
-fun runAboutDialog() {
-    gtk_about_dialog_new()!!.apply {
-        gtk_about_dialog_set_program_name(reinterpret(), "Wraith Master")
-        gtk_about_dialog_set_logo_icon_name(reinterpret(), "wraith-master")
-        gtk_about_dialog_set_version(reinterpret(), programVersion?.let { "Version $it" } ?: "Unknown Version")
-        gtk_about_dialog_set_website(reinterpret(), "https://gitlab.com/serebit/wraith-master")
-        gtk_about_dialog_set_website_label(reinterpret(), "Visit on GitLab")
-        gtk_about_dialog_set_copyright(
-            reinterpret(),
-            "Copyright © 2020 Campbell Jones\nLicensed under the Apache License 2.0"
-        )
-        clearFocusOnClickOrEsc()
-        gtk_dialog_run(reinterpret())
-        gtk_widget_destroy(this)
-    }
-}
-
-@OptIn(ExperimentalUnsignedTypes::class)
-fun runNoExtraWindowsDialog() {
-    gtk_message_dialog_new(
-        null, 0u, GtkMessageType.GTK_MESSAGE_INFO, GtkButtonsType.GTK_BUTTONS_OK, "%s",
-        "Cannot open extra Wraith Master windows."
-    )?.let {
-        gtk_dialog_run(it.reinterpret())
-        gtk_widget_destroy(it)
-    }
-}
-
 @OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.activate(wraith: WraithPrism) {
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.also { gtk_container_add(reinterpret(), it) }
@@ -133,7 +106,7 @@ fun Widget.activate(wraith: WraithPrism) {
 
     data class CallbackData(
         val wraith: WraithPrism,
-        val widgets: List<PrismComponentWidgets<*>>,
+        val widgets: List<PrismComponentWidgets>,
         val buttons: List<Widget>
     )
 
@@ -198,10 +171,7 @@ fun Widget.activate(wraith: WraithPrism) {
         val (device, widgets, buttons) = ptr.asStableRef<CallbackData>().get()
         device.restore()
         device.apply()
-        val channels = device.getChannels()
-        device.components.forEachIndexed { i, it ->
-            it.assignValuesFromChannel(device.getChannelValues(channels[i + 8]))
-        }
+        device.components.forEach { it.reloadValues() }
         widgets.forEach { it.reload() }
         buttons.forEach { it.setSensitive(false) }
     })
@@ -251,26 +221,5 @@ fun Widget.activate(wraith: WraithPrism) {
             }
 
             returnValue
-        })
-}
-
-@OptIn(ExperimentalUnsignedTypes::class)
-private fun Widget.clearFocusOnClickOrEsc() {
-    connectToSignal("button-press-event", null,
-        staticCFunction<Widget, CPointer<GdkEventButton>, Boolean> { it, event ->
-            if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
-                gtk_window_set_focus(it.reinterpret(), null)
-                gtk_window_set_focus_visible(it.reinterpret(), 0)
-            }
-            false
-        })
-
-    connectToSignal("key-press-event", null,
-        staticCFunction<Widget, CPointer<GdkEventKey>, Boolean> { it, event ->
-            if (event.pointed.type == GDK_KEY_PRESS && event.pointed.keyval == 0xFF1Bu) {
-                gtk_window_set_focus(it.reinterpret(), null)
-                gtk_window_set_focus_visible(it.reinterpret(), 0)
-            }
-            false
         })
 }
