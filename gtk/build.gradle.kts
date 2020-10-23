@@ -34,10 +34,18 @@ val `package` by tasks.registering {
         val resourcesDir = projectDir.resolve("resources")
 
         val shouldStrip = properties["strip"].let { it is String && (it.isEmpty() || it == "true") }
+        val useGcompat = properties["usegcompat"].let { it is String && (it.isEmpty() || it == "true") }
+
         buildDir.resolve("bin/linuxX64/releaseExecutable/gtk.kexe")
             .copyTo(packageDir.resolve("wraith-master-gtk"), overwrite = true)
-            .also { if (shouldStrip) exec { commandLine("strip", it.absolutePath) } }
-            .setExecutable(true)
+            .also {
+                if (shouldStrip) exec {
+                    commandLine("strip", it.absolutePath)
+                }
+                if (useGcompat) exec {
+                    commandLine("patchelf", "--replace-needed", "libresolv.so.2", "libgcompat.so.0", it.absolutePath)
+                }
+            }.setExecutable(true)
 
         resourcesDir.resolve("wraith-master.svg")
             .copyTo(packageResourcesDir.resolve("wraith-master.svg"), overwrite = true)

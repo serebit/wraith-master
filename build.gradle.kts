@@ -17,11 +17,10 @@ tasks.register("distTar") {
     dependsOn(":cli:package", ":gtk:package")
 
     doLast {
-        val packageDir = buildDir.resolve("package")
         val tarballName = "wraith-master-$version.tar.xz"
 
         temporaryDir.resolve("wraith-master").also { tempDir ->
-            packageDir.copyRecursively(tempDir, true)
+            buildDir.resolve("package").copyRecursively(tempDir, true)
 
             tempDir.resolve("wraith-master").setExecutable(true)
             tempDir.resolve("wraith-master-gtk").setExecutable(true)

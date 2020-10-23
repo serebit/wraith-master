@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased - 1.2.0-dev
 
+#### Added 
+- [#3](https://gitlab.com/serebit/wraith-master/-/issues/3) - Partial support for Void, Alpine, Adélie, and other distributions that use musl! Users of these distributions can download the precompiled `-gcompat` tarball. 
+
 #### Changed 
 - Removed `libusb_reset_device` call in initialization code. Makes initialization time 27x faster, which results in a 10x speedup for the CLI frontend (tested on my machine, may vary by hardware)
 
