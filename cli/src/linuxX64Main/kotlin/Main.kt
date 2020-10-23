@@ -170,7 +170,7 @@ fun main(args: Array<KString>) {
             if (verbose == true) println("Modifying component $component")
 
             mode?.let {
-                if (verbose == true) println("  Setting mode to $it")
+                if (verbose == true) println("\tSetting mode to $it")
                 when (prismComponent) {
                     is BasicPrismComponentDelegate -> prismComponent.mode = BasicPrismMode.valueOf(it.toUpperCase())
                     is PrismRingComponent -> prismComponent.mode = PrismRingMode.valueOf(it.toUpperCase())
@@ -180,13 +180,13 @@ fun main(args: Array<KString>) {
             randomColor?.let {
                 if (prismComponent.mode.colorSupport != ColorSupport.ALL)
                     shortCircuit("Currently selected mode does not support color randomization")
-                if (verbose == true) println("  ${if (it) "Enabling" else "Disabling"} color randomization")
+                if (verbose == true) println("\t${if (it) "Enabling" else "Disabling"} color randomization")
                 prismComponent.useRandomColor = it
             }
             color?.let {
                 if (prismComponent.mode.colorSupport == ColorSupport.NONE)
                     shortCircuit("Currently selected mode does not support setting a color")
-                if (verbose == true) println("  Setting color to ${it.r},${it.g},${it.b}")
+                if (verbose == true) println("\tSetting color to ${it.r},${it.g},${it.b}")
                 prismComponent.color = it
                 prismComponent.useRandomColor = false
             }
@@ -194,13 +194,13 @@ fun main(args: Array<KString>) {
             brightness?.let {
                 if (prismComponent.mode.brightnesses.isEmpty())
                     shortCircuit("Currently selected mode does not support setting the brightness level")
-                if (verbose == true) println("  Setting brightness to level $it")
+                if (verbose == true) println("\tSetting brightness to level $it")
                 prismComponent.brightness = Brightness.values()[it - 1]
             }
             speed?.let {
                 if (prismComponent.mode.speeds.isEmpty())
                     shortCircuit("Currently selected mode does not support the speed setting")
-                if (verbose == true) println("  Setting speed to level $it")
+                if (verbose == true) println("\tSetting speed to level $it")
                 prismComponent.speed = Speed.values()[it - 1]
             }
 
@@ -208,14 +208,14 @@ fun main(args: Array<KString>) {
                 direction?.let {
                     if (!prismComponent.mode.supportsDirection)
                         shortCircuit("Currently selected mode does not support the rotation direction setting")
-                    if (verbose == true) println("  Setting rotation direction to $it")
+                    if (verbose == true) println("\tSetting rotation direction to $it")
                     prismComponent.direction = RotationDirection.valueOf(it.toUpperCase())
                 }
 
                 morseText?.let {
                     if (prismComponent.mode != PrismRingMode.MORSE)
                         shortCircuit("Can't set morse text on any modes other than morse")
-                    if (verbose == true) println("  Setting morse text to \"$it\"")
+                    if (verbose == true) println("\tSetting morse text to \"$it\"")
                     prism.updateRingMorseText(it)
                 }
             } else if (prismComponent is PrismFanComponent) mirage?.let {
@@ -227,9 +227,9 @@ fun main(args: Array<KString>) {
 
                 if (verbose == true) {
                     if (it is MirageState.On) {
-                        println("  Enabling mirage, setting frequencies to ${it.redFreq},${it.greenFreq},${it.blueFreq}")
+                        println("\tEnabling mirage, setting frequencies to ${it.redFreq},${it.greenFreq},${it.blueFreq}")
                     } else {
-                        println("  Disabling mirage")
+                        println("\tDisabling mirage")
                     }
                 }
             }
