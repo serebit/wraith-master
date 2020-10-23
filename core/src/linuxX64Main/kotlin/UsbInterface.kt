@@ -2,27 +2,28 @@ package com.serebit.wraith.core
 
 import cnames.structs.libusb_device_handle
 import kotlinx.cinterop.*
-import libusb.libusb_close
-import libusb.libusb_interrupt_transfer
-import libusb.libusb_release_interface
+import libusb.*
 
-@OptIn(ExperimentalUnsignedTypes::class)
-class UsbInterface(private val requestSize: Int, private val handle: CPointer<libusb_device_handle>) {
-    fun sendBytes(vararg bytes: Int, filler: Int = 0): List<Int> {
-        return transfer(UByteArray(requestSize) { (bytes.getOrNull(it) ?: filler).toUByte() }).map { it.toInt() }
-    }
+class TransferError(val code: Int) : Throwable(libusb_strerror(code)!!.toKString())
 
-    private fun transfer(outBytes: UByteArray): UByteArray = memScoped {
-        libusb_interrupt_transfer(handle, ENDPOINT_OUT, outBytes.toCValues(), requestSize, null, TIMEOUT)
-
-        allocArray<UByteVar>(requestSize).also { inBytes ->
-            libusb_interrupt_transfer(handle, ENDPOINT_IN, inBytes, requestSize, null, TIMEOUT)
-        }.pointed.readValues(requestSize).getBytes().toUByteArray()
+internal class UsbInterface(private val requestSize: Int, private val handle: CPointer<libusb_device_handle>) {
+    fun sendBytes(vararg bytes: UByte, filler: UByte = 0u): List<UByte> = memScoped {
+        val outBytes = UByteArray(requestSize) { (bytes.getOrNull(it) ?: filler).toUByte() }
+        transfer(ENDPOINT_OUT, outBytes.toCValues().ptr)
+        return transfer(ENDPOINT_IN, allocArray(requestSize)).toList()
     }
 
     fun close() {
         libusb_release_interface(handle, HID_INTERFACE)
         libusb_close(handle)
+    }
+
+    private fun transfer(endpoint: UByte, bytes: CPointer<UByteVar>): UByteArray {
+        val err = libusb_interrupt_transfer(handle, endpoint, bytes, requestSize, null, TIMEOUT)
+        if (err != LIBUSB_SUCCESS) {
+            throw TransferError(err)
+        }
+        return bytes.pointed.readValues(requestSize).getBytes().toUByteArray()
     }
 
     companion object {

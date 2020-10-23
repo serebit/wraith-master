@@ -21,7 +21,6 @@ fun runAboutDialog() {
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 fun runNoExtraWindowsDialog() {
     gtk_message_dialog_new(
         null, 0u, GtkMessageType.GTK_MESSAGE_INFO, GtkButtonsType.GTK_BUTTONS_OK, "%s",

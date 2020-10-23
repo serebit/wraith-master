@@ -4,10 +4,10 @@ import com.serebit.wraith.core.UsbInterface
 
 interface PrismComponent<M : PrismMode> {
     var mode: M
-    val byteValues: List<Int>
-    var savedByteValues: List<Int>
+    val byteValues: List<UByte>
+    var savedByteValues: List<UByte>
 
-    val channel: Int
+    val channel: UByte
     var color: Color
     var speed: Speed
     var brightness: Brightness
@@ -19,7 +19,7 @@ interface PrismComponent<M : PrismMode> {
 
 private fun PrismComponent<*>.assignCommonValuesFromChannel(mode: PrismMode, channelValues: ChannelValues) {
     color = if (mode.colorSupport != ColorSupport.NONE) channelValues.color else Color.BLACK
-    useRandomColor = mode.colorSupport == ColorSupport.ALL && (channelValues.colorSource and 0x80 != 0)
+    useRandomColor = mode.colorSupport == ColorSupport.ALL && (channelValues.colorSource and 0x80u != 0.toUByte())
 
     speed = mode.speeds.indexOfOrNull(channelValues.speed)
         ?.let { Speed.values()[it] }
@@ -30,14 +30,14 @@ private fun PrismComponent<*>.assignCommonValuesFromChannel(mode: PrismMode, cha
         ?: Brightness.MEDIUM
 }
 
-class BasicPrismComponentDelegate(private val usb: UsbInterface, override val channel: Int) :
+class BasicPrismComponentDelegate internal constructor(private val usb: UsbInterface, override val channel: UByte) :
     PrismComponent<BasicPrismMode> {
     override lateinit var mode: BasicPrismMode
     override lateinit var speed: Speed
     override lateinit var brightness: Brightness
     override lateinit var color: Color
     override var useRandomColor = false
-    override var savedByteValues: List<Int> = emptyList()
+    override var savedByteValues: List<UByte> = emptyList()
 
     init {
         reloadValues()
@@ -52,33 +52,34 @@ class BasicPrismComponentDelegate(private val usb: UsbInterface, override val ch
 
     override fun submitValues() = usb.submitChannelValues(byteValues)
 
-    override val byteValues: List<Int>
+    override val byteValues: List<UByte>
         get() {
-            val brightness = mode.brightnesses.elementAtOrNull(brightness.ordinal) ?: 0
-            val speed = mode.speeds.elementAtOrNull(speed.ordinal) ?: 0x2C
-            val colorSource = if (useRandomColor) 0x80 else 0x20
-            return listOf(channel, speed, colorSource, mode.mode, 0xFF, brightness, color.r, color.g, color.b)
+            val brightness: UByte = mode.brightnesses.elementAtOrNull(brightness.ordinal) ?: 0u
+            val speed: UByte = mode.speeds.elementAtOrNull(speed.ordinal) ?: 0x2Cu
+            val colorSource: UByte = if (useRandomColor) 0x80u else 0x20u
+            return listOf(channel, speed, colorSource, mode.mode, 0xFFu, brightness, color.r, color.g, color.b)
         }
 }
 
-class PrismLogoComponent(usb: UsbInterface, channel: Int) :
+class PrismLogoComponent internal constructor(usb: UsbInterface, channel: UByte) :
     PrismComponent<BasicPrismMode> by BasicPrismComponentDelegate(usb, channel)
 
-class PrismFanComponent(usb: UsbInterface, channel: Int) :
+class PrismFanComponent internal constructor(usb: UsbInterface, channel: UByte) :
     PrismComponent<BasicPrismMode> by BasicPrismComponentDelegate(usb, channel) {
     var mirageState: MirageState = MirageState.Off // no hardware getter, so it starts as off due to being unknown
 }
 
-class PrismRingComponent(private val usb: UsbInterface, channel: Int) : PrismComponent<PrismRingMode> {
+class PrismRingComponent internal constructor(private val usb: UsbInterface, channel: UByte) :
+    PrismComponent<PrismRingMode> {
     override lateinit var mode: PrismRingMode
-    override val channel: Int get() = mode.channel
+    override val channel: UByte get() = mode.channel
     override lateinit var color: Color
     override var useRandomColor = false
     override var speed = Speed.MEDIUM
     override var brightness = Brightness.MEDIUM
     lateinit var direction: RotationDirection
-    override var savedByteValues: List<Int> = emptyList()
-    var savedMorseBytes: List<Int>? = null
+    override var savedByteValues: List<UByte> = emptyList()
+    var savedMorseBytes: List<UByte>? = null
 
     init {
         mode = PrismRingMode.values().first { it.channel == channel }
@@ -87,10 +88,10 @@ class PrismRingComponent(private val usb: UsbInterface, channel: Int) : PrismCom
     }
 
     override fun reloadValues() {
-        val channelValues = usb.fetchChannelValues(channel)
+        val channelValues = usb.fetchChannelValues(mode.channel)
         mode = PrismRingMode.values().first { it.channel == channelValues.channel }
         direction = if (mode.supportsDirection) {
-            RotationDirection.values()[channelValues.colorSource and 1]
+            RotationDirection.values()[channelValues.colorSource.toInt() and 1]
         } else {
             RotationDirection.CLOCKWISE
         }
@@ -99,67 +100,73 @@ class PrismRingComponent(private val usb: UsbInterface, channel: Int) : PrismCom
 
     override fun submitValues() = usb.submitChannelValues(byteValues)
 
-    override val byteValues: List<Int>
+    override val byteValues: List<UByte>
         get() {
-            val brightness = mode.brightnesses.elementAtOrNull(brightness.ordinal) ?: 0x99
-            val speed = if (mode != PrismRingMode.MORSE) {
-                mode.speeds.elementAtOrNull(speed.ordinal) ?: 0xFF
-            } else 0x6B
-            val colorSource = when {
+            val brightness: UByte = mode.brightnesses.elementAtOrNull(brightness.ordinal) ?: 0x99u
+            val speed: UByte = if (mode != PrismRingMode.MORSE) {
+                mode.speeds.elementAtOrNull(speed.ordinal) ?: 0xFFu
+            } else 0x6Bu
+            val colorSource: UByte = when {
                 mode.colorSupport == ColorSupport.ALL && useRandomColor ->
-                    0x80.let { if (mode.supportsDirection) it + direction.ordinal else it }
-                mode.supportsDirection -> direction.ordinal
+                    if (mode.supportsDirection) {
+                        (0x80 + direction.ordinal).toUByte()
+                    } else {
+                        0.toUByte()
+                    }
+                mode.supportsDirection -> direction.ordinal.toUByte()
                 else -> mode.colorSource
             }
-            return listOf(mode.channel, speed, colorSource, mode.mode, 0xFF, brightness, color.r, color.g, color.b)
+            return listOf(mode.channel, speed, colorSource, mode.mode, 0xFFu, brightness, color.r, color.g, color.b)
         }
 }
 
-private fun List<Int>.indexOfOrNull(value: Int) = indexOf(value).let { if (it == -1) null else it }
+private fun <T> List<T>.indexOfOrNull(value: T) = indexOf(value).let { if (it == -1) null else it }
 
 interface PrismMode {
     val name: String
     val ordinal: Int
-    val mode: Int
-    val speeds: List<Int>
-    val brightnesses: List<Int>
+    val mode: UByte
+    val speeds: List<UByte>
+    val brightnesses: List<UByte>
     val colorSupport: ColorSupport
 }
 
 enum class BasicPrismMode(
-    override val mode: Int,
-    override val speeds: List<Int> = emptyList(),
-    override val brightnesses: List<Int> = listOf(0x4C, 0x99, 0xFF),
+    override val mode: UByte,
+    override val speeds: List<UByte> = emptyList(),
+    override val brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
     override val colorSupport: ColorSupport = ColorSupport.NONE
 ) : PrismMode {
-    OFF(0, brightnesses = emptyList()),
-    STATIC(1, colorSupport = ColorSupport.SPECIFIC),
-    CYCLE(2, listOf(0x96, 0x8C, 0x80, 0x6E, 0x68), listOf(0x10, 0x40, 0x7F)),
-    BREATHE(3, listOf(0x3C, 0x37, 0x31, 0x2C, 0x26), colorSupport = ColorSupport.ALL)
+    OFF(0u, brightnesses = emptyList()),
+    STATIC(1u, colorSupport = ColorSupport.SPECIFIC),
+    CYCLE(2u, listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u), listOf(0x10u, 0x40u, 0x7Fu)),
+    BREATHE(3u, listOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), colorSupport = ColorSupport.ALL)
 }
 
 enum class PrismRingMode(
-    val channel: Int, override val mode: Int,
-    override val speeds: List<Int> = emptyList(),
-    override val brightnesses: List<Int> = listOf(0x4C, 0x99, 0xFF),
+    val channel: UByte, override val mode: UByte,
+    override val speeds: List<UByte> = emptyList(),
     override val colorSupport: ColorSupport = ColorSupport.NONE,
+    override val brightnesses: List<UByte> = listOf(0x4Cu, 0x99u, 0xFFu),
     val supportsDirection: Boolean = false,
-    val colorSource: Int = 0x20
+    val colorSource: UByte = 0x20u
 ) : PrismMode {
-    OFF(0xFE, 0, brightnesses = emptyList()),
-    STATIC(0, 0xFF, colorSupport = ColorSupport.SPECIFIC),
-    RAINBOW(7, 5, listOf(0x72, 0x68, 0x64, 0x62, 0x61), colorSource = 0),
-    SWIRL(0xA, 0x4A, listOf(0x77, 0x74, 0x6E, 0x6B, 0x67), colorSupport = ColorSupport.ALL, supportsDirection = true),
-    CHASE(9, 0xC3, listOf(0x77, 0x74, 0x6E, 0x6B, 0x67), colorSupport = ColorSupport.ALL, supportsDirection = true),
-    BOUNCE(8, 0xFF, listOf(0x77, 0x74, 0x6E, 0x6B, 0x67), colorSource = 0x80),
-    MORSE(0xB, 5, brightnesses = emptyList(), colorSupport = ColorSupport.ALL, colorSource = 0),
-    CYCLE(2, 0xFF, listOf(0x96, 0x8C, 0x80, 0x6E, 0x68), listOf(0x10, 0x40, 0x7F)),
-    BREATHE(1, 0xFF, listOf(0x3C, 0x37, 0x31, 0x2C, 0x26), colorSupport = ColorSupport.ALL)
+    OFF(0xFEu, 0u, brightnesses = emptyList()),
+    STATIC(0u, 0xFFu, colorSupport = ColorSupport.SPECIFIC),
+    RAINBOW(7u, 5u, listOf(0x72u, 0x68u, 0x64u, 0x62u, 0x61u), colorSource = 0u),
+    SWIRL(0xAu, 0x4Au, listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u), ColorSupport.ALL, supportsDirection = true),
+    CHASE(9u, 0xC3u, listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u), ColorSupport.ALL, supportsDirection = true),
+    BOUNCE(8u, 0xFFu, listOf(0x77u, 0x74u, 0x6Eu, 0x6Bu, 0x67u), colorSource = 0x80u),
+    MORSE(0xBu, 5u, colorSupport = ColorSupport.ALL, brightnesses = emptyList(), colorSource = 0u),
+    CYCLE(2u, 0xFFu, listOf(0x96u, 0x8Cu, 0x80u, 0x6Eu, 0x68u), brightnesses = listOf(0x10u, 0x40u, 0x7Fu)),
+    BREATHE(1u, 0xFFu, listOf(0x3Cu, 0x37u, 0x31u, 0x2Cu, 0x26u), ColorSupport.ALL)
 }
 
-data class Color(val r: Int, val g: Int, val b: Int) {
+class Color(val r: UByte, val g: UByte, val b: UByte) {
+    constructor(r: Int, g: Int, b: Int) : this(r.toUByte(), g.toUByte(), b.toUByte())
+
     companion object {
-        val BLACK = Color(0, 0, 0)
+        val BLACK = Color(0u, 0u, 0u)
     }
 }
 
@@ -177,9 +184,9 @@ enum class Speed { SLOWEST, SLOW, MEDIUM, FAST, FASTEST }
 enum class Brightness { LOW, MEDIUM, HIGH }
 enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE }
 
-private fun UsbInterface.fetchChannelValues(channel: Int): ChannelValues =
-    ChannelValues(sendBytes(0x52, 0x2C, 1, 0, channel))
+private fun UsbInterface.fetchChannelValues(channel: UByte): ChannelValues =
+    ChannelValues(sendBytes(0x52u, 0x2Cu, 1u, 0u, channel))
 
-private fun UsbInterface.submitChannelValues(byteValues: List<Int>) {
-    sendBytes(0x51, 0x2C, 1, 0, *byteValues.toIntArray(), 0, 0, 0, filler = 0xFF)
+private fun UsbInterface.submitChannelValues(byteValues: List<UByte>) {
+    sendBytes(0x51u, 0x2Cu, 1u, 0u, *byteValues.toUByteArray(), 0u, 0u, 0u, filler = 0xFFu)
 }

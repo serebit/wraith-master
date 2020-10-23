@@ -3,7 +3,6 @@ package com.serebit.wraith.core
 import kotlinx.cinterop.*
 import platform.posix.*
 
-@OptIn(ExperimentalUnsignedTypes::class)
 val programVersion = memScoped {
     val pathBuffer = allocArray<ByteVar>(PATH_MAX)
     val nchar = readlink("/proc/self/exe", pathBuffer, PATH_MAX)

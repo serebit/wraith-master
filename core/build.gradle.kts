@@ -3,25 +3,27 @@ plugins {
 }
 
 kotlin.linuxX64().compilations["main"].apply {
-    defaultSourceSet.languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+    defaultSourceSet.languageSettings.apply {
+        useExperimentalAnnotation("kotlin.RequiresOptIn")
+        useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
+    }
 
     cinterops.create("libusb") {
         includeDirs("/opt/local/include", "/usr/include", "/usr/local/include")
     }
-
-    kotlinOptions.freeCompilerArgs = listOf("-Xallocator=mimalloc")
 }
 
 tasks.register("package") {
     dependsOn("build")
 
     doLast {
-        val resourcesDir = rootProject.buildDir.resolve("package/resources")
+        val packageResourcesDir = rootProject.buildDir.resolve("package/resources")
+        val resourcesDir = projectDir.resolve("resources")
 
-        buildDir.resolve("processedResources/linuxX64/main/99-wraith-master.rules")
-            .copyTo(resourcesDir.resolve("99-wraith-master.rules"), overwrite = true)
+        resourcesDir.resolve("99-wraith-master.rules")
+            .copyTo(packageResourcesDir.resolve("99-wraith-master.rules"), overwrite = true)
 
-        resourcesDir.resolve("version.txt").writeText(version.toString())
+        packageResourcesDir.resolve("version.txt").writeText(version.toString())
     }
 }
 

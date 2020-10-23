@@ -1,6 +1,7 @@
 package com.serebit.wraith.gtk
 
 import com.serebit.wraith.core.DeviceResult
+import com.serebit.wraith.core.TransferError
 import com.serebit.wraith.core.obtainWraithPrism
 import com.serebit.wraith.core.prism.WraithPrism
 import com.serebit.wraith.core.prism.hasUnsavedChanges
@@ -10,7 +11,6 @@ import kotlinx.cinterop.*
 import libusb.libusb_exit
 import kotlin.system.exitProcess
 
-@OptIn(ExperimentalUnsignedTypes::class)
 fun main(args: Array<String>) {
     val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
     val status: Int
@@ -48,7 +48,13 @@ fun main(args: Array<String>) {
             })
     }
 
-    status = memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
+    status = try {
+        memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
+    } catch (err: TransferError) {
+        err.printStackTrace()
+        1
+    }
+
     g_object_unref(app)
 
     if (result is DeviceResult.Success) result.prism.close()
@@ -57,7 +63,6 @@ fun main(args: Array<String>) {
     if (status != 0) exitProcess(status)
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 fun CPointer<GtkApplication>.createWindowOrNull(addWidgets: Widget.() -> Unit): Widget? =
     if (gtk_application_get_active_window(this) == null) gtk_application_window_new(this)!!.apply {
         clearFocusOnClickOrEsc()
@@ -80,7 +85,6 @@ fun CPointer<GtkApplication>.createWindowOrNull(addWidgets: Widget.() -> Unit): 
         gtk_widget_show_all(this)
     } else null
 
-@OptIn(ExperimentalUnsignedTypes::class)
 fun Widget.activate(wraith: WraithPrism) {
     val box = gtk_box_new(GtkOrientation.GTK_ORIENTATION_VERTICAL, 0)!!.also { gtk_container_add(reinterpret(), it) }
     val mainNotebook = gtk_notebook_new()!!.apply {

@@ -4,6 +4,9 @@ import com.serebit.wraith.core.prism.*
 import gtk3.*
 import kotlinx.cinterop.*
 
+typealias IconPressCallbackFunc = CFunction<(Widget, GtkEntryIconPosition, CPointer<GdkEvent>, COpaquePointer) -> Unit>
+typealias StateSetCallbackFunc = CFunction<(Widget, Int, COpaquePointer) -> Boolean>
+
 sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out PrismMode>) {
     abstract val component: PrismComponent<*>
     protected val callbackPtr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
@@ -39,7 +42,11 @@ sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out Pri
         gtk_widget_set_size_request(this, 96, -1)
         connectToSignal<StandardCallbackFunc>("color-set", callbackPtr, staticCFunction { widget, ptr ->
             ptr.useCallbackPtr<PrismComponentWidgets> { wraith, widgets ->
-                widgets.component.color = widget.getRgbaAsColor()
+                widgets.component.color = memScoped {
+                    alloc<GdkRGBA>()
+                        .also { gtk_color_button_get_rgba(widget.reinterpret(), it.ptr) }
+                        .run { Color((255 * red).toInt(), (255 * green).toInt(), (255 * blue).toInt()) }
+                }
                 wraith.apply()
             }
         })
@@ -74,8 +81,7 @@ sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out Pri
         }
     })
 
-    @OptIn(ExperimentalUnsignedTypes::class)
-    val colorBox = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
+    private val colorBox = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
         gtk_box_pack_end(reinterpret(), colorButton, 0, 0, 0u)
         gtk_box_pack_end(reinterpret(), randomizeColorCheckbox, 0, 0, 0u)
     }
@@ -141,7 +147,6 @@ class LogoWidgets(device: WraithPrism) : PrismComponentWidgets(device, BasicPris
     override val component = device.logo
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 class FanWidgets(device: WraithPrism) : PrismComponentWidgets(device, BasicPrismMode.values()) {
     override val component = device.fan
 
@@ -165,7 +170,14 @@ class FanWidgets(device: WraithPrism) : PrismComponentWidgets(device, BasicPrism
         })
     }
 
-    private val mirageFreqSpinners = List(3) { frequencySpinButton() } // red, green, blue; in order
+    private val mirageFreqSpinners = List(3) {
+        gtk_spin_button_new_with_range(45.0, 2000.0, 1.0)!!.apply {
+            gtk_spin_button_set_update_policy(reinterpret(), GtkSpinButtonUpdatePolicy.GTK_UPDATE_IF_VALID)
+            gtk_spin_button_set_numeric(reinterpret(), 1)
+            gtk_spin_button_set_value(reinterpret(), 330.0)
+            addCss("spinbutton button { padding: 2px; min-width: unset; }")
+        }
+    } // red, green, blue; in order
 
     private val mirageReload = iconButton("gtk-ok", "Apply", callbackPtr, staticCFunction { _, ptr ->
         ptr.useCallbackPtr<FanWidgets> { wraith, widgets ->
@@ -216,7 +228,6 @@ class FanWidgets(device: WraithPrism) : PrismComponentWidgets(device, BasicPrism
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 class RingWidgets(wraith: WraithPrism) : PrismComponentWidgets(wraith, PrismRingMode.values()) {
     override val component = wraith.ring
 
@@ -225,7 +236,6 @@ class RingWidgets(wraith: WraithPrism) : PrismComponentWidgets(wraith, PrismRing
 
     private val directionComboBox = comboBox(RotationDirection.values().map { it.name }) {
         connectToSignal("changed", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { widget, ptr ->
-
             ptr.useCallbackPtr<RingWidgets> { wraith, widgets ->
                 val text = gtk_combo_box_text_get_active_text(widget.reinterpret())!!.toKString()
                 widgets.component.direction = RotationDirection.valueOf(text.toUpperCase())
@@ -313,7 +323,10 @@ private inline fun <W : PrismComponentWidgets> COpaquePointer.useCallbackPtr(act
     }
 }
 
-private data class CallbackData<W : PrismComponentWidgets>(val wraith: WraithPrism, val widgets: W)
+private class CallbackData<W : PrismComponentWidgets>(val wraith: WraithPrism, val widgets: W) {
+    operator fun component1() = wraith
+    operator fun component2() = widgets
+}
 
 private val String.hintText: String
     get() = when {

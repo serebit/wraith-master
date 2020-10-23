@@ -3,10 +3,15 @@ plugins {
 }
 
 kotlin.linuxX64 {
+    binaries.executable { entryPoint = "com.serebit.wraith.gtk.main" }
+
     compilations["main"].apply {
         defaultSourceSet {
             dependencies { implementation(project(":core")) }
-            languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+            languageSettings.apply {
+                useExperimentalAnnotation("kotlin.RequiresOptIn")
+                useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
+            }
         }
 
         cinterops.create("gtk3") {
@@ -17,10 +22,6 @@ kotlin.linuxX64 {
                 includeDirs(*it.toTypedArray())
             }
         }
-
-        kotlinOptions.freeCompilerArgs = listOf("-Xallocator=mimalloc")
-
-        binaries.executable { entryPoint = "com.serebit.wraith.gtk.main" }
     }
 }
 
@@ -29,8 +30,8 @@ val `package` by tasks.registering {
 
     doLast {
         val packageDir = rootProject.buildDir.resolve("package")
-        val builtResourcesDir = buildDir.resolve("processedResources/linuxX64/main")
-        val resourcesDir = packageDir.resolve("resources")
+        val packageResourcesDir = packageDir.resolve("resources")
+        val resourcesDir = projectDir.resolve("resources")
 
         val shouldStrip = properties["strip"].let { it is String && (it.isEmpty() || it == "true") }
         buildDir.resolve("bin/linuxX64/releaseExecutable/gtk.kexe")
@@ -38,11 +39,11 @@ val `package` by tasks.registering {
             .also { if (shouldStrip) exec { commandLine("strip", it.absolutePath) } }
             .setExecutable(true)
 
-        builtResourcesDir.resolve("wraith-master.svg")
-            .copyTo(resourcesDir.resolve("wraith-master.svg"), overwrite = true)
+        resourcesDir.resolve("wraith-master.svg")
+            .copyTo(packageResourcesDir.resolve("wraith-master.svg"), overwrite = true)
 
-        builtResourcesDir.resolve("wraith-master.desktop")
-            .copyTo(resourcesDir.resolve("wraith-master.desktop"), overwrite = true)
+        resourcesDir.resolve("wraith-master.desktop")
+            .copyTo(packageResourcesDir.resolve("wraith-master.desktop"), overwrite = true)
     }
 }
 

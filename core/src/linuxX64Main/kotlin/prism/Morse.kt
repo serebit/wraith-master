@@ -9,11 +9,11 @@ private fun String.fromTextToMorse() = trim().mapNotNull { charMorseRepresentati
 private val charToBitsMap = mapOf('.' to "10", '-' to "01", ' ' to "00")
 private fun String.fromMorseToBits() = trim().map { charToBitsMap[it] ?: error("Invalid character") }
 
-fun String.parseMorseOrTextToBytes(): List<Int> = (if (isMorseCode) this else fromTextToMorse())
+fun String.parseMorseOrTextToBytes(): List<UByte> = (if (isMorseCode) this else fromTextToMorse())
     .fromMorseToBits()
     .joinToString("", postfix = "0011")
     .chunked(8)
-    .map { it.reversed().toInt(2) }
+    .map { it.reversed().toUByte(2) }
 
 private val charMorseRepresentation = mapOf(
     'A' to ".-", 'B' to "-...", 'C' to "-.-.", 'D' to "-..", 'E' to ".", 'F' to "..-.", 'G' to "--.", 'H' to "....",

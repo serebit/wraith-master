@@ -8,10 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Changed 
 - Removed `libusb_reset_device` call in initialization code. Makes initialization time 27x faster, which results in a 10x speedup for the CLI frontend (tested on my machine, may vary by hardware)
-- Switch to the experimental mimalloc allocator for Kotlin object allocation, which slightly improves runtime performance and memory usage
 
 #### Fixed
 - Updated .desktop file with accurate categories and a TryExec field
+- GTK now exits gracefully if the device is disconnected while the program is running
+- Error codes no longer display as `CPointer`, and instead show the proper error name
 
 #### Meta 
 - Update Kotlin to 1.4.10

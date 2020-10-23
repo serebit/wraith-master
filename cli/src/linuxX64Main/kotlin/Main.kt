@@ -261,7 +261,6 @@ private object MirageArgType : ArgType<MirageState>(true) {
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
 private object ColorArgType : ArgType<Color>(true) {
     private val commaSeparatedChannelPattern = "(\\d{1,3}),(\\d{1,3}),(\\d{1,3})".toRegex() // r,g,b
     private val hexColorPattern = "#?[\\da-fA-F]{6}".toRegex() // RRGGBB
@@ -270,8 +269,9 @@ private object ColorArgType : ArgType<Color>(true) {
     override fun convert(value: KString, name: KString): Color {
         commaSeparatedChannelPattern.matchEntire(value)
             ?.groupValues?.drop(1)
-            ?.map { it.toUByteOrNull() ?: error("Color channel value exceeded maximum of 255") }
-            ?.let { return Color(it[0].toInt(), it[1].toInt(), it[2].toInt()) }
+            ?.map { it.toInt() }
+            ?.onEach { if (it !in 0..255) error("Color channel value exceeded maximum of 255") }
+            ?.let { return Color(it[0], it[1], it[2]) }
 
         hexColorPattern.matchEntire(value)
             ?.value
