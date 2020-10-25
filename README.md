@@ -103,4 +103,4 @@ Wraith Master is open-sourced under the [Apache License, Version 2.0](https://ww
 [license-badge]: https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg "License"
 [kofi-badge]: https://img.shields.io/badge/-ko--fi-ff5f5f?logo=ko-fi&logoColor=white "Ko-fi"
 [wraith-master-screenshot]: https://serebit.com/images/wraith-master-screenshot.png "GTK Screenshot"
-[wraith-master-screenshot]: https://serebit.com/images/wraith-master-terminal-screenshot.png "CLI Screenshot"
+[wraith-master-terminal-screenshot]: https://serebit.com/images/wraith-master-terminal-screenshot.png "CLI Screenshot"
