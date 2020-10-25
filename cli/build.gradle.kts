@@ -27,8 +27,10 @@ val `package` by tasks.registering {
                 if (shouldStrip) exec {
                     commandLine("strip", it.absolutePath)
                 }
-                if (useGcompat) exec {
-                    commandLine("patchelf", "--replace-needed", "libresolv.so.2", "libgcompat.so.0", it.absolutePath)
+                if (useGcompat) {
+                    exec { commandLine("patchelf", "--remove-needed", "libcrypt.so.1", it.absolutePath) }
+                    exec { commandLine("patchelf", "--remove-needed", "libresolv.so.2", it.absolutePath) }
+                    exec { commandLine("patchelf", "--add-needed", "libgcompat.so.0", it.absolutePath) }
                 }
             }.setExecutable(true)
     }

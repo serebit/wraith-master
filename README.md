@@ -12,11 +12,12 @@ Wraith Master is a feature-complete graphical and command-line application for c
 
 Designed for feature parity with the official Windows-only Cooler Master application, Wraith Master supports all modes and settings that the Wraith Prism can use. As the Wraith coolers are capable of storing RGB configurations in-device, no daemon is required to maintain configurations, and the program can be uninstalled without fear of losing your settings.
 
-![Screenshot][wraith-master-screenshot]
+![GTK Screenshot][wraith-master-screenshot]
+![CLI Screenshot][wraith-master-terminal-screenshot]
 
 ## Supported Platforms
 
-Wraith Master supports all 64-bit Linux distributions that use glibc as their libc implementation. This dependence on glibc is not my choice, but a limitation of the software stack; Kotlin/Native is [incompatible with musl](https://github.com/JetBrains/kotlin-native/issues/3771) as of the time I am writing this. Once it gains compatibility with more libc implementations, I fully intend to take advantage of that compatibility. Check out [issue #3](https://gitlab.com/serebit/wraith-master/-/issues/3) for more details.
+Wraith Master supports all 64-bit Linux distributions that either use glibc (most distributions) or possess a compatibility layer for glibc (Void, Alpine, etc). Two 
 
 ## Installing
 
@@ -44,14 +45,24 @@ There are precompiled binaries available for each release [here](https://gitlab.
 
 These dependencies only need to be manually installed if you either built the software yourself, or are using a standalone binary rather than a distribution package (which would prompt these dependencies to install).
 
-| Distribution       | Shared Dependencies           | GTK-Only                |
-|--------------------|-------------------------------|-------------------------|
-| Debian/Derivatives | `libusb-1.0-0`, `libncurses5` | `glib2.0`, `libgtk-3.0` |
-| Arch/Derivatives   |                               | `gtk3`                  |
-| Fedora             | `libxcrypt-compat`            | `gtk3`                  |
-| OpenSUSE           |                               | `glib2`, `gtk3`         |
-| Solus              |                               |                         |
-| Gentoo             | `dev-libs/libusb`             | `gtk+`                  |
+#### Normal Version
+
+| Distribution           | Shared Dependencies           | GTK-Only                |
+|------------------------|-------------------------------|-------------------------|
+| Debian, Ubuntu, etc.   | `libusb-1.0-0`, `libncurses5` | `glib2.0`, `libgtk-3.0` |
+| Arch, Manjaro, etc.    |                               | `gtk3`                  |
+| Fedora                 | `libxcrypt-compat`            | `gtk3`                  |
+| OpenSUSE               |                               | `glib2`, `gtk3`         |
+| Solus                  |                               |                         |
+| Void                   |                               |                         |
+| Gentoo                 | `dev-libs/libusb`             | `gtk+`                  |
+
+#### `gcompat` Version (UNRELEASED)
+
+| Distribution | Shared Dependencies           | GTK-Only  |
+|--------------|-------------------------------|-----------|
+| Alpine       | `gcompat`, `libgcc`, `libusb` | `gtk+3.0` |
+| Adélie       | `gcompat`, `libgcc`, `libusb` | `gtk+3.0` |
 
 ## Architecture
 
@@ -81,6 +92,7 @@ Wraith Master is open-sourced under the [Apache License, Version 2.0](https://ww
 - **gfduszynski**, for his work on [cm-rgb](https://github.com/gfduszynski/cm-rgb). Although I started Wraith Master before discovering cm-rgb, gfduszynski's groundwork made it viable for me to continue working on it.
 - **Adam Honse**, for his work on [OpenRGB](https://gitlab.com/CalcProgrammer1/OpenRGB). This had some extra documentation on specific functions that I was lacking.
 - **ballsystemlord**, **Kirk**, and **tralamazza** from the [AdoredTV](https://adoredtv.com/) Discord server, along with **[Apache](https://github.com/Apache-HB)** and **my dad**, for helping me figure out how the mirage frequencies are converted to byte values.
+- The fine people of the `#musl` channel on Freenode, for helping me out with getting Wraith Master working with gcompat.
 - **Cooler Master**, for manufacturing these great stock coolers, and being as helpful as they're allowed to be when I asked about how the USB interface worked.
 - **AMD**, for including actually decent stock coolers with their desktop processors.
 
@@ -90,4 +102,5 @@ Wraith Master is open-sourced under the [Apache License, Version 2.0](https://ww
 [pipeline-status-badge]: https://gitlab.com/serebit/wraith-master/badges/master/pipeline.svg "Pipeline Status"
 [license-badge]: https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg "License"
 [kofi-badge]: https://img.shields.io/badge/-ko--fi-ff5f5f?logo=ko-fi&logoColor=white "Ko-fi"
-[wraith-master-screenshot]: https://serebit.com/images/wraith-master-screenshot.png "Screenshot"
+[wraith-master-screenshot]: https://serebit.com/images/wraith-master-screenshot.png "GTK Screenshot"
+[wraith-master-screenshot]: https://serebit.com/images/wraith-master-terminal-screenshot.png "CLI Screenshot"
