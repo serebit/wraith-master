@@ -4,7 +4,7 @@ import cnames.structs.libusb_device_handle
 import kotlinx.cinterop.*
 import libusb.*
 
-class TransferError(val code: Int) : Throwable(libusb_strerror(code)!!.toKString())
+class TransferError(code: Int) : Throwable(libusb_strerror(code)!!.toKString())
 
 internal class UsbInterface(private val requestSize: Int, private val handle: CPointer<libusb_device_handle>) {
     fun sendBytes(vararg bytes: UByte, filler: UByte = 0u): List<UByte> = memScoped {

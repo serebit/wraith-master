@@ -20,6 +20,7 @@ val `package` by tasks.registering {
     doLast {
         val shouldStrip = properties["strip"] !in listOf(null, "false")
         val useGcompat = properties["usegcompat"].let { it is String && (it.isEmpty() || it == "true") }
+        val manPages = properties["manpages"].let { it is String && (it.isEmpty() || it == "true") }
 
         buildDir.resolve("bin/linuxX64/releaseExecutable/cli.kexe")
             .copyTo(rootProject.buildDir.resolve("package/wraith-master"), overwrite = true)
@@ -33,6 +34,14 @@ val `package` by tasks.registering {
                     exec { commandLine("patchelf", "--add-needed", "libgcompat.so.0", it.absolutePath) }
                 }
             }.setExecutable(true)
+
+        if (manPages) {
+            val scdPath = projectDir.resolve("resources/wraith-master.1.scd").path
+            val manPath = rootProject.buildDir.resolve("package/resources/wraith-master.1").path
+            exec {
+                commandLine("sh", "-c", "scdoc < $scdPath > $manPath")
+            }
+        }
     }
 }
 
@@ -53,9 +62,15 @@ tasks.register("install") {
             file(installDirPath)
         }
 
-        rootProject.buildDir.resolve("package/wraith-master")
+        val packageDir = rootProject.buildDir.resolve("package")
+
+        packageDir.resolve("wraith-master")
             .copyTo(installDir.resolve("bin/wraith-master"), overwrite = true)
             .also { exec { commandLine("chmod", "00755", it.absolutePath) } }
+
+        packageDir.resolve("resources/wraith-master.1")
+            .takeIf { it.exists() }
+            ?.copyTo(installDir.resolve("man/man1/wraith-master.1"), overwrite = true)
     }
 }
 
