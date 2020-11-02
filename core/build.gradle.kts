@@ -22,8 +22,6 @@ tasks.register("package") {
 
         resourcesDir.resolve("99-wraith-master.rules")
             .copyTo(packageResourcesDir.resolve("99-wraith-master.rules"), overwrite = true)
-
-        packageResourcesDir.resolve("version.txt").writeText(version.toString())
     }
 }
 
@@ -58,9 +56,6 @@ tasks.register("install") {
             resourcesDir.resolve("99-wraith-master.rules")
                 .copyTo(udevDir.resolve("99-wraith-master.rules"), overwrite = true)
         }
-
-        resourcesDir.resolve("version.txt")
-            .copyTo(installDir.resolve("share/wraith-master/version.txt"), overwrite = true)
     }
 }
 
