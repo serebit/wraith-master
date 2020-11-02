@@ -10,7 +10,7 @@ import kotlin.String as KString
 
 fun main(args: Array<KString>) {
     when (args.singleOrNull()) {
-        "-v", "--version" -> return println("Wraith Master, version ${programVersion ?: "unknown"}")
+        "-v", "--version" -> return println("Wraith Master, version $programVersion")
         "-f", "--firmwareversion" -> return modifyWraithPrism(false) {
             println("The connected Wraith Prism has firmware version ${requestFirmwareVersion()}")
         }

@@ -20,3 +20,6 @@ out/
 
 # JVM heap dump
 *.hprof
+
+# Generated version source file
+/core/src/commonMain/kotlin/Version.kt

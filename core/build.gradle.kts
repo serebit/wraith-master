@@ -53,11 +53,7 @@ tasks.register("install") {
                 ?: "/usr/lib/udev".takeIf { installMode == "system" || packageRoot != null && installMode != "local" }
                 ?: "/etc/udev"
 
-            val udevDir = if (packageRoot != null) {
-                file(packageRoot).resolve(udevPath.removePrefix("/")).resolve("rules.d")
-            } else {
-                file(udevPath).resolve("rules.d")
-            }
+            val udevDir = file(installDir).resolve(udevPath.removePrefix("/")).resolve("rules.d")
 
             resourcesDir.resolve("99-wraith-master.rules")
                 .copyTo(udevDir.resolve("99-wraith-master.rules"), overwrite = true)
@@ -66,4 +62,9 @@ tasks.register("install") {
         resourcesDir.resolve("version.txt")
             .copyTo(installDir.resolve("share/wraith-master/version.txt"), overwrite = true)
     }
+}
+
+projectDir.resolve("src/commonMain/kotlin").also { commonDir ->
+    val stubText = commonDir.resolve("Version.ktstub").readText()
+    commonDir.resolve("Version.kt").writeText(stubText.replace("%%VERSION%%", version.toString()))
 }

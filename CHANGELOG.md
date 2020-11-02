@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Changed 
 - Removed `libusb_reset_device` call in initialization code. Makes initialization time 27x faster, which results in a 10x speedup for the CLI frontend (tested on my machine, may vary by hardware)
+- Version number is now inserted at build time, which means there are no scenarios in which the version number cannot be resolved
 
 #### Fixed
 - Updated .desktop file with accurate categories and a TryExec field
