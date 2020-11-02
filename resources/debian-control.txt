@@ -1,5 +1,5 @@
 Package: wraith-master
-Version: %VERSION%
+Version: %%VERSION%%
 Section: custom
 Priority: optional
 Architecture: amd64

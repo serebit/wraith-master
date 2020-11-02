@@ -65,7 +65,7 @@ tasks.register("install") {
         val resourcesDir = packageDir.resolve("resources")
 
         val installMode = properties["installmode"] as? String
-        val packageRoot = properties["packageroot"] as? String
+        val packageRoot = properties["packageroot"] as? String ?: rootProject.extra.properties["packageroot"] as? String
 
         val installDirPath = properties["installdir"] as? String
             ?: "/usr".takeIf { installMode == "system" || packageRoot != null && installMode != "local" }

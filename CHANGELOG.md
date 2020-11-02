@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased - 1.2.0-dev
+## Unreleased - v1.2.0-dev
 
 #### Added 
 - [#3](https://gitlab.com/serebit/wraith-master/-/issues/3) - Partial support for Void, Alpine, Adélie, and other distributions that use musl! Users of these distributions can download the precompiled `-gcompat` tarball. 
@@ -21,9 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Meta 
 - Update Kotlin to 1.4.10
 - Update Gradle wrapper to 6.7
+- Add `usegcompat` Gradle property, which makes the `package` task patch the output executables to use gcompat
+- Add `distDeb` Gradle task
 
 
-## 1.1.0 (2020-08-09)
+## v1.1.0 (2020-08-09)
 
 #### Added 
 - Firmware version reporting
@@ -48,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Gradle properties `forceudev`, `installmode`, and `packageroot` (see the wiki for more details on these properties)
 
 
-## 1.0.0 (2020-05-10)
+## v1.0.0 (2020-05-10)
 
 #### Added 
 - **Mirage frequency control**, the last major feature that required implementation
@@ -78,13 +80,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `strip` property to `package` Gradle task, which strips packaged binaries if enabled
 
 
-## 0.5.2 (2020-03-16)
+## v0.5.2 (2020-03-16)
 
 #### Fixed 
 - Reset button causing segfault
 
 
-## 0.5.1 (2020-03-13)
+## v0.5.1 (2020-03-13)
 
 #### Added 
 - `verbose` flag to show program status in CLI frontend
@@ -101,7 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced code complexity and duplication
 
 
-## 0.5.0 (2020-03-01)
+## v0.5.0 (2020-03-01)
 
 #### Added 
 - **Morse text setting**, which can parse plaintext along with literal morse code
@@ -122,12 +124,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Kotlin to 1.3.70-eap-3
 
 
-## 0.4.2 (2020-01-21)
+## v0.4.2 (2020-01-21)
 
 #### Added 
 - Informational dialog box when attempting to open a new Wraith Master window while one already exists
 
-## 0.4.1 (2020-01-13)
+## v0.4.1 (2020-01-13)
 
 #### Changed 
 - In both frontends, restore a mode's previous settings (color, speed, brightness, etc) when that mode is selected
@@ -136,7 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Regression in GTK frontend where a failure in resolving the Wraith device would crash the program instead of providing the error message
 
 
-## 0.4.0 (2020-01-30)
+## v0.4.0 (2020-01-30)
 
 #### Added 
 - Mirage toggle for fan
@@ -154,13 +156,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Compilation now works on Debian without modification. Alpine is pending a fix for [this issue](https://github.com/JetBrains/kotlin-native/issues/3771)
 
 
-## 0.3.1 (2020-01-13)
+## v0.3.1 (2020-01-13)
 
 #### Fixed 
 - Both frontends no longer require `sudo` to run on systems that use `systemd`
 
 
-## 0.3.0 (2020-01-13)
+## v0.3.0 (2020-01-13)
 
 #### Added 
 - Error dialog for when a Wraith Prism USB device can't be found
@@ -171,7 +173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scalable icon and desktop file for GTK frontend
 
 
-## 0.2.0 (2020-01-06)
+## v0.2.0 (2020-01-06)
 
 #### Added 
 - Mode support. All modes that are provided by Cooler Master's Windows application are supported, except for Morse, which will be added later
@@ -184,7 +186,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resources are now properly closed on program exit, on both the GTK frontend and libusb frontend
 
 
-## 0.1.0 (2020-01-01)
+## v0.1.0 (2020-01-01)
 
 #### Added 
 - Command-line application, in addition to the GTK application. Both will be developed together moving forward, and both can be built independently of each other

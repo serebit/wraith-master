@@ -6,7 +6,7 @@ kotlin.linuxX64 {
     compilations["main"].apply {
         defaultSourceSet {
             dependencies { implementation(project(":core")) }
-            languageSettings.useExperimentalAnnotation("kotlin.Experimental")
+            languageSettings.useExperimentalAnnotation("kotlin.RequiresOptIn")
         }
         enableEndorsedLibs = true
     }
@@ -50,7 +50,7 @@ tasks.register("install") {
 
     doLast {
         val installMode = properties["installmode"] as? String
-        val packageRoot = properties["packageroot"] as? String
+        val packageRoot = properties["packageroot"] as? String ?: rootProject.extra.properties["packageroot"] as? String
 
         val installDirPath = properties["installdir"] as? String
             ?: "/usr".takeIf { installMode == "system" || packageRoot != null && installMode != "local" }

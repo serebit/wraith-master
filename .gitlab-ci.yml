@@ -63,12 +63,7 @@ release-deb:
   when: manual
   only:
     refs: [ release ]
-  script:
-    - gradle install -Ppackageroot=$CI_PROJECT_DIR/build/debian/wraith-master
-    - awk 'BEGIN{getline l < "build/package/resources/version.txt"}/localhost/{gsub("%VERSION%",l)}1' resources/debian-control.txt
-    - install -D resources/debian-control.txt build/debian/wraith-master/DEBIAN/control
-    - cd build/debian
-    - dpkg-deb -b wraith-master
+  script: gradle distDeb
   cache:
     <<: *global_cache
   artifacts:

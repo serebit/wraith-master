@@ -17,7 +17,7 @@ tasks.register("distTar") {
     dependsOn(":cli:package", ":gtk:package")
 
     doLast {
-        val tarballName = "wraith-master-$version.tar.xz"
+        val tarballName = "wraith-master-v$version.tar.xz"
 
         temporaryDir.resolve("wraith-master").also { tempDir ->
             buildDir.resolve("package").copyRecursively(tempDir, true)
@@ -29,5 +29,21 @@ tasks.register("distTar") {
 
         temporaryDir.resolve(tarballName).copyTo(buildDir.resolve("dist/$tarballName"), true)
         temporaryDir.deleteRecursively()
+    }
+}
+
+tasks.register("distDeb") {
+    dependsOn(":cli:install", ":gtk:install")
+    rootProject.extra["packageroot"] = buildDir.resolve("debian/wraith-master").absolutePath
+
+    doLast {
+        projectDir.resolve("resources/debian-control.txt")
+            .copyTo(buildDir.resolve("debian/wraith-master-v$version/DEBIAN/control"))
+            .also { it.writeText(it.readText().replace("%%VERSION%%", version.toString())) }
+
+        exec {
+            workingDir = buildDir.resolve("debian")
+            commandLine("dpkg-deb", "-b", "wraith-master-v$version")
+        }
     }
 }
