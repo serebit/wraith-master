@@ -2,7 +2,7 @@ wraith-master(1)
 
 # NAME
 
-*wraith-master* - A Wraith cooler RGB control application
+*wraith-master* - The CLI frontend for Wraith Master, a Wraith cooler RGB control application
 
 # SYNOPSIS
 
@@ -20,6 +20,8 @@ Designed for feature parity with the official Windows-only Cooler Master applica
 and settings that the Wraith Prism can use. As the Wraith coolers are capable of storing RGB configurations in-device,
 no daemon is required to maintain configurations, and the program can be uninstalled without fear of losing your
 settings.
+
+The CLI frontend can be used from installations without a desktop environment, or by those who prefer the command line.
 
 # GLOBAL OPTIONS
 

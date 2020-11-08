@@ -35,6 +35,7 @@ val `package` by tasks.registering {
 
         val shouldStrip = properties["strip"].let { it is String && (it.isEmpty() || it == "true") }
         val useGcompat = properties["usegcompat"].let { it is String && (it.isEmpty() || it == "true") }
+        val manPages = properties["manpages"].let { it is String && (it.isEmpty() || it == "true") }
 
         buildDir.resolve("bin/linuxX64/releaseExecutable/gtk.kexe")
             .copyTo(packageDir.resolve("wraith-master-gtk"), overwrite = true)
@@ -48,6 +49,14 @@ val `package` by tasks.registering {
                     exec { commandLine("patchelf", "--add-needed", "libgcompat.so.0", it.absolutePath) }
                 }
             }.setExecutable(true)
+
+        if (manPages) {
+            val scdPath = projectDir.resolve("resources/wraith-master-gtk.1.scd").path
+            val manPath = rootProject.buildDir.resolve("package/resources/wraith-master-gtk.1").path
+            exec {
+                commandLine("sh", "-c", "scdoc < $scdPath > $manPath")
+            }
+        }
 
         resourcesDir.resolve("wraith-master.svg")
             .copyTo(packageResourcesDir.resolve("wraith-master.svg"), overwrite = true)
