@@ -5,7 +5,7 @@ variables:
   GRADLE_USER_HOME: $CI_PROJECT_DIR/.gradle_home
   KONAN_DATA_DIR: $CI_PROJECT_DIR/.konan_home
   KONAN_DEPS_CACHE: $CI_PROJECT_DIR/.konan_deps
-  KONAN_DEPS: "clang-llvm-8.0.0-linux-x86-64 libffi-3.2.1-2-linux-x86-64 target-gcc-toolchain-3-linux-x86-64 lldb-2-linux"
+  KONAN_DEPS: "clang-llvm-8.0.0-linux-x86-64 libffi-3.2.1-2-linux-x86-64 target-gcc-toolchain-3-linux-x86-64 lldb-3-linux"
 
 before_script:
   # invalidate Gradle caches if the Gradle version changed
@@ -44,27 +44,3 @@ build:
   cache:
     <<: *global_cache
     policy: pull-push
-
-release-tar:
-  stage: deploy
-  dependencies: [ build ]
-  when: manual
-  only:
-    refs: [ release ]
-  script: gradle distTar
-  cache:
-    <<: *global_cache
-  artifacts:
-    paths: [ "build/dist/*.tar.*" ]
-
-release-deb:
-  stage: deploy
-  dependencies: [ build ]
-  when: manual
-  only:
-    refs: [ release ]
-  script: gradle distDeb
-  cache:
-    <<: *global_cache
-  artifacts:
-    paths: [ "build/debian/*.deb" ]

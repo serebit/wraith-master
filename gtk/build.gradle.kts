@@ -88,7 +88,7 @@ val prepareInstall by tasks.registering {
         if (!disableManPages) {
             resourcesDir.resolve("wraith-master-gtk.1")
                 .takeIf { it.exists() }
-                ?.copyTo(destDir.resolve("share/man/man1/wraith-master-gtk.1"))
+                ?.copyTo(destDir.resolve("share/man/man1/wraith-master-gtk.1"), overwrite = true)
         }
     }
 }
