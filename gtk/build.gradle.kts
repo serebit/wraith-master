@@ -34,8 +34,8 @@ val `package` by tasks.registering {
         val resourcesDir = projectDir.resolve("resources")
 
         val shouldStrip = properties["strip"].let { it is String && (it.isEmpty() || it == "true") }
-        val useGcompat = properties["usegcompat"].let { it is String && (it.isEmpty() || it == "true") }
-        val manPages = properties["manpages"].let { it is String && (it.isEmpty() || it == "true") }
+        val useGcompat = properties["enable-gcompat"].let { it is String && (it.isEmpty() || it == "true") }
+        val disableManPages = properties["disable-man-pages"].let { it is String && (it.isEmpty() || it == "true") }
 
         buildDir.resolve("bin/linuxX64/releaseExecutable/gtk.kexe")
             .copyTo(packageDir.resolve("wraith-master-gtk"), overwrite = true)
@@ -48,14 +48,13 @@ val `package` by tasks.registering {
                     exec { commandLine("patchelf", "--remove-needed", "libresolv.so.2", it.absolutePath) }
                     exec { commandLine("patchelf", "--add-needed", "libgcompat.so.0", it.absolutePath) }
                 }
-            }.setExecutable(true)
-
-        if (manPages) {
-            val scdPath = projectDir.resolve("resources/wraith-master-gtk.1.scd").path
-            val manPath = rootProject.buildDir.resolve("package/resources/wraith-master-gtk.1").path
-            exec {
-                commandLine("sh", "-c", "scdoc < $scdPath > $manPath")
+                it.setExecutable(true)
             }
+
+        if (!disableManPages) {
+            val scdPath = projectDir.resolve("resources/wraith-master-gtk.1.scd").path
+            val manPath = packageResourcesDir.resolve("wraith-master-gtk.1").path
+            exec { commandLine("sh", "-c", "scdoc < $scdPath > $manPath") }
         }
 
         resourcesDir.resolve("wraith-master.svg")
@@ -66,35 +65,40 @@ val `package` by tasks.registering {
     }
 }
 
-tasks.register("install") {
-    dependsOn(":core:install", `package`)
+val prepareInstall by tasks.registering {
+    dependsOn(`package`)
 
     doLast {
         val packageDir = rootProject.buildDir.resolve("package")
         val resourcesDir = packageDir.resolve("resources")
-
-        val installMode = properties["installmode"] as? String
-        val packageRoot = properties["packageroot"] as? String ?: rootProject.extra.properties["packageroot"] as? String
-
-        val installDirPath = properties["installdir"] as? String
-            ?: "/usr".takeIf { installMode == "system" || packageRoot != null && installMode != "local" }
-            ?: "/usr/local"
-
-        val installDir = if (packageRoot != null) {
-            file(packageRoot).resolve(installDirPath.removePrefix("/"))
-        } else {
-            file(installDirPath)
-        }
+        val destDir = buildDir.resolve("preparedInstall")
+        val disableManPages = properties["disable-man-pages"].let { it is String && (it.isEmpty() || it == "true") }
 
         packageDir.resolve("wraith-master-gtk")
-            .copyTo(installDir.resolve("bin/wraith-master-gtk"), overwrite = true)
-            .also { exec { commandLine("chmod", "00755", it.absolutePath) } }
+            .copyTo(destDir.resolve("bin/wraith-master-gtk"), overwrite = true)
+            .also { it.setExecutable(true) }
 
         resourcesDir.resolve("wraith-master.svg")
-            .copyTo(installDir.resolve("share/icons/hicolor/scalable/apps/wraith-master.svg"), overwrite = true)
+            .copyTo(destDir.resolve("share/icons/hicolor/scalable/apps/wraith-master.svg"), overwrite = true)
 
         resourcesDir.resolve("wraith-master.desktop")
-            .copyTo(installDir.resolve("share/applications/wraith-master.desktop"), overwrite = true)
+            .copyTo(destDir.resolve("share/applications/wraith-master.desktop"), overwrite = true)
+
+
+        if (!disableManPages) {
+            resourcesDir.resolve("wraith-master-gtk.1")
+                .takeIf { it.exists() }
+                ?.copyTo(destDir.resolve("share/man/man1/wraith-master-gtk.1"))
+        }
+    }
+}
+
+tasks.register("install") {
+    dependsOn(":core:install", prepareInstall)
+
+    doLast {
+        val prefix = file(properties["prefix"] ?: "/usr/local")
+        buildDir.resolve("preparedInstall").copyRecursively(prefix, overwrite = true)
     }
 }
 

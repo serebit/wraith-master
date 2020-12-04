@@ -13,49 +13,36 @@ kotlin.linuxX64().compilations["main"].apply {
     }
 }
 
-tasks.register("package") {
+val `package` by tasks.registering {
     dependsOn("build")
 
     doLast {
-        val packageResourcesDir = rootProject.buildDir.resolve("package/resources")
-        val resourcesDir = projectDir.resolve("resources")
+        projectDir.resolve("resources/99-wraith-master.rules")
+            .copyTo(rootProject.buildDir.resolve("package/resources/99-wraith-master.rules"), overwrite = true)
+    }
+}
 
-        resourcesDir.resolve("99-wraith-master.rules")
-            .copyTo(packageResourcesDir.resolve("99-wraith-master.rules"), overwrite = true)
+val prepareInstall by tasks.registering {
+    doLast {
+        val resourcesDir = projectDir.resolve("resources")
+        val destDir = buildDir.resolve("preparedInstall")
+        val noUdev = properties["disable-udev"].let { it is String && (it.isEmpty() || it == "true") }
+
+        if (!noUdev) {
+            resourcesDir.resolve("99-wraith-master.rules")
+                .copyTo(destDir.resolve("lib/udev/rules.d/99-wraith-master.rules"), overwrite = true)
+        }
     }
 }
 
 tasks.register("install") {
-    dependsOn("package")
+    dependsOn(prepareInstall)
 
     doLast {
-        val resourcesDir = rootProject.buildDir.resolve("package/resources")
-
-        val installMode = properties["installmode"] as? String
-        val packageRoot = properties["packageroot"] as? String ?: rootProject.extra.properties["packageroot"] as? String
-
-        val installDirPath = properties["installdir"] as? String
-            ?: "/usr".takeIf { installMode == "system" || packageRoot != null && installMode != "local" }
-            ?: "/usr/local"
-
-        val installDir = if (packageRoot != null) {
-            file(packageRoot).resolve(installDirPath.removePrefix("/"))
-        } else {
-            file(installDirPath)
-        }
-
-        val forceUdev = (properties["forceudev"] as? String).let { it != null && it.isEmpty() }
-        val noUdev = (properties["noudev"] as? String).let { it != null && it.isEmpty() }
-        if (file("/sbin/udevadm").exists() && !noUdev || forceUdev) {
-            val udevPath = properties["udevdir"] as? String
-                ?: "/usr/lib/udev".takeIf { installMode == "system" || packageRoot != null && installMode != "local" }
-                ?: "/etc/udev"
-
-            val udevDir = file(installDir).resolve(udevPath.removePrefix("/")).resolve("rules.d")
-
-            resourcesDir.resolve("99-wraith-master.rules")
-                .copyTo(udevDir.resolve("99-wraith-master.rules"), overwrite = true)
-        }
+        val prefix = file(properties["prefix"] ?: "/usr/local")
+        buildDir.resolve("preparedInstall")
+            .takeIf { it.exists() }
+            ?.copyRecursively(prefix, overwrite = true)
     }
 }
 
