@@ -10,7 +10,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 #### Added
 
 - [#3](https://gitlab.com/serebit/wraith-master/-/issues/3) - Partial support for Alpine, Adélie, and other
-  distributions that use musl! Users of these distributions can download the precompiled `-gcompat` tarball.
+  distributions that use musl! Users of these distributions can download the precompiled `-gcompat` tarball
+- [#13](https://gitlab.com/serebit/wraith-master/-/issues/3) - Man pages for both GTK and CLI, hand-written and compiled
+  by scdoc
 
 #### Changed
 
@@ -27,14 +29,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 #### Meta
 
-- Update Kotlin to 1.4.20
+- Update Kotlin to 1.4.21
 - Update Gradle wrapper to 6.7.1
-- Add `enable-gcompat` Gradle property, which makes the `package` task patch the output executables to use gcompat
-- Add `disable-man-pages` Gradle property to disable automatic man page generation
-- Rename `distTar` task to `releaseTar`
-- Add `releaseDeb` and `releaseRpm` tasks
 - Replace most Gradle properties.
   See [the wiki](https://gitlab.com/serebit/wraith-master/-/wikis/help/building-from-source) for more information
+- Add `enable-gcompat` Gradle property, which makes the `package` task patch the output executables to use gcompat
+- Add `disable-man-pages` Gradle property to disable automatic man page generation
+- Add `releaseDeb` and `releaseRpm` tasks
+- Rename `distTar` task to `releaseTar`
 
 ## v1.1.0 (2020-08-09)
 
