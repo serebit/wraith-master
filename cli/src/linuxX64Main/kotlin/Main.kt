@@ -25,6 +25,10 @@ fun main(args: Array<KString>) {
                 println("Disabled enso mode. Settings have been reset to factory defaults.")
             }
         }
+        "--resetport" -> return modifyWraithPrism(false) {
+            resetPort()
+            println("Reset USB port.")
+        }
     }
 
     val parser = ArgParser("wraith-master")
@@ -120,6 +124,13 @@ fun main(args: Array<KString>) {
         shortName = "f",
         fullName = "firmwareversion",
         description = "Reports the firmware version of the connected cooler. Ignored unless run as the only argument"
+    )
+
+    @Suppress("UNUSED_VARIABLE")
+    val resetPort by parser.option(
+        ArgType.Boolean,
+        fullName = "resetport",
+        description = "Performs a USB port reset to reinitialize the connected cooler. Ignored unless run as the only argument"
     )
 
     parser.parse(args)

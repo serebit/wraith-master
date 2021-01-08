@@ -88,6 +88,8 @@ class WraithPrism internal constructor(private val usb: UsbInterface) {
         .joinToString("")
         .toLowerCase()
 
+    fun resetPort() = usb.resetPort()
+
     fun close() = usb.close()
 }
 

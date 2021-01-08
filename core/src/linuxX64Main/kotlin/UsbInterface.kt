@@ -13,6 +13,10 @@ internal class UsbInterface(private val requestSize: Int, private val handle: CP
         return transfer(ENDPOINT_IN, allocArray(requestSize)).toList()
     }
 
+    fun resetPort() {
+        libusb_reset_device(handle)
+    }
+
     fun close() {
         libusb_release_interface(handle, HID_INTERFACE)
         libusb_close(handle)

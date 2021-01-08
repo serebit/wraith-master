@@ -11,8 +11,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - [#3](https://gitlab.com/serebit/wraith-master/-/issues/3) - Partial support for Alpine, Adélie, and other
   distributions that use musl! Users of these distributions can download the precompiled `-gcompat` tarball
-- [#13](https://gitlab.com/serebit/wraith-master/-/issues/3) - Man pages for both GTK and CLI, hand-written and compiled
-  by scdoc
+- [#13](https://gitlab.com/serebit/wraith-master/-/issues/13) - Man pages for both GTK and CLI, hand-written and
+  compiled by scdoc
+- [#16](https://gitlab.com/serebit/wraith-master/-/issues/16) - Support for manually resetting the USB port
 
 #### Changed
 

@@ -13,7 +13,6 @@ import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     val app = gtk_application_new("com.serebit.wraith", G_APPLICATION_FLAGS_NONE)!!
-    val status: Int
 
     val result = obtainWraithPrism()
 
@@ -48,7 +47,7 @@ fun main(args: Array<String>) {
             })
     }
 
-    status = try {
+    val status: Int = try {
         memScoped { g_application_run(app.reinterpret(), args.size, args.map { it.cstr.ptr }.toCValues()) }
     } catch (err: TransferError) {
         err.printStackTrace()
@@ -161,10 +160,19 @@ fun Widget.activate(wraith: WraithPrism) {
             gtk_widget_show(this)
         }
 
+        val resetPortButton = gtk_menu_item_new_with_label("Reset USB Port")!!.apply {
+            connectToSignal("activate", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
+                val (device, _, _) = ptr.asStableRef<CallbackData>().get()
+                device.resetPort()
+            })
+            gtk_widget_show(this)
+        }
+
         val dropdownMenuButton = gtk_menu_button_new()!!.apply {
             gtk_menu_button_set_popup(reinterpret(), gtk_menu_new()!!.apply {
                 gtk_menu_attach(reinterpret(), resetToDefaultButton, 0, 1, 0, 1)
                 gtk_menu_attach(reinterpret(), toggleEnsoModeButton, 0, 1, 1, 2)
+                gtk_menu_attach(reinterpret(), resetPortButton, 0, 1, 2, 3)
             })
         }
 
