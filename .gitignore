@@ -18,6 +18,9 @@ out/
 # IntelliJ process attachment files
 .attach_pid*
 
+# JVM crash log
+hs_err_pid*.log
+
 # JVM heap dump
 *.hprof
 
