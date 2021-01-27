@@ -82,7 +82,10 @@ class PrismRingComponent internal constructor(private val usb: UsbInterface, cha
     var savedMorseBytes: List<UByte>? = null
 
     init {
-        mode = PrismRingMode.values().first { it.channel == channel }
+        mode = PrismRingMode.values().find { it.channel == channel } ?: run {
+            println("Received invalid ring channel byte $channel. Falling back to rainbow mode")
+            PrismRingMode.RAINBOW
+        }
         reloadValues()
         savedByteValues = byteValues
     }
