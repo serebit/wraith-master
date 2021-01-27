@@ -27,13 +27,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Updated .desktop file with accurate categories and a TryExec field
 - GTK now exits gracefully if the device is disconnected while the program is running
 - Error codes no longer display as `CPointer`, and instead show the proper error name
+- CLI can now properly set logo and fan modes (regressed in v1.1.0)
 
 #### Meta
 
 - Update Kotlin to v1.4.21
 - Update Gradle wrapper to v6.8.0
-- Replace most Gradle properties
-  See [the wiki](https://gitlab.com/serebit/wraith-master/-/wikis/help/building-from-source) for more information
+- Replace most Gradle properties (see
+  [the wiki](https://gitlab.com/serebit/wraith-master/-/wikis/help/building-from-source) for more information)
 - Add `enable-gcompat` Gradle property, which makes the `package` task patch the output executables to use gcompat
 - Add `disable-man-pages` Gradle property to disable automatic man page generation
 - Add `releaseDeb` and `releaseRpm` tasks
