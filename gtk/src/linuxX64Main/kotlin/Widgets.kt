@@ -25,14 +25,20 @@ sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out Pri
                     is PrismRingComponent -> {
                         component.mode = PrismRingMode.valueOf(modeText)
                         component.reloadValues()
+                        wraith.assignChannels()
                     }
                     is PrismFanComponent -> {
                         component.mode = BasicPrismMode.valueOf(modeText)
-                        wraith.assignChannels()
+                    }
+                    is PrismLogoComponent -> {
+                        component.mode = BasicPrismMode.valueOf(modeText)
+
                     }
                 }
 
+                component.submitValues()
                 wraith.apply()
+                widgets.reload()
             }
         })
     }
@@ -47,6 +53,7 @@ sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out Pri
                         .also { gtk_color_button_get_rgba(widget.reinterpret(), it.ptr) }
                         .run { Color((255 * red).toInt(), (255 * green).toInt(), (255 * blue).toInt()) }
                 }
+                widgets.component.submitValues()
                 wraith.apply()
             }
         })
@@ -58,6 +65,7 @@ sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out Pri
                 val isActive = gtk_toggle_button_get_active(widget.reinterpret())
                 if (widgets.component.mode.colorSupport == ColorSupport.ALL) {
                     widgets.component.useRandomColor = isActive == 1
+                    widgets.component.submitValues()
                     wraith.apply()
                 }
                 widgets.colorButton.setSensitive(isActive == 0)
