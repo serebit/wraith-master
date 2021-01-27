@@ -33,14 +33,14 @@ fun main(args: Array<KString>) {
 
     val parser = ArgParser("wraith-master")
 
-    val component by parser.argument(ArgType.Choice(listOf("logo", "fan", "ring")))
+    val component by parser.argument(ArgType.Choice(listOf("logo", "fan", "ring"), { it }))
 
     val basicModes: List<KString> = BasicPrismMode.values().map { it.name.toLowerCase() }
     val ringModes: List<KString> = PrismRingMode.values().map { it.name.toLowerCase() }
     val modeNames = (basicModes union ringModes).toList()
 
     val mode by parser.option(
-        ArgType.Choice(modeNames),
+        ArgType.Choice(modeNames, { it }),
         shortName = "m",
         description = "(Modes $ringModes are only supported by ring component)"
     )
@@ -64,7 +64,7 @@ fun main(args: Array<KString>) {
     )
 
     val direction by parser.option(
-        ArgType.Choice(listOf("clockwise", "counterclockwise")),
+        ArgType.Choice(listOf("clockwise", "counterclockwise"), { it }),
         shortName = "d",
         description = "The direction of the ring mode's rotation. Only supported by ring modes swirl and chase"
     )
