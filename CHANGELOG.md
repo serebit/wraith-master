@@ -31,8 +31,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 #### Meta
 
-- Update Kotlin to v1.4.21
-- Update Gradle wrapper to v6.8.0
+- Update Kotlin to v1.4.30-RC
+- Update Gradle wrapper to v6.8.1
 - Replace most Gradle properties (see
   [the wiki](https://gitlab.com/serebit/wraith-master/-/wikis/help/building-from-source) for more information)
 - Add `enable-gcompat` Gradle property, which makes the `package` task patch the output executables to use gcompat
