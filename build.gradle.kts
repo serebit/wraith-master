@@ -1,16 +1,15 @@
 plugins {
-    kotlin("multiplatform") version "1.4.0-rc" apply false
-    id("com.github.ben-manes.versions") version "0.29.0"
+    kotlin("multiplatform") version "1.4.30" apply false
+    id("com.github.ben-manes.versions") version "0.36.0"
     base // to add clean task, for cleaning up package output
 }
 
 allprojects {
     group = "com.serebit.wraith"
-    version = "1.1.0"
+    version = "1.1.1"
 
     repositories {
         mavenCentral()
-        maven("https://dl.bintray.com/kotlin/kotlin-eap")
     }
 }
 
