@@ -7,7 +7,7 @@ import kotlinx.cinterop.*
 import libusb.*
 
 fun initLibusb() = libusb_init(null).also {
-    if (it != LIBUSB_SUCCESS) error("Libusb initialization returned error code ${libusb_error_name(it)}.")
+    if (it != LIBUSB_SUCCESS) error("Libusb initialization returned error code ${libusb_error_name(it)!!.toKString()}.")
 }
 
 sealed class DeviceResult {
@@ -30,7 +30,7 @@ fun obtainWraithPrism() = memScoped {
     libusb_open(device, handlePtr.ptr).also {
         when {
             it == LIBUSB_ERROR_ACCESS -> return failure("Found a Wraith Prism, but don't have permission to connect. Try with sudo.")
-            it != LIBUSB_SUCCESS -> return failure("Found a Wraith Prism, but encountered ${libusb_error_name(it)} when trying to connect.")
+            it != LIBUSB_SUCCESS -> return failure("Found a Wraith Prism, but encountered ${libusb_error_name(it)!!.toKString()} when trying to connect.")
         }
     }
     val handle = handlePtr.value!!
@@ -40,7 +40,7 @@ fun obtainWraithPrism() = memScoped {
 
     when (val err = libusb_claim_interface(handle, 1)) {
         LIBUSB_SUCCESS -> success(handle)
-        else -> failure("Failed to claim the Wraith Prism's USB interface with error ${libusb_error_name(err)}.")
+        else -> failure("Failed to claim the Wraith Prism's USB interface with error ${libusb_error_name(err)!!.toKString()}.")
     }
 }
 
