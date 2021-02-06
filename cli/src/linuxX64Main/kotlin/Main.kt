@@ -183,7 +183,8 @@ fun main(args: Array<KString>) {
             mode?.let {
                 if (verbose == true) println("  Setting mode to $it")
                 when (prismComponent) {
-                    is BasicPrismComponentDelegate -> prismComponent.mode = BasicPrismMode.valueOf(it.toUpperCase())
+                    is PrismLogoComponent -> prismComponent.mode = BasicPrismMode.valueOf(it.toUpperCase())
+                    is PrismFanComponent -> prismComponent.mode = BasicPrismMode.valueOf(it.toUpperCase())
                     is PrismRingComponent -> prismComponent.mode = PrismRingMode.valueOf(it.toUpperCase())
                 }
             }
