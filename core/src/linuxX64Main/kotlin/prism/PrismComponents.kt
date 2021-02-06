@@ -83,7 +83,8 @@ class PrismRingComponent(initialValues: ChannelValues) : PrismComponent {
     }
 
     override fun assignValuesFromChannel(channelValues: ChannelValues) {
-        mode = PrismRingMode.values().first { it.channel == channelValues.channel }
+        // if an unknown mode byte is received, store rainbow as the received mode, to avoid crashing on invalid data
+        mode = PrismRingMode.values().firstOrNull { it.channel == channelValues.channel } ?: PrismRingMode.RAINBOW
 
         color = if (mode.colorSupport != ColorSupport.NONE) channelValues.color else Color.BLACK
 
