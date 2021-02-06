@@ -17,13 +17,9 @@ Designed for feature parity with the official Windows-only Cooler Master applica
 
 ## Supported Platforms
 
-#### 1.1.0 and Older
+#### v1.1.1 and Older
 
-Wraith Master versions 1.1.0 and earlier support all 64-bit Linux distributions that use glibc as their primary libc implementation, along with distributions that have a complete compatibility layer for glibc (like Void). Distributions like Alpine and Adélie are incompatible.
-
-#### 1.2.0 (Unreleased)
-
-Wraith Master 1.2.0 supports all 64-bit Linux distributions that either use glibc (most distributions) or possess a compatibility layer for glibc (Void, Alpine, etc). Two distributions are available, one with direct links to glibc and one with a direct dependency on gcompat. The former should be used in most scenarios, and the latter should be used for distributions like Alpine and Adélie Linux.
+Wraith Master versions 1.1.1 and earlier support all 64-bit Linux distributions that use glibc as their primary libc implementation, along with distributions that have a complete compatibility layer for glibc (like Void). Distributions like Alpine and Adélie are incompatible.
 
 ## Installing
 
@@ -63,13 +59,6 @@ These dependencies only need to be manually installed if you either built the so
 | Void                   |                               |                         |
 | Gentoo                 | `dev-libs/libusb`             | `gtk+`                  |
 
-#### `gcompat` Version (UNRELEASED)
-
-| Distribution | Shared Dependencies           | GTK-Only  |
-|--------------|-------------------------------|-----------|
-| Alpine       | `gcompat`, `libgcc`, `libusb` | `gtk+3.0` |
-| Adélie       | `gcompat`, `libgcc`, `libusb` | `gtk+3.0` |
-
 ## Architecture
 
 Wraith Master uses the Kotlin programming language and its LLVM backend (also known as Kotlin/Native). This backend provides semi-transparent interop with C libraries, which Wraith Master makes use of for two common libraries—libusb for communication with the Wraith Prism, and libgtk (version 3) for the graphical user interface. The backend itself also requires glibc to be in use, as explained above, though this may change in the future.
@@ -99,8 +88,7 @@ Wraith Master is open-sourced under the [Apache License, Version 2.0](https://ww
 - **Adam Honse**, for his work on [OpenRGB](https://gitlab.com/CalcProgrammer1/OpenRGB). This had some extra documentation on specific functions that I was lacking.
 - **ballsystemlord**, **Kirk**, and **tralamazza** from the [AdoredTV](https://adoredtv.com/) Discord server, along with **[Apache](https://github.com/Apache-HB)** and **my dad**, for helping me figure out how the mirage frequencies are converted to byte values.
 - The fine people of the `#musl` channel on Freenode, for helping me out with getting Wraith Master working on Alpine and Adélie.
-- **Cooler Master**, for manufacturing these great stock coolers, and being as helpful as they're allowed to be when I asked about how the USB interface worked.
-- **AMD**, for including actually decent stock coolers with their desktop processors.
+- **AMD** and **Cooler Master**. Please don't sue me :) 
 
 [wraith-master-logo]: https://serebit.com/images/wraith-master-banner-nopad.svg "Wraith Master"
 [gitlab-badge]: https://img.shields.io/badge/-gitlab-6e49cb?logo=gitlab "GitLab"
