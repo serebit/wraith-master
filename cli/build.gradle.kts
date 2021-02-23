@@ -11,7 +11,15 @@ kotlin.linuxX64 {
         enableEndorsedLibs = true
     }
 
-    binaries.executable { entryPoint = "com.serebit.wraith.cli.main" }
+    binaries.executable {
+        entryPoint = "com.serebit.wraith.cli.main"
+
+        val linkerDeps = "--static -lstdc++ --dynamic -ldl -lm -lpthread"
+        val linkerFlags = "$linkerDeps --defsym __cxa_demangle=Konan_cxa_demangle --no-threads --as-needed"
+        val gccDeps = "-lgcc -lgcc_eh -lc"
+        val overriddenProperties = "linkerKonanFlags.linux_x64=$linkerFlags;linkerGccFlags.linux_x64=$gccDeps"
+        freeCompilerArgs = freeCompilerArgs + listOf("-Xoverride-konan-properties=${overriddenProperties}")
+    }
 }
 
 val `package` by tasks.registering {
@@ -31,8 +39,6 @@ val `package` by tasks.registering {
                     commandLine("strip", it.absolutePath)
                 }
                 if (useGcompat) {
-                    exec { commandLine("patchelf", "--remove-needed", "libcrypt.so.1", it.absolutePath) }
-                    exec { commandLine("patchelf", "--remove-needed", "libresolv.so.2", it.absolutePath) }
                     exec { commandLine("patchelf", "--add-needed", "libgcompat.so.0", it.absolutePath) }
                 }
                 it.setExecutable(true)
