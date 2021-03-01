@@ -27,7 +27,7 @@ On success, 0 is returned. A non-zero return code signals a failure.
 
 ## COPYRIGHT
 
-Copyright © 2020 Campbell Jones, License: Apache-2.0
+Copyright © 2021 Campbell Jones, License: Apache-2.0
 
 ## SEE ALSO
 

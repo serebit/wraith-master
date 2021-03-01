@@ -13,7 +13,7 @@ fun runAboutDialog() {
         gtk_about_dialog_set_website_label(reinterpret(), "Visit on GitLab")
         gtk_about_dialog_set_copyright(
             reinterpret(),
-            "Copyright © 2020 Campbell Jones\nLicensed under the Apache License 2.0"
+            "Copyright © 2021 Campbell Jones\nLicensed under the Apache License 2.0"
         )
         clearFocusOnClickOrEsc()
         gtk_dialog_run(reinterpret())
