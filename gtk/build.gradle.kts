@@ -99,13 +99,11 @@ val prepareInstall by tasks.registering {
     }
 }
 
-tasks.register("install") {
+tasks.register<Copy>("install") {
     dependsOn(":core:install", prepareInstall)
 
-    doLast {
-        val prefix = file(properties["prefix"] ?: "/usr/local")
-        buildDir.resolve("preparedInstall").copyRecursively(prefix, overwrite = true)
-    }
+    from(buildDir.resolve("preparedInstall"))
+    destinationDir = file(properties["prefix"] ?: "/usr/local")
 }
 
 tasks.register("valgrind") {

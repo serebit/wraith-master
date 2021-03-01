@@ -35,15 +35,11 @@ val prepareInstall by tasks.registering {
     }
 }
 
-tasks.register("install") {
+tasks.register<Copy>("install") {
     dependsOn(prepareInstall)
 
-    doLast {
-        val prefix = file(properties["prefix"] ?: "/usr/local")
-        buildDir.resolve("preparedInstall")
-            .takeIf { it.exists() }
-            ?.copyRecursively(prefix, overwrite = true)
-    }
+    from(buildDir.resolve("preparedInstall"))
+    destinationDir = file(properties["prefix"] ?: "/usr/local")
 }
 
 projectDir.resolve("src/commonMain/kotlin").also { commonDir ->
