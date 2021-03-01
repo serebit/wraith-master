@@ -54,7 +54,7 @@ val `package` by tasks.registering {
                 if (useGcompat) {
                     exec { commandLine("patchelf", "--add-needed", "libgcompat.so.0", it.absolutePath) }
                 }
-                it.setExecutable(true)
+                it.setExecutable(true, false)
             }
 
         if (!disableManPages) {
@@ -82,7 +82,7 @@ val prepareInstall by tasks.registering {
 
         packageDir.resolve("wraith-master-gtk")
             .copyTo(destDir.resolve("bin/wraith-master-gtk"), overwrite = true)
-            .also { it.setExecutable(true) }
+            .also { it.setExecutable(true, false) }
 
         resourcesDir.resolve("wraith-master.svg")
             .copyTo(destDir.resolve("share/icons/hicolor/scalable/apps/wraith-master.svg"), overwrite = true)

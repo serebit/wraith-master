@@ -41,7 +41,7 @@ val `package` by tasks.registering {
                 if (useGcompat) {
                     exec { commandLine("patchelf", "--add-needed", "libgcompat.so.0", it.absolutePath) }
                 }
-                it.setExecutable(true)
+                it.setExecutable(true, false)
             }
 
         if (!disableManPages) {
@@ -63,7 +63,7 @@ val prepareInstall by tasks.registering {
 
         packageDir.resolve("wraith-master")
             .copyTo(destDir.resolve("bin/wraith-master"), overwrite = true)
-            .also { it.setExecutable(true) }
+            .also { it.setExecutable(true, false) }
 
         if (!disableManPages) {
             resourcesDir.resolve("wraith-master.1")
