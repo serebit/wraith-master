@@ -14,6 +14,7 @@ Wraith Master is a feature-complete graphical and command-line application for c
 Designed for feature parity with the official Windows-only Cooler Master application, Wraith Master supports all modes and settings that the Wraith Prism can use. As the Wraith coolers are capable of storing RGB configurations in-device, no daemon is required to maintain configurations, and the program can be uninstalled without fear of losing your settings.
 
 ![GTK Screenshot][wraith-master-screenshot]
+
 ![CLI Screenshot][wraith-master-terminal-screenshot]
 
 ## Supported Platforms
