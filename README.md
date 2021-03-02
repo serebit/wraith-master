@@ -2,6 +2,7 @@
 
 [![GitLab][gitlab-badge]](https://gitlab.com/serebit/wraith-master)
 [![GitHub Mirror][github-badge]](https://github.com/serebit/wraith-master)
+[![AUR][aur-badge]](https://aur.archlinux.org/packages/?K=wraith-master)
 [![CI Pipeline Status][pipeline-status-badge]](https://gitlab.com/serebit/wraith-master/commits/master)
 [![License][license-badge]](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Ko-fi][kofi-badge]](https://ko-fi.com/serebit)
@@ -93,8 +94,9 @@ Wraith Master is open-sourced under the [Apache License, Version 2.0](https://ww
 [wraith-master-logo]: https://serebit.com/images/wraith-master-banner-nopad.svg "Wraith Master"
 [gitlab-badge]: https://img.shields.io/badge/-gitlab-6e49cb?logo=gitlab "GitLab"
 [github-badge]: https://img.shields.io/badge/-github-505050?logo=github "GitLab"
+[kofi-badge]: https://img.shields.io/badge/-ko--fi-ff5f5f?logo=ko-fi&logoColor=white "Ko-fi"
+[aur-badge]: https://img.shields.io/aur/version/wraith-master-gtk
 [pipeline-status-badge]: https://gitlab.com/serebit/wraith-master/badges/master/pipeline.svg "Pipeline Status"
 [license-badge]: https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg "License"
-[kofi-badge]: https://img.shields.io/badge/-ko--fi-ff5f5f?logo=ko-fi&logoColor=white "Ko-fi"
 [wraith-master-screenshot]: https://serebit.com/images/wraith-master-screenshot.png "GTK Screenshot"
 [wraith-master-terminal-screenshot]: https://serebit.com/images/wraith-master-terminal-screenshot.png "CLI Screenshot"
