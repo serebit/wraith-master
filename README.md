@@ -49,15 +49,15 @@ These dependencies only need to be manually installed if you either built the so
 
 #### Normal Version
 
-| Distribution           | Shared Dependencies           | GTK-Only                |
-|------------------------|-------------------------------|-------------------------|
-| Debian, Ubuntu, etc.   | `libusb-1.0-0`, `libncurses5` | `glib2.0`, `libgtk-3.0` |
-| Arch, Manjaro, etc.    |                               | `gtk3`                  |
-| Fedora                 | `libxcrypt-compat`            | `gtk3`                  |
-| OpenSUSE               |                               | `glib2`, `gtk3`         |
-| Solus                  |                               |                         |
-| Void                   |                               |                         |
-| Gentoo                 | `dev-libs/libusb`             | `gtk+`                  |
+| Distribution           | Shared Dependencies | GTK-Only                |
+|------------------------|---------------------|-------------------------|
+| Debian, Ubuntu, etc.   | `libusb-1.0-0`      | `glib2.0`, `libgtk-3.0` |
+| Arch, Manjaro, etc.    |                     | `gtk3`                  |
+| Fedora                 | `libxcrypt-compat`  | `gtk3`                  |
+| OpenSUSE               |                     | `glib2`, `gtk3`         |
+| Solus                  |                     |                         |
+| Void                   |                     |                         |
+| Gentoo                 | `dev-libs/libusb`   | `gtk+`                  |
 
 ## Architecture
 
