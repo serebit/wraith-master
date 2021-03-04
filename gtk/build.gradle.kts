@@ -6,11 +6,9 @@ kotlin.linuxX64 {
     binaries.executable {
         entryPoint = "com.serebit.wraith.gtk.main"
 
-        val linkerDeps = "-Bstatic -lstdc++ -Bdynamic -ldl -lm -lpthread"
-        val linkerFlags = "$linkerDeps --defsym __cxa_demangle=Konan_cxa_demangle --no-threads --as-needed"
         val gccDeps = "-lgcc -lgcc_eh -lc"
-        val overriddenProperties = "linkerKonanFlags.linux_x64=$linkerFlags;linkerGccFlags.linux_x64=$gccDeps"
-        freeCompilerArgs = freeCompilerArgs + listOf("-Xoverride-konan-properties=${overriddenProperties}")
+        freeCompilerArgs = freeCompilerArgs +
+                listOf("-linker-option", "--as-needed", "-Xoverride-konan-properties=linkerGccFlags=$gccDeps")
     }
 
     compilations["main"].apply {
