@@ -35,6 +35,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add `releaseDeb` and `releaseRpm` tasks
 - Rename `distTar` task to `releaseTar`
 
+## v1.1.2 (2020-03-16)
+
+#### Fixed
+
+- Use custom Konan args to remove unused binary dependencies, such as glib-2.0 and libcrypt
+- Additionally remove dependency on libgcc_s
+
+#### Meta
+
+- Update Kotlin to v1.4.31
+- Update Gradle wrapper to v6.8.3
+
 ## v1.1.1 (2020-02-06)
 
 #### Fixed
