@@ -1,61 +1,46 @@
-image: registry.gitlab.com/serebit/wraith-master:latest
+image: registry.gitlab.com/serebit/wraith-master
 
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-  GRADLE_USER_HOME: $CI_PROJECT_DIR/.gradle
-  KONAN_DATA_DIR: $CI_PROJECT_DIR/.konan
+  GRADLE_USER_HOME: $CI_PROJECT_DIR/.gradle_home
+  KONAN_DATA_DIR: $CI_PROJECT_DIR/.konan_home
+  KONAN_DEPS_CACHE: $CI_PROJECT_DIR/.konan_deps
+  KONAN_DEPS: "clang-llvm-8.0.0-linux-x86-64 libffi-3.2.1-2-linux-x86-64 target-gcc-toolchain-3-linux-x86-64 lldb-3-linux"
 
 before_script:
-  - rm -f $GRADLE_USER_HOME/caches/modules-2/modules-2.lock
-  - rm -f $GRADLE_USER_HOME/caches/build-cache-1/build-cache-1.lock
-  - mkdir -p $KONAN_DATA_DIR/cache
-  - ln -s /var/lib/konan/deps/* $KONAN_DATA_DIR/cache/
+  # invalidate Gradle caches if the Gradle version changed
+  - if [[ ! -f gradle_checksum.txt || $(sha256sum /usr/bin/gradle) != $(cat gradle_checksum.txt) ]]; then
+  - rm -rf $GRADLE_USER_HOME/caches/ .gradle/*.*/
+  - fi
+  - mkdir -p "$KONAN_DEPS_CACHE" "$KONAN_DATA_DIR/dependencies/"
+  - for DEP in $KONAN_DEPS; do
+  - if [ ! -f "$KONAN_DEPS_CACHE/$DEP.tar.gz" ]; then
+  - wget -nv "https://download.jetbrains.com/kotlin/native/$DEP.tar.gz" -P "$KONAN_DEPS_CACHE"
+  - fi
+  - tar -xzf "$KONAN_DEPS_CACHE/$DEP.tar.gz" -C "$KONAN_DATA_DIR/dependencies/"
+  - echo "$DEP" >>"$KONAN_DATA_DIR/dependencies/.extracted"
+  - done
 
-cache:
+after_script:
+  - rm -f "$GRADLE_USER_HOME/caches/**/"{*.lock,gc.properties}
+  - find "$GRADLE_USER_HOME/caches/" -type d -empty -delete
+  - sha256sum /usr/bin/gradle > gradle_checksum.txt
+
+cache: &global_cache
   key: one-key-to-rule-them-all
-  paths:
-    - $GRADLE_USER_HOME/wrapper/dists/
-    - $GRADLE_USER_HOME/caches/modules-2/
-    - $GRADLE_USER_HOME/caches/build-cache-1/
-    - $KONAN_DATA_DIR/kotlin-native-*
+  paths: # these are all either deps or necessary build metadata for quick rebuilds
+    - $GRADLE_USER_HOME/caches/modules-*/{files,metadata}-*/
+    - $GRADLE_USER_HOME/caches/*.*/{file-changes,fileHashes,generated-gradle-jars,gradle-kotlin-dsl,gradle-kotlin-dsl-accessors}/
+    - $GRADLE_USER_HOME/caches/{build-cache,jars}-*/
+    - $KONAN_DEPS_CACHE/
+    - .gradle/{*.*,buildOutputCleanup}/
+    - ./**/build/{classes,bin}/
+    - gradle_checksum.txt
+  policy: pull
 
 build:
   stage: build
-  script: ./gradlew build
-  artifacts:
-    paths:
-      - "**/build/classes"
-      - "**/build/libs"
-  except:
-    changes:
-      - README.md
-      - LICENSE.md
-      - FUNDING.yml
-
-release-tar:
-  stage: deploy
-  needs: [ build ]
-  when: manual
-  only:
-    refs:
-      - master
-  script: ./gradlew distTar
-  artifacts:
-    paths:
-      - "build/dist/*.tar.*"
-
-release-deb:
-  stage: deploy
-  needs: [ build ]
-  when: manual
-  only:
-    refs:
-      - master
-  script:
-    - ./gradlew install -Ppackageroot=build/debian/wraith-master
-    - install -D resources/debian-control.txt build/debian/wraith-master/DEBIAN/control
-    - cd build/debian
-    - dpkg-deb -b wraith-master
-  artifacts:
-    paths:
-      - "build/debian/wraith-master.deb"
+  script: gradle allTests
+  cache:
+    <<: *global_cache
+    policy: pull-push
