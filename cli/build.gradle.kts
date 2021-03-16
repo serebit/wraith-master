@@ -11,7 +11,13 @@ kotlin.linuxX64 {
         enableEndorsedLibs = true
     }
 
-    binaries.executable { entryPoint = "com.serebit.wraith.cli.main" }
+    binaries.executable {
+        entryPoint = "com.serebit.wraith.cli.main"
+
+        val gccDeps = "-lgcc -lgcc_eh -lc"
+        freeCompilerArgs = freeCompilerArgs +
+                listOf("-linker-option", "--as-needed", "-Xoverride-konan-properties=linkerGccFlags=$gccDeps")
+    }
 }
 
 tasks.register("package") {

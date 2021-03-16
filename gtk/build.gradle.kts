@@ -24,7 +24,14 @@ kotlin.linuxX64 {
                 "/usr/local/lib/glib-2.0/include"
             )
         }
-        binaries.executable { entryPoint = "com.serebit.wraith.gtk.main" }
+
+        binaries.executable {
+            entryPoint = "com.serebit.wraith.gtk.main"
+
+            val gccDeps = "-lgcc -lgcc_eh -lc"
+            freeCompilerArgs = freeCompilerArgs +
+                    listOf("-linker-option", "--as-needed", "-Xoverride-konan-properties=linkerGccFlags=$gccDeps")
+        }
     }
 }
 
