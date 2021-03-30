@@ -5,10 +5,8 @@ plugins {
 kotlin.linuxX64 {
     binaries.executable {
         entryPoint = "com.serebit.wraith.gtk.main"
-
-        val gccDeps = "-lgcc -lgcc_eh -lc"
-        freeCompilerArgs = freeCompilerArgs +
-                listOf("-linker-option", "--as-needed", "-Xoverride-konan-properties=linkerGccFlags=$gccDeps")
+        linkerOpts("--as-needed", "--defsym=isnan=isnan")
+        freeCompilerArgs = freeCompilerArgs + listOf("-Xoverride-konan-properties=linkerGccFlags=-lgcc -lgcc_eh -lc")
     }
 
     compilations["main"].apply {
