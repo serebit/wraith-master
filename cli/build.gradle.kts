@@ -25,7 +25,6 @@ val `package` by tasks.registering {
         val packageDir = rootProject.buildDir.resolve("package")
 
         val shouldStrip = properties["strip"].let { it is String && (it.isEmpty() || it == "true") }
-        val useGcompat = properties["enable-gcompat"].let { it is String && (it.isEmpty() || it == "true") }
         val disableManPages = properties["disable-man-pages"].let { it is String && (it.isEmpty() || it == "true") }
 
         buildDir.resolve("bin/linuxX64/releaseExecutable/cli.kexe")
@@ -33,9 +32,6 @@ val `package` by tasks.registering {
             .also {
                 if (shouldStrip) exec {
                     commandLine("strip", it.absolutePath)
-                }
-                if (useGcompat) {
-                    exec { commandLine("patchelf", "--add-needed", "libgcompat.so.0", it.absolutePath) }
                 }
                 it.setExecutable(true, false)
             }

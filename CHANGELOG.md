@@ -10,7 +10,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 #### Added
 
 - [#3](https://gitlab.com/serebit/wraith-master/-/issues/3) - Partial support for Alpine, Adélie, and other
-  distributions that use musl! Users of these distributions can download the precompiled `-gcompat` tarball
+  distributions that use musl! Requires gcompat to be installed for Alpine and Adélie, but otherwise works out of the box
 - [#13](https://gitlab.com/serebit/wraith-master/-/issues/13) - Man pages for both GTK and CLI, hand-written and
   compiled by scdoc
 - [#16](https://gitlab.com/serebit/wraith-master/-/issues/16) - Support for manually resetting the USB port
@@ -30,7 +30,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Replace most compile-time Gradle properties (see
   [the wiki](https://gitlab.com/serebit/wraith-master/-/wikis/help/building-from-source) for more information)
-- Add `enable-gcompat` Gradle property, which makes the `package` task patch the output executables to use gcompat
 - Add `disable-man-pages` Gradle property to disable automatic man page generation
 - Add `releaseDeb` and `releaseRpm` tasks
 - Rename `distTar` task to `releaseTar`
