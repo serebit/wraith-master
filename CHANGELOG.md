@@ -34,7 +34,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add `releaseDeb` and `releaseRpm` tasks
 - Rename `distTar` task to `releaseTar`
 
-## v1.1.2 (2020-03-16)
+## v1.1.2 (2021-03-16)
 
 #### Fixed
 
@@ -46,7 +46,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Update Kotlin to v1.4.31
 - Update Gradle wrapper to v6.8.3
 
-## v1.1.1 (2020-02-06)
+## v1.1.1 (2021-02-06)
 
 #### Fixed
 
