@@ -17,34 +17,20 @@ fun main(args: Array<String>) {
     val result = obtainWraithPrism()
 
     when (result) {
-        is DeviceResult.Success -> {
-            val prismPtr = StableRef.create(result.prism).asCPointer()
-
-            app.connectToSignal("activate", prismPtr,
-                staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { it, ptr ->
-                    it.createWindowOrNull { activate(ptr.asStableRef<WraithPrism>().get()) }
-                        ?: runNoExtraWindowsDialog()
-                })
-
-            app.connectToSignal("shutdown", prismPtr,
-                staticCFunction<CPointer<GApplication>, COpaquePointer, Unit> { _, ptr ->
-                    ptr.asStableRef<WraithPrism>().dispose()
-                })
+        is DeviceResult.Success -> app.connectToSignal("activate") {
+            app.createWindowOrNull { activate(result.prism) } ?: runNoExtraWindowsDialog()
         }
 
-        is DeviceResult.Failure -> app.connectToSignal(
-            "activate", StableRef.create(result.message).asCPointer(),
-            staticCFunction<CPointer<GtkApplication>, COpaquePointer, Unit> { _, ptr ->
-                val dialog = gtk_message_dialog_new(
-                    null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK,
-                    "%s", ptr.asStableRef<String>().get()
-                )!!
+        is DeviceResult.Failure -> app.connectToSignal("activate") {
+            val dialog = gtk_message_dialog_new(
+                null, 0u, GtkMessageType.GTK_MESSAGE_ERROR, GtkButtonsType.GTK_BUTTONS_OK,
+                "%s", result.message
+            )!!
 
-                gtk_dialog_run(dialog.reinterpret())
+            gtk_dialog_run(dialog.reinterpret())
 
-                gtk_widget_destroy(dialog)
-                ptr.asStableRef<String>().dispose()
-            })
+            gtk_widget_destroy(dialog)
+        }
     }
 
     val status: Int = try {
@@ -69,9 +55,11 @@ fun CPointer<GtkApplication>.createWindowOrNull(addWidgets: Widget.() -> Unit): 
         val headerBar = gtk_header_bar_new()!!.apply {
             gtk_header_bar_set_show_close_button(reinterpret(), 1)
             gtk_header_bar_set_title(reinterpret(), "Wraith Master")
-            val aboutButton = iconButton("dialog-information", null, null, staticCFunction { _, _ ->
-                runAboutDialog()
-            })
+            val aboutButton = iconButton("dialog-information", null).apply {
+                connectToSignal("clicked") {
+                    runAboutDialog()
+                }
+            }
             gtk_header_bar_pack_start(reinterpret(), aboutButton)
         }
 
@@ -127,7 +115,8 @@ fun Widget.activate(wraith: WraithPrism) {
     }
 
     val saveOptionButtons = listOf(resetButton, saveButton)
-    val callbackData = CallbackData(wraith, listOf(ringWidgets, fanWidgets, logoWidgets), saveOptionButtons)
+    val widgets = listOf(ringWidgets, fanWidgets, logoWidgets)
+    val callbackData = CallbackData(wraith, widgets, saveOptionButtons)
     val callbackPtr = StableRef.create(callbackData).asCPointer()
 
     gtk_window_get_titlebar(reinterpret())!!.apply {
@@ -135,36 +124,33 @@ fun Widget.activate(wraith: WraithPrism) {
         gtk_header_bar_set_subtitle(reinterpret(), "Wraith Prism, firmware $firmwareVersion")
 
         val resetToDefaultButton = gtk_menu_item_new_with_label("Reset to Default")!!.apply {
-            connectToSignal("activate", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-                val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
-                device.resetToDefault()
+            connectToSignal("activate") {
+                wraith.resetToDefault()
 
                 widgets.filterIsInstance<FanWidgets>().forEach { it.setMirageEnabled(330, 330, 330) }
                 widgets.forEach { it.reload() }
-            })
+            }
             gtk_widget_show(this)
         }
 
         val toggleEnsoModeButton = gtk_menu_item_new_with_label("Toggle Enso Mode")!!.apply {
-            connectToSignal("activate", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-                val (device, widgets, _) = ptr.asStableRef<CallbackData>().get()
-                device.apply {
+            connectToSignal("activate") {
+                wraith.apply {
                     enso = !enso
                     if (!enso) {
-                        device.resetToDefault()
+                        wraith.resetToDefault()
                         save()
                     }
                 }
                 widgets.forEach { it.reload() }
-            })
+            }
             gtk_widget_show(this)
         }
 
         val resetPortButton = gtk_menu_item_new_with_label("Reset USB Port")!!.apply {
-            connectToSignal("activate", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-                val (device, _, _) = ptr.asStableRef<CallbackData>().get()
-                device.resetPort()
-            })
+            connectToSignal("activate") {
+                wraith.resetPort()
+            }
             gtk_widget_show(this)
         }
 
@@ -179,20 +165,18 @@ fun Widget.activate(wraith: WraithPrism) {
         gtk_header_bar_pack_start(reinterpret(), dropdownMenuButton)
     }
 
-    resetButton.connectToSignal("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-        val (device, widgets, buttons) = ptr.asStableRef<CallbackData>().get()
-        device.restore()
-        device.apply()
-        device.components.forEach { it.reloadValues() }
+    resetButton.connectToSignal("clicked") {
+        wraith.restore()
+        wraith.apply()
+        wraith.components.forEach { it.reloadValues() }
         widgets.forEach { it.reload() }
-        buttons.forEach { it.setSensitive(false) }
-    })
+        saveOptionButtons.forEach { it.setSensitive(false) }
+    }
 
-    saveButton.connectToSignal("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { _, ptr ->
-        val (device, _, buttons) = ptr.asStableRef<CallbackData>().get()
-        device.save()
-        buttons.forEach { it.setSensitive(false) }
-    })
+    saveButton.connectToSignal("clicked") {
+        wraith.save()
+        saveOptionButtons.forEach { it.setSensitive(false) }
+    }
 
     wraith.onApply = {
         saveOptionButtons.forEach { it.setSensitive(wraith.hasUnsavedChanges) }

@@ -13,81 +13,69 @@ sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out Pri
     var isReloading = false
         private set
 
-    private val modeBox: CPointer<GtkWidget> = comboBox(modes.map { it.name }) {
-        connectToSignal("changed", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { widget, ptr ->
-            val (wraith, widgets) = ptr.asStableRef<CallbackData<PrismComponentWidgets>>().get()
-            val component = widgets.component
-
-            if (!widgets.isReloading) {
-                val modeText = gtk_combo_box_text_get_active_text(widget.reinterpret())!!.toKString().toUpperCase()
+    private val modeBox: CPointer<GtkWidget> = comboBox(modes.map { it.name }).apply {
+        connectToSignal("changed") {
+            if (!isReloading) {
+                val modeText = gtk_combo_box_text_get_active_text(reinterpret())!!.toKString().toUpperCase()
 
                 when (component) {
                     is PrismRingComponent -> {
-                        component.mode = PrismRingMode.valueOf(modeText)
+                        (component as PrismRingComponent).mode = PrismRingMode.valueOf(modeText)
                         component.reloadValues()
-                        wraith.assignChannels()
+                        device.assignChannels()
                     }
-                    is PrismFanComponent -> {
-                        component.mode = BasicPrismMode.valueOf(modeText)
-                    }
-                    is PrismLogoComponent -> {
-                        component.mode = BasicPrismMode.valueOf(modeText)
-
-                    }
+                    is PrismFanComponent -> (component as PrismFanComponent).mode = BasicPrismMode.valueOf(modeText)
+                    is PrismLogoComponent -> (component as PrismLogoComponent).mode = BasicPrismMode.valueOf(modeText)
                 }
 
                 component.submitValues()
-                wraith.apply()
-                widgets.reload()
+                device.apply()
+                reload()
             }
-        })
+        }
     }
 
     private val colorButton = gtk_color_button_new()!!.apply {
         gtk_color_button_set_use_alpha(reinterpret(), 0)
         gtk_widget_set_size_request(this, 96, -1)
-        connectToSignal<StandardCallbackFunc>("color-set", callbackPtr, staticCFunction { widget, ptr ->
-            ptr.useCallbackPtr<PrismComponentWidgets> { wraith, widgets ->
-                widgets.component.color = memScoped {
-                    alloc<GdkRGBA>()
-                        .also { gtk_color_button_get_rgba(widget.reinterpret(), it.ptr) }
-                        .run { Color((255 * red).toInt(), (255 * green).toInt(), (255 * blue).toInt()) }
-                }
-                widgets.component.submitValues()
-                wraith.apply()
+        connectToSignal("color-set") {
+            component.color = memScoped {
+                alloc<GdkRGBA>()
+                    .also { gtk_color_button_get_rgba(reinterpret(), it.ptr) }
+                    .run { Color((255 * red).toInt(), (255 * green).toInt(), (255 * blue).toInt()) }
             }
-        })
+            component.submitValues()
+            device.apply()
+        }
     }
 
     private val randomizeColorCheckbox = gtk_check_button_new_with_label("Randomize?")!!.apply {
-        connectToSignal<StandardCallbackFunc>("toggled", callbackPtr, staticCFunction { widget, ptr ->
-            ptr.useCallbackPtr<PrismComponentWidgets> { wraith, widgets ->
-                val isActive = gtk_toggle_button_get_active(widget.reinterpret())
-                if (widgets.component.mode.colorSupport == ColorSupport.ALL) {
-                    widgets.component.useRandomColor = isActive == 1
-                    widgets.component.submitValues()
-                    wraith.apply()
-                }
-                widgets.colorButton.setSensitive(isActive == 0)
+        connectToSignal("toggled") {
+            val isActive = gtk_toggle_button_get_active(reinterpret())
+            if (component.mode.colorSupport == ColorSupport.ALL) {
+                component.useRandomColor = isActive == 1
+                component.submitValues()
+                device.apply()
             }
-        })
+            colorButton.setSensitive(isActive == 0)
+        }
     }
 
-    private val brightnessScale = gridScale(Brightness.values().size, callbackPtr, staticCFunction { widget, ptr ->
-        ptr.useCallbackPtr<PrismComponentWidgets> { wraith, widgets ->
-            widgets.component.brightness = Brightness.values()[gtk_adjustment_get_value(widget.reinterpret()).toInt()]
-            widgets.component.submitValues()
-            wraith.apply()
+    private val brightnessScale = gridScale(Brightness.values().size).apply {
+        connectToSignal("value-changed") {
+            component.brightness = Brightness.values()[gtk_range_get_value(reinterpret()).toInt()]
+            component.submitValues()
+            device.apply()
         }
-    })
+    }
 
-    private val speedScale = gridScale(Speed.values().size, callbackPtr, staticCFunction { widget, ptr ->
-        ptr.useCallbackPtr<PrismComponentWidgets> { wraith, widgets ->
-            widgets.component.speed = Speed.values()[gtk_adjustment_get_value(widget.reinterpret()).toInt()]
-            widgets.component.submitValues()
-            wraith.apply()
+    private val speedScale = gridScale(Speed.values().size).apply {
+        connectToSignal("value-changed") {
+            component.speed = Speed.values()[gtk_range_get_value(reinterpret()).toInt()]
+            component.submitValues()
+            device.apply()
         }
-    })
+    }
 
     private val colorBox = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
         gtk_box_pack_end(reinterpret(), colorButton, 0, 0, 0u)
@@ -187,12 +175,10 @@ class FanWidgets(device: WraithPrism) : PrismComponentWidgets(device, BasicPrism
         }
     } // red, green, blue; in order
 
-    private val mirageReload = iconButton("gtk-ok", "Apply", callbackPtr, staticCFunction { _, ptr ->
-        ptr.useCallbackPtr<FanWidgets> { wraith, widgets ->
-            val component: PrismFanComponent = widgets.component
-
-            if (gtk_switch_get_active(widgets.mirageToggle.reinterpret()) == 1) {
-                val (red, green, blue) = widgets.mirageFreqSpinners.map {
+    private val mirageReload = iconButton("gtk-ok", "Apply").apply {
+        connectToSignal("clicked") {
+            if (gtk_switch_get_active(mirageToggle.reinterpret()) == 1) {
+                val (red, green, blue) = mirageFreqSpinners.map {
                     gtk_spin_button_get_value_as_int(it.reinterpret())
                 }
                 component.mirageState = MirageState.On(red, green, blue)
@@ -200,9 +186,9 @@ class FanWidgets(device: WraithPrism) : PrismComponentWidgets(device, BasicPrism
                 component.mirageState = MirageState.Off
             }
 
-            wraith.pushFanMirageState()
+            device.pushFanMirageState()
         }
-    })
+    }
 
     private val mirageGrid = gtk_grid_new()!!.apply {
         gtk_grid_set_column_spacing(reinterpret(), 4u)
@@ -242,14 +228,12 @@ class RingWidgets(wraith: WraithPrism) : PrismComponentWidgets(wraith, PrismRing
     private var morseHintLabel: Widget? = null
     private var morseHint: Widget? = null
 
-    private val directionComboBox = comboBox(RotationDirection.values().map { it.name }) {
-        connectToSignal("changed", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { widget, ptr ->
-            ptr.useCallbackPtr<RingWidgets> { wraith, widgets ->
-                val text = gtk_combo_box_text_get_active_text(widget.reinterpret())!!.toKString()
-                widgets.component.direction = RotationDirection.valueOf(text.toUpperCase())
-                wraith.apply()
-            }
-        })
+    private val directionComboBox = comboBox(RotationDirection.values().map { it.name }).apply {
+        connectToSignal("changed") {
+            val text = gtk_combo_box_text_get_active_text(reinterpret())!!.toKString()
+            component.direction = RotationDirection.valueOf(text.toUpperCase())
+            wraith.apply()
+        }
     }
 
     private val morseTextBox = gtk_entry_new()!!.apply {
@@ -261,11 +245,9 @@ class RingWidgets(wraith: WraithPrism) : PrismComponentWidgets(wraith, PrismRing
         )
         gtk_widget_set_size_request(this, 192, -1)
 
-        connectToSignal<StandardCallbackFunc>("changed", callbackPtr, staticCFunction { widget, ptr ->
-            ptr.useCallbackPtr<RingWidgets> { _, widgets ->
-                widgets.changeCallback(widget)
-            }
-        })
+        connectToSignal("changed") {
+            changeCallback(this)
+        }
         connectToSignal<IconPressCallbackFunc>("icon-press", callbackPtr, staticCFunction { widget, _, _, ptr ->
             ptr.useCallbackPtr<RingWidgets> { _, widgets ->
                 when {
@@ -287,13 +269,11 @@ class RingWidgets(wraith: WraithPrism) : PrismComponentWidgets(wraith, PrismRing
 
     private val morseReloadButton = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)
-        connectToSignal("clicked", callbackPtr, staticCFunction<Widget, COpaquePointer, Unit> { widget, ptr ->
-            ptr.useCallbackPtr<RingWidgets> { wraith, widgets ->
-                gtk_entry_set_text(widgets.morseTextBox.reinterpret(), widgets.morseTextBox.text.trim())
-                wraith.updateRingMorseText(widgets.morseTextBox.text)
-                widget.setSensitive(false)
-            }
-        })
+        connectToSignal("clicked") {
+            gtk_entry_set_text(morseTextBox.reinterpret(), morseTextBox.text.trim())
+            wraith.updateRingMorseText(morseTextBox.text)
+            setSensitive(false)
+        }
     }
 
     private val morseContainer = gtk_box_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, 4)!!.apply {
