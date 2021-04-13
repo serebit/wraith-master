@@ -95,12 +95,6 @@ fun Widget.activate(wraith: WraithPrism) {
         gtk_box_set_child_packing(box.reinterpret(), this, 0, 1, 0u, GtkPackType.GTK_PACK_END)
     }
 
-    data class CallbackData(
-        val wraith: WraithPrism,
-        val widgets: List<PrismComponentWidgets>,
-        val buttons: List<Widget>
-    )
-
     val resetButton = gtk_button_new()!!.apply {
         gtk_button_set_label(reinterpret(), "Reset")
         setSensitive(false)
@@ -116,8 +110,6 @@ fun Widget.activate(wraith: WraithPrism) {
 
     val saveOptionButtons = listOf(resetButton, saveButton)
     val widgets = listOf(ringWidgets, fanWidgets, logoWidgets)
-    val callbackData = CallbackData(wraith, widgets, saveOptionButtons)
-    val callbackPtr = StableRef.create(callbackData).asCPointer()
 
     gtk_window_get_titlebar(reinterpret())!!.apply {
         val firmwareVersion = wraith.requestFirmwareVersion()
@@ -182,40 +174,33 @@ fun Widget.activate(wraith: WraithPrism) {
         saveOptionButtons.forEach { it.setSensitive(wraith.hasUnsavedChanges) }
     }
 
-    connectToSignal("delete-event", callbackPtr,
-        staticCFunction<Widget, CPointer<GdkEvent>, COpaquePointer, Boolean> { window, _, ptr ->
-            var returnValue = false
-            val (prism, widgets, _) = ptr.asStableRef<CallbackData>().get()
-            if (prism.hasUnsavedChanges) {
-                val dialog = gtk_message_dialog_new(
-                    window.reinterpret(), 0u, GtkMessageType.GTK_MESSAGE_QUESTION, GtkButtonsType.GTK_BUTTONS_NONE,
-                    "%s", "You have unsaved changes. Would you like to save them?"
-                )!!
-                gtk_dialog_add_buttons(
-                    dialog.reinterpret(),
-                    "Yes", GTK_RESPONSE_YES,
-                    "No", GTK_RESPONSE_NO,
-                    "Cancel", GTK_RESPONSE_CANCEL,
-                    null
-                )
+    connectToSignal("delete-event") { _: CPointer<GdkEvent> ->
+        var returnValue = false
+        if (wraith.hasUnsavedChanges) {
+            val dialog = gtk_message_dialog_new(
+                reinterpret(), 0u, GtkMessageType.GTK_MESSAGE_QUESTION, GtkButtonsType.GTK_BUTTONS_NONE,
+                "%s", "You have unsaved changes. Would you like to save them?"
+            )!!
+            gtk_dialog_add_buttons(
+                dialog.reinterpret(),
+                "Yes", GTK_RESPONSE_YES,
+                "No", GTK_RESPONSE_NO,
+                "Cancel", GTK_RESPONSE_CANCEL,
+                null
+            )
 
-                when (gtk_dialog_run(dialog.reinterpret())) {
-                    GTK_RESPONSE_YES -> prism.save()
-                    GTK_RESPONSE_NO -> {
-                        prism.restore()
-                        prism.apply(runCallback = false)
-                    }
-                    GTK_RESPONSE_CANCEL -> returnValue = true
+            when (gtk_dialog_run(dialog.reinterpret())) {
+                GTK_RESPONSE_YES -> wraith.save()
+                GTK_RESPONSE_NO -> {
+                    wraith.restore()
+                    wraith.apply(runCallback = false)
                 }
-
-                gtk_widget_destroy(dialog)
+                GTK_RESPONSE_CANCEL -> returnValue = true
             }
 
-            if (!returnValue) {
-                widgets.forEach { it.close() }
-                ptr.asStableRef<CallbackData>().dispose()
-            }
+            gtk_widget_destroy(dialog)
+        }
 
-            returnValue
-        })
+        returnValue
+    }
 }

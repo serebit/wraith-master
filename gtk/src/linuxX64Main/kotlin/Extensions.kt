@@ -79,21 +79,19 @@ fun gridScale(marks: Int): Widget {
 }
 
 fun Widget.clearFocusOnClickOrEsc() {
-    connectToSignal("button-press-event", null,
-        staticCFunction<Widget, CPointer<GdkEventButton>, Boolean> { it, event ->
-            if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
-                gtk_window_set_focus(it.reinterpret(), null)
-                gtk_window_set_focus_visible(it.reinterpret(), 0)
-            }
-            false
-        })
+    connectToSignal("button-press-event") { event: CPointer<GdkEventButton> ->
+        if (event.pointed.type == GDK_BUTTON_PRESS && event.pointed.button == 1u) {
+            gtk_window_set_focus(reinterpret(), null)
+            gtk_window_set_focus_visible(reinterpret(), 0)
+        }
+        false
+    }
 
-    connectToSignal("key-press-event", null,
-        staticCFunction<Widget, CPointer<GdkEventKey>, Boolean> { it, event ->
-            if (event.pointed.type == GDK_KEY_PRESS && event.pointed.keyval == 0xFF1Bu) {
-                gtk_window_set_focus(it.reinterpret(), null)
-                gtk_window_set_focus_visible(it.reinterpret(), 0)
-            }
-            false
-        })
+    connectToSignal("key-press-event") { event: CPointer<GdkEventKey> ->
+        if (event.pointed.type == GDK_KEY_PRESS && event.pointed.keyval == 0xFF1Bu) {
+            gtk_window_set_focus(reinterpret(), null)
+            gtk_window_set_focus_visible(reinterpret(), 0)
+        }
+        false
+    }
 }
