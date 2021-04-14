@@ -51,7 +51,12 @@ fun Widget.addCss(css: String) = gtk_widget_get_style_context(this)!!.apply {
 
 inline fun comboBox(elements: List<String>) =
     gtk_combo_box_text_new()!!.apply {
-        elements.forEach { gtk_combo_box_text_append_text(reinterpret(), it.toLowerCase().capitalize()) }
+        elements.forEach { element ->
+            gtk_combo_box_text_append_text(
+                reinterpret(),
+                element.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+            )
+        }
         gtk_widget_set_size_request(this, 96, -1)
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER)

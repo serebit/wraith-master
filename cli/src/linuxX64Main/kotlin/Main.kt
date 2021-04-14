@@ -35,8 +35,8 @@ fun main(args: Array<KString>) {
 
     val component by parser.argument(ArgType.Choice(listOf("logo", "fan", "ring"), { it }))
 
-    val basicModes: List<KString> = BasicPrismMode.values().map { it.name.toLowerCase() }
-    val ringModes: List<KString> = PrismRingMode.values().map { it.name.toLowerCase() }
+    val basicModes: List<KString> = BasicPrismMode.values().map { it.name.lowercase() }
+    val ringModes: List<KString> = PrismRingMode.values().map { it.name.lowercase() }
     val modeNames = (basicModes union ringModes).toList()
 
     val mode by parser.option(
@@ -144,10 +144,10 @@ fun main(args: Array<KString>) {
 
             // parameter validation
             mode?.let { it ->
-                val invalidRingMode = component.toLowerCase() == "ring"
-                        && it.toUpperCase() !in PrismRingMode.values().map { it.name }
-                val invalidLedMode = component.toLowerCase() in listOf("fan", "logo")
-                        && it.toUpperCase() !in BasicPrismMode.values().map { it.name }
+                val invalidRingMode = component.lowercase() == "ring"
+                        && it.uppercase() !in PrismRingMode.values().map { it.name }
+                val invalidLedMode = component.lowercase() in listOf("fan", "logo")
+                        && it.uppercase() !in BasicPrismMode.values().map { it.name }
                 if (invalidRingMode || invalidLedMode) {
                     error("Provided mode $it is not in valid modes for component $component.")
                 }
@@ -183,9 +183,9 @@ fun main(args: Array<KString>) {
             mode?.let {
                 if (verbose == true) println("\tSetting mode to $it")
                 when (prismComponent) {
-                    is PrismFanComponent -> prismComponent.mode = BasicPrismMode.valueOf(it.toUpperCase())
-                    is PrismLogoComponent -> prismComponent.mode = BasicPrismMode.valueOf(it.toUpperCase())
-                    is PrismRingComponent -> prismComponent.mode = PrismRingMode.valueOf(it.toUpperCase())
+                    is PrismFanComponent -> prismComponent.mode = BasicPrismMode.valueOf(it.uppercase())
+                    is PrismLogoComponent -> prismComponent.mode = BasicPrismMode.valueOf(it.uppercase())
+                    is PrismRingComponent -> prismComponent.mode = PrismRingMode.valueOf(it.uppercase())
                 }
             }
 
@@ -221,7 +221,7 @@ fun main(args: Array<KString>) {
                     if (!prismComponent.mode.supportsDirection)
                         shortCircuit("Currently selected mode does not support the rotation direction setting")
                     if (verbose == true) println("\tSetting rotation direction to $it")
-                    prismComponent.direction = RotationDirection.valueOf(it.toUpperCase())
+                    prismComponent.direction = RotationDirection.valueOf(it.uppercase())
                 }
 
                 morseText?.let {
@@ -265,7 +265,7 @@ private object MirageArgType : ArgType<MirageState>(true) {
             ?.takeIf { it.size == 3 }
             ?.let { return MirageState.On(it[0], it[1], it[2]) }
 
-        return when (value.toLowerCase()) {
+        return when (value.lowercase()) {
             "on" -> MirageState.On(330, 330, 330)
             "off" -> MirageState.Off
             else -> error("""Option $name is expected to be either three comma-separated values, or one of the strings "on" or "off".""")

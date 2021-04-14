@@ -84,9 +84,9 @@ class WraithPrism internal constructor(private val usb: UsbInterface) {
     fun requestFirmwareVersion(): String = usb.sendBytes(0x12u, 0x20u)
         .subList(8, 34)
         .filter { it != 0.toUByte() }
-        .map { it.toByte().toChar() }
+        .map { it.toInt().toChar() }
         .joinToString("")
-        .toLowerCase()
+        .lowercase()
 
     fun resetPort() = usb.resetPort()
 

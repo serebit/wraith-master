@@ -11,7 +11,7 @@ sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out Pri
     private val modeBox: CPointer<GtkWidget> = comboBox(modes.map { it.name }).apply {
         connectToSignal("changed") {
             if (!isReloading) {
-                val modeText = gtk_combo_box_text_get_active_text(reinterpret())!!.toKString().toUpperCase()
+                val modeText = gtk_combo_box_text_get_active_text(reinterpret())!!.toKString().uppercase()
 
                 when (component) {
                     is PrismRingComponent -> {
@@ -220,7 +220,7 @@ class RingWidgets(wraith: WraithPrism) : PrismComponentWidgets(wraith, PrismRing
     private val directionComboBox = comboBox(RotationDirection.values().map { it.name }).apply {
         connectToSignal("changed") {
             val text = gtk_combo_box_text_get_active_text(reinterpret())!!.toKString()
-            component.direction = RotationDirection.valueOf(text.toUpperCase())
+            component.direction = RotationDirection.valueOf(text.uppercase())
             wraith.apply()
         }
     }

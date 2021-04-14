@@ -1,10 +1,10 @@
 package com.serebit.wraith.core.prism
 
 val String.isMorseCode get() = trim().split(' ').all { it in charMorseRepresentation.values }
-val String.isValidMorseText get() = toUpperCase().all { it in charMorseRepresentation }
-val String.invalidMorseChars get() = filter { it.toUpperCase() !in charMorseRepresentation }.toList().distinct()
+val String.isValidMorseText get() = uppercase().all { it in charMorseRepresentation }
+val String.invalidMorseChars get() = filter { it.uppercaseChar() !in charMorseRepresentation }.toList().distinct()
 
-private fun String.fromTextToMorse() = trim().mapNotNull { charMorseRepresentation[it.toUpperCase()] }.joinToString(" ")
+private fun String.fromTextToMorse() = trim().mapNotNull { charMorseRepresentation[it.uppercaseChar()] }.joinToString(" ")
 
 private val charToBitsMap = mapOf('.' to "10", '-' to "01", ' ' to "00")
 private fun String.fromMorseToBits() = trim().map { charToBitsMap[it] ?: error("Invalid character") }
