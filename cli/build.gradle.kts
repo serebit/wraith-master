@@ -4,16 +4,15 @@ plugins {
 
 kotlin.linuxX64 {
     compilations["main"].apply {
-        defaultSourceSet {
-            dependencies { implementation(project(":core")) }
-            languageSettings.useExperimentalAnnotation("kotlin.RequiresOptIn")
+        defaultSourceSet.dependencies {
+            implementation(project(":core"))
         }
         enableEndorsedLibs = true
     }
 
     binaries.executable {
         entryPoint = "com.serebit.wraith.cli.main"
-        linkerOpts("--as-needed", "--defsym=isnan=isnan")
+        linkerOpts("--as-needed", "-z", "now", "-z", "relro")
         freeCompilerArgs = freeCompilerArgs + listOf("-Xoverride-konan-properties=linkerGccFlags=-lgcc -lgcc_eh -lc")
     }
 }

@@ -3,11 +3,6 @@ plugins {
 }
 
 kotlin.linuxX64().compilations["main"].apply {
-    defaultSourceSet.languageSettings.apply {
-        useExperimentalAnnotation("kotlin.RequiresOptIn")
-        useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
-    }
-
     cinterops.create("libusb") {
         includeDirs("/opt/local/include", "/usr/include", "/usr/local/include")
     }

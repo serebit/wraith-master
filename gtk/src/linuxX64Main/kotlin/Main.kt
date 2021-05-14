@@ -115,8 +115,8 @@ fun Widget.activate(wraith: WraithPrism) {
     }
 
     val saveOptionButtons = listOf(resetButton, saveButton)
-    val widgets = listOf(ringWidgets, fanWidgets, logoWidgets)
-    val callbackData = CallbackData(wraith, widgets, saveOptionButtons)
+    val allWidgets = listOf(ringWidgets, fanWidgets, logoWidgets)
+    val callbackData = CallbackData(wraith, allWidgets, saveOptionButtons)
     val callbackPtr = StableRef.create(callbackData).asCPointer()
 
     gtk_window_get_titlebar(reinterpret())!!.apply {
@@ -127,8 +127,8 @@ fun Widget.activate(wraith: WraithPrism) {
             connectToSignal("activate") {
                 wraith.resetToDefault()
 
-                widgets.filterIsInstance<FanWidgets>().forEach { it.setMirageEnabled(330, 330, 330) }
-                widgets.forEach { it.reload() }
+                allWidgets.filterIsInstance<FanWidgets>().forEach { it.setMirageEnabled(330, 330, 330) }
+                allWidgets.forEach { it.reload() }
             }
             gtk_widget_show(this)
         }
@@ -142,7 +142,7 @@ fun Widget.activate(wraith: WraithPrism) {
                         save()
                     }
                 }
-                widgets.forEach { it.reload() }
+                allWidgets.forEach { it.reload() }
             }
             gtk_widget_show(this)
         }
@@ -169,7 +169,7 @@ fun Widget.activate(wraith: WraithPrism) {
         wraith.restore()
         wraith.apply()
         wraith.components.forEach { it.reloadValues() }
-        widgets.forEach { it.reload() }
+        allWidgets.forEach { it.reload() }
         saveOptionButtons.forEach { it.setSensitive(false) }
     }
 

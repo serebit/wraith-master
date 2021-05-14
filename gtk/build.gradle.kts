@@ -5,17 +5,13 @@ plugins {
 kotlin.linuxX64 {
     binaries.executable {
         entryPoint = "com.serebit.wraith.gtk.main"
-        linkerOpts("--as-needed", "--defsym=isnan=isnan")
+        linkerOpts("--as-needed")
         freeCompilerArgs = freeCompilerArgs + listOf("-Xoverride-konan-properties=linkerGccFlags=-lgcc -lgcc_eh -lc")
     }
 
     compilations["main"].apply {
-        defaultSourceSet {
-            dependencies { implementation(project(":core")) }
-            languageSettings.apply {
-                useExperimentalAnnotation("kotlin.RequiresOptIn")
-                useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
-            }
+        defaultSourceSet.dependencies {
+            implementation(project(":core"))
         }
 
         cinterops.create("gtk3") {
