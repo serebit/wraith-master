@@ -4,9 +4,14 @@ import com.serebit.wraith.core.prism.*
 import gtk3.*
 import kotlinx.cinterop.*
 
+typealias IconPressCallbackFunc = CFunction<(Widget, GtkEntryIconPosition, CPointer<GdkEvent>, COpaquePointer) -> Unit>
+typealias StateSetCallbackFunc = CFunction<(Widget, Int, COpaquePointer) -> Boolean>
+
 sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out PrismMode>) {
     abstract val component: PrismComponent<*>
-    private var isReloading = false
+    protected val callbackPtr by lazy { StableRef.create(CallbackData(device, this)).asCPointer() }
+    var isReloading = false
+        private set
 
     private val modeBox: CPointer<GtkWidget> = comboBox(modes.map { it.name }).apply {
         connectToSignal("changed") {
@@ -130,6 +135,8 @@ sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out Pri
     protected open fun extraReload() = Unit
 
     protected open fun attachExtraWidgets(grid: Widget) = Unit
+
+    fun close() = callbackPtr.asStableRef<CallbackData<*>>().dispose()
 }
 
 class LogoWidgets(device: WraithPrism) : PrismComponentWidgets(device, BasicPrismMode.values()) {
@@ -144,15 +151,19 @@ class FanWidgets(device: WraithPrism) : PrismComponentWidgets(device, BasicPrism
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_START)
         gtk_widget_set_valign(this, GtkAlign.GTK_ALIGN_CENTER) // override for some themes, like adwaita
 
-        connectToSignal("state-set") { state: Int ->
-            component.mirageState = if (state == 0) MirageState.Off else MirageState.DEFAULT
+        connectToSignal<StateSetCallbackFunc>("state-set", callbackPtr, staticCFunction { _, state, ptr ->
+            ptr.useCallbackPtr<FanWidgets> { _, widgets ->
+                val component = widgets.component
 
-            val sensitive = component.mode != BasicPrismMode.OFF && component.mirageState != MirageState.Off
-            (mirageFreqSpinners union mirageLabels).forEach { widget ->
-                widget.setSensitive(sensitive)
+                component.mirageState = if (state == 0) MirageState.Off else MirageState.DEFAULT
+
+                val sensitive = component.mode != BasicPrismMode.OFF && component.mirageState != MirageState.Off
+                (widgets.mirageFreqSpinners union widgets.mirageLabels).forEach { widget ->
+                    widget.setSensitive(sensitive)
+                }
             }
             false
-        }
+        })
     }
 
     private val mirageFreqSpinners = List(3) {
@@ -237,22 +248,23 @@ class RingWidgets(wraith: WraithPrism) : PrismComponentWidgets(wraith, PrismRing
         connectToSignal("changed") {
             changeCallback(this)
         }
-
-        connectToSignal("icon-press") { _: GtkEntryIconPosition, _: CPointer<GdkEvent> ->
-            when {
-                morseHint == null -> {
-                    morseHintLabel = gtk_label_new(text.hintText)!!
-                    morseHint = gtk_popover_new(this)!!.apply {
-                        gtk_popover_set_modal(reinterpret(), 0)
-                        gtk_container_set_border_width(reinterpret(), 8u)
-                        gtk_container_add(reinterpret(), morseHintLabel)
-                        gtk_widget_show_all(this)
+        connectToSignal<IconPressCallbackFunc>("icon-press", callbackPtr, staticCFunction { widget, _, _, ptr ->
+            ptr.useCallbackPtr<RingWidgets> { _, widgets ->
+                when {
+                    widgets.morseHint == null -> {
+                        widgets.morseHintLabel = gtk_label_new(widget.text.hintText)!!
+                        widgets.morseHint = gtk_popover_new(widget)!!.apply {
+                            gtk_popover_set_modal(reinterpret(), 0)
+                            gtk_container_set_border_width(reinterpret(), 8u)
+                            gtk_container_add(reinterpret(), widgets.morseHintLabel)
+                            gtk_widget_show_all(this)
+                        }
                     }
+                    gtk_widget_is_visible(widgets.morseHint) == 1 -> gtk_widget_hide(widgets.morseHint)
+                    else -> gtk_widget_show(widgets.morseHint)
                 }
-                gtk_widget_is_visible(morseHint) == 1 -> gtk_widget_hide(morseHint)
-                else -> gtk_widget_show(morseHint)
             }
-        }
+        })
     }
 
     private val morseReloadButton = gtk_button_new_from_icon_name("gtk-ok", GtkIconSize.GTK_ICON_SIZE_BUTTON)!!.apply {
@@ -290,6 +302,18 @@ class RingWidgets(wraith: WraithPrism) : PrismComponentWidgets(wraith, PrismRing
         morseContainer.setSensitive(device.ring.mode == PrismRingMode.MORSE && !device.enso)
         if (device.ring.mode != PrismRingMode.MORSE) morseHint?.let { hint -> gtk_widget_hide(hint) }
     }
+}
+
+private inline fun <W : PrismComponentWidgets> COpaquePointer.useCallbackPtr(action: (WraithPrism, W) -> Unit) {
+    val (wraith, widgets) = asStableRef<CallbackData<W>>().get()
+    if (!widgets.isReloading) {
+        action(wraith, widgets)
+    }
+}
+
+private class CallbackData<W : PrismComponentWidgets>(val wraith: WraithPrism, val widgets: W) {
+    operator fun component1() = wraith
+    operator fun component2() = widgets
 }
 
 private val String.hintText: String
