@@ -72,7 +72,6 @@ fun iconButton(iconName: String, text: String?) =
 fun gridScale(marks: Int): Widget {
     val adjustment = gtk_adjustment_new(0.0, 0.0, marks.toDouble() - 1, 1.0, 0.0, 0.0)!!
     return gtk_scale_new(GtkOrientation.GTK_ORIENTATION_HORIZONTAL, adjustment)!!.apply {
-        gtk_scale_set_digits(reinterpret(), 0)
         gtk_scale_set_draw_value(reinterpret(), 0)
         gtk_widget_set_size_request(this, 96, -1)
         gtk_widget_set_halign(this, GtkAlign.GTK_ALIGN_END)

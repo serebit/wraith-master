@@ -3,6 +3,8 @@ package com.serebit.wraith.gtk
 import com.serebit.wraith.core.prism.*
 import gtk3.*
 import kotlinx.cinterop.*
+import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 typealias IconPressCallbackFunc = CFunction<(Widget, GtkEntryIconPosition, CPointer<GdkEvent>, COpaquePointer) -> Unit>
 typealias StateSetCallbackFunc = CFunction<(Widget, Int, COpaquePointer) -> Boolean>
@@ -63,7 +65,12 @@ sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out Pri
 
     private val brightnessScale = gridScale(Brightness.values().size).apply {
         connectToSignal("value-changed") {
-            component.brightness = Brightness.values()[gtk_range_get_value(reinterpret()).toInt()]
+            val value = gtk_range_get_value(reinterpret())
+            val rounded = value.roundToInt()
+            if (rounded == component.brightness.ordinal || value != ceil(value)) {
+                return@connectToSignal
+            }
+            component.brightness = Brightness.values()[rounded]
             component.submitValues()
             device.apply()
         }
@@ -71,7 +78,12 @@ sealed class PrismComponentWidgets(val device: WraithPrism, modes: Array<out Pri
 
     private val speedScale = gridScale(Speed.values().size).apply {
         connectToSignal("value-changed") {
-            component.speed = Speed.values()[gtk_range_get_value(reinterpret()).toInt()]
+            val value = gtk_range_get_value(reinterpret())
+            val rounded = value.roundToInt()
+            if (rounded == component.speed.ordinal || value != ceil(value)) {
+                return@connectToSignal
+            }
+            component.speed = Speed.values()[rounded]
             component.submitValues()
             device.apply()
         }
