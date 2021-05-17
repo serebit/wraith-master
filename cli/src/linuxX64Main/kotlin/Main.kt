@@ -1,16 +1,16 @@
 package com.serebit.wraith.cli
 
 import com.serebit.wraith.core.DeviceResult
+import com.serebit.wraith.core.PROGRAM_VERSION
 import com.serebit.wraith.core.obtainWraithPrism
 import com.serebit.wraith.core.prism.*
-import com.serebit.wraith.core.programVersion
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlin.String as KString
 
 fun main(args: Array<KString>) {
     when (args.singleOrNull()) {
-        "-v", "--version" -> return println("Wraith Master, version $programVersion")
+        "-v", "--version" -> return println("Wraith Master, version $PROGRAM_VERSION")
         "-f", "--firmwareversion" -> return modifyWraithPrism(false) {
             println("The connected Wraith Prism has firmware version ${requestFirmwareVersion()}")
         }

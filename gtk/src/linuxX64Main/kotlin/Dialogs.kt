@@ -1,6 +1,6 @@
 package com.serebit.wraith.gtk
 
-import com.serebit.wraith.core.programVersion
+import com.serebit.wraith.core.PROGRAM_VERSION
 import gtk3.*
 import kotlinx.cinterop.reinterpret
 
@@ -8,7 +8,7 @@ fun runAboutDialog() {
     gtk_about_dialog_new()!!.apply {
         gtk_about_dialog_set_program_name(reinterpret(), "Wraith Master")
         gtk_about_dialog_set_logo_icon_name(reinterpret(), "wraith-master")
-        gtk_about_dialog_set_version(reinterpret(), "Version $programVersion")
+        gtk_about_dialog_set_version(reinterpret(), "Version $PROGRAM_VERSION")
         gtk_about_dialog_set_website(reinterpret(), "https://gitlab.com/serebit/wraith-master")
         gtk_about_dialog_set_website_label(reinterpret(), "Visit on GitLab")
         gtk_about_dialog_set_copyright(
