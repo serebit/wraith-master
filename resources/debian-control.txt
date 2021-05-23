@@ -1,9 +1,9 @@
 Package: wraith-master
 Version: %%VERSION%%
+Depends: libusb-1.0-0, libgtk-3-0
 Section: custom
 Priority: optional
 Architecture: amd64
 Essential: no
-Installed-Size: 1024
 Maintainer: serebit
 Description: A Wraith Prism RGB control application for Linux, built with GTK+ and Kotlin/Native.
