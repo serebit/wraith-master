@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+    <id>wraith-master.desktop</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>Apache-2.0</project_license>
+    <name>Wraith Master</name>
+    <summary>GUI and command-line utility for controlling the RGB LEDs on AMD Wraith CPU coolers</summary>
+    <description>
+        <p>
+            Wraith Master is a lightweight application for controlling the RGB LEDs on AMD's Wraith stock coolers. At
+            the moment, the only supported cooler is the Wraith Prism, but there are plans to add other Wraith coolers
+            as well. Both a command line interface and a graphical interface are provided.
+        </p>
+    </description>
+    <screenshots>
+        <screenshot type="default">
+            <image>https://serebit.com/images/wraith-master-screenshot.png</image>
+        </screenshot>
+    </screenshots>
+    <url type="homepage">https://gitlab.com/serebit/wraith-master/</url>
+</component>
