@@ -22,8 +22,8 @@ mkdir -p %{buildroot}
 cp -a * %{buildroot}
 
 %check
-desktop-file-validate %{buildroot}%{_datadir}/applications/%{name}.desktop
-appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/*.metainfo.xml
+desktop-file-validate %{buildroot}%{_datadir}/applications/com.serebit.WraithMaster.desktop
+appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/com.serebit.WraithMaster.metainfo.xml
 
 %clean
 rm -rf %{buildroot}
@@ -32,8 +32,8 @@ rm -rf %{buildroot}
 %{_bindir}/%{name}
 %{_bindir}/%{name}-gtk
 %{_libdir}/udev/rules.d/99-%{name}.rules
-%{_datadir}/applications/%{name}.desktop
-%{_datadir}/metainfo/%{name}.metainfo.xml
+%{_datadir}/applications/com.serebit.WraithMaster.desktop
+%{_datadir}/metainfo/com.serebit.WraithMaster.metainfo.xml
 %{_datadir}/icons/hicolor/scalable/apps/%{name}.svg
 %{_mandir}/man1/wraith-master-gtk.1.gz
 %{_mandir}/man1/wraith-master.1.gz
