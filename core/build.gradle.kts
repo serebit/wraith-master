@@ -2,10 +2,8 @@ plugins {
     kotlin("multiplatform")
 }
 
-kotlin.linuxX64().compilations["main"].apply {
-    cinterops.create("libusb") {
-        includeDirs("/opt/local/include", "/usr/include", "/usr/local/include")
-    }
+kotlin.linuxX64 {
+    compilations["main"].cinterops.create("libusb")
 }
 
 projectDir.resolve("src/commonMain/kotlin").also { commonDir ->

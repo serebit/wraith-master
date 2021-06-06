@@ -14,14 +14,7 @@ kotlin.linuxX64 {
             implementation(project(":core"))
         }
 
-        cinterops.create("gtk3") {
-            val includePaths = listOf("/opt/local/include/", "/usr/include/", "/usr/local/include/")
-            val headers = listOf("atk-1.0", "gdk-pixbuf-2.0", "cairo", "harfbuzz", "pango-1.0", "gtk-3.0", "glib-2.0")
-
-            includePaths.associateWith { headers }.flatMap { (key, value) -> value.map { key + it } }.also {
-                includeDirs(*it.toTypedArray())
-            }
-        }
+        cinterops.create("gtk3")
     }
 }
 
