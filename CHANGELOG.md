@@ -5,15 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased - v1.2.0-dev
+## v1.2.0 - Brownie (2021-06-06)
 
 #### Added
 
-- [#3](https://gitlab.com/serebit/wraith-master/-/issues/3) - Partial support for Alpine, Adélie, and other
-  distributions that use musl! Requires gcompat to be installed for Alpine and Adélie, but otherwise works out of the box
+- [#3](https://gitlab.com/serebit/wraith-master/-/issues/3) - Compatibility with Alpine, Adélie, and other distributions
+  that use musl! Requires gcompat to be installed for Alpine and Adélie, but otherwise works out of the box
 - [#13](https://gitlab.com/serebit/wraith-master/-/issues/13) - Man pages for both GTK and CLI, hand-written and
   compiled by scdoc
 - [#16](https://gitlab.com/serebit/wraith-master/-/issues/16) - Support for manually resetting the USB port
+- `.metainfo.xml` file for the GTK frontend
 
 #### Changed
 
@@ -25,14 +26,17 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 #### Fixed
 
 - GTK now exits gracefully if the device is disconnected while the program is running
+- Massively reduce data sent to Wraith Prism when speed and brightness are changed in GTK
+- Properly specify package dependencies when building the deb file, so that apt and dpkg can check for the presence of
+  these dependencies
 
 #### Meta
 
-- Replace most compile-time Gradle properties (see
+- Remove most compile-time Gradle properties and add a Makefile and justfile for packaging (see
   [the wiki](https://gitlab.com/serebit/wraith-master/-/wikis/help/building-from-source) for more information)
-- Add `disable-man-pages` Gradle property to disable automatic man page generation
-- Add `releaseDeb` and `releaseRpm` tasks
-- Rename `distTar` task to `releaseTar`
+- Change include paths for cinterop to /usr only, removing /usr/local and /opt
+- Update Kotlin to v1.5.10
+- Update Gradle wrapper to v7.0.2
 
 ## v1.1.2 (2021-03-16)
 

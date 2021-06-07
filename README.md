@@ -2,57 +2,50 @@
 
 [![GitLab][gitlab-badge]](https://gitlab.com/serebit/wraith-master)
 [![GitHub Mirror][github-badge]](https://github.com/serebit/wraith-master)
-[![AUR][aur-badge]](https://aur.archlinux.org/packages/?K=wraith-master)
-[![CI Pipeline Status][pipeline-status-badge]](https://gitlab.com/serebit/wraith-master/commits/master)
-[![License][license-badge]](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Ko-fi][kofi-badge]](https://ko-fi.com/serebit)
+[![AUR][aur-badge]](https://aur.archlinux.org/packages/?K=wraith-master)
+[![License][license-badge]](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 ---
 
 Wraith Master is a feature-complete graphical and command-line application for controlling the RGB LEDs on AMD's Wraith
 stock coolers. At the moment, the only supported cooler is the Wraith Prism, but there are plans to add other Wraith
-coolers as well.
-
-Designed for feature parity with the official Windows-only Cooler Master application, Wraith Master supports all modes
-and settings that the Wraith Prism can use. As the Wraith coolers are capable of storing RGB configurations in-device,
-no daemon is required to maintain configurations, and the program can be uninstalled without fear of losing your
-settings.
+coolers as well. It exists as an independent companion to [OpenRGB](https://openrgb.org/), and is designed to provide
+control over all functionality exposed by the hardware. In summary: it's **lightweight**, it's **native**, it's
+**fast**, it's **complete**, and it's **self-contained.**
 
 ![GTK Screenshot][wraith-master-screenshot]
 
 ![CLI Screenshot][wraith-master-terminal-screenshot]
 
-## Supported Platforms
-
-#### v1.1.2 and Older
-
-Wraith Master versions 1.1.2 and earlier support all 64-bit Linux distributions that use glibc as their primary libc
-implementation, along with distributions that have a complete compatibility layer for glibc (like Void). Distributions
-like Alpine and Adélie are incompatible for now (see [#3](https://gitlab.com/serebit/wraith-master/-/issues/3)).
-
 ## Installing
 
-#### Debian/Ubuntu and Derivatives
+![Packaging Status](https://repology.org/badge/vertical-allrepos/wraith-master.svg)
+
+### Debian, Ubuntu, Mint
 
 Prebuilt `.deb` packages are available on the Releases page on both GitLab and GitHub.
 
-#### Fedora and Derivatives
+### Red Hat, Fedora
 
 Prebuilt `.rpm` packages are available on the Releases page on both GitLab and GitHub.
 
-#### Arch and Derivatives
+### Arch Linux
 
-If you're on Arch Linux or one of its derivatives, you can install both
-frontends [from the AUR](https://aur.archlinux.org/packages/?K=wraith%2Dmaster). If you'd rather not build from source,
-you'll want to install `wraith-master-bin`; otherwise, it's under `wraith-master-cli` for the CLI frontend
-and `wraith-master-gtk` for the GTK frontend.
+[![AUR package](https://repology.org/badge/version-for-repo/aur/wraith-master.svg)](https://aur.archlinux.org/packages/?K=wraith%2Dmaster)
 
-#### Solus
+If you're on Arch Linux or one of its derivatives, you can install both frontends from the AUR. If you'd rather not
+build from source, you'll want to install `wraith-master-bin`; otherwise, it's under `wraith-master-cli` for the CLI
+frontend and `wraith-master-gtk` for the GTK frontend.
+
+### Solus
+
+[![Solus package](https://repology.org/badge/version-for-repo/solus/wraith-master.svg)](https://packages.getsol.us/shannon/w/wraith-master/)
 
 Solus has both frontends in the official repository. They can be installed either by
 running `sudo eopkg install wraith-master` in the terminal, or searching for the package in the Software Center.
 
-#### Other Distributions
+### Other Distributions
 
 There are precompiled binaries available for each release [here](https://gitlab.com/serebit/wraith-master/-/releases),
 with all binaries and resources included.
@@ -64,26 +57,16 @@ standalone binary rather than a distribution package (which would prompt these d
 
 #### Normal Version
 
-| Distribution           | Shared Dependencies | GTK-Only     |
-|------------------------|---------------------|--------------|
-| Debian, Ubuntu, etc.   | `libusb-1.0-0`      | `libgtk-3.0` |
-| Arch, Manjaro, etc.    |                     | `gtk3`       |
-| Fedora                 |                     | `gtk3`       |
-| OpenSUSE               |                     | `gtk3`       |
-| Solus                  |                     |              |
-| Void                   |                     |              |
-| Gentoo                 | `dev-libs/libusb`   | `gtk+`       |
-
-## Architecture
-
-Wraith Master uses the Kotlin programming language and its LLVM backend (also known as Kotlin/Native). This backend
-provides semi-transparent interop with C libraries, which Wraith Master makes use of for two common libraries—libusb for
-communication with the Wraith Prism, and libgtk (version 3) for the graphical user interface. The backend itself also
-requires glibc to be in use, as explained above, though this may change in the future.
-
-As Kotlin/Native uses LLVM as its backend, it compiles directly to native executables of rather paltry size. This is one
-of the reasons Kotlin/Native was used over the more common JVM backend for Kotlin; a JVM is required to build the
-software, but not to use it.
+| Distribution         | Shared Dependencies | GTK-Only     |
+|----------------------|---------------------|--------------|
+| Debian, Ubuntu, etc. | `libusb-1.0-0`      | `libgtk-3.0` |
+| Arch, Manjaro, etc.  |                     | `gtk3`       |
+| Fedora               |                     | `gtk3`       |
+| OpenSUSE             |                     | `gtk3`       |
+| Solus                |                     |              |
+| Void                 |                     |              |
+| Gentoo               | `dev-libs/libusb`   | `gtk+`       |
+| Alpine               | `libusb`            | `gtk+3.0`    |
 
 ## Building from Source
 
@@ -111,8 +94,8 @@ All contributions to this repository will be subject to this license.
 
 - **gfduszynski**, for his work on [cm-rgb](https://github.com/gfduszynski/cm-rgb). Although I started Wraith Master
   before discovering cm-rgb, gfduszynski's groundwork made it viable for me to continue working on it.
-- **Adam Honse**, for his work on [OpenRGB](https://gitlab.com/CalcProgrammer1/OpenRGB). This had some extra
-  documentation on specific functions that I was lacking.
+- **Adam Honse**, for his work on [OpenRGB](https://openrgb.org/). This had some extra documentation on specific
+  functions that I was lacking.
 - **ballsystemlord**, **Kirk**, and **tralamazza** from the [AdoredTV](https://adoredtv.com/) Discord server, along
   with **[Apache](https://github.com/Apache-HB)** and **my dad**, for helping me figure out how the mirage frequencies
   are converted to byte values.
